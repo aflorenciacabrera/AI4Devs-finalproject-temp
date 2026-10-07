@@ -1,0 +1,38 @@
+schema: spec-driven
+
+context: |
+  Proyecto: Firmadoc — servicio de firma digital institucional, embebible en otros sistemas
+  (trabajo final del Master AI4Devs). Fuente de verdad del diseño: README.md (secciones 1-7).
+  Backlog: Jira, proyecto FIRDOC (https://aflorenciacabrera.atlassian.net). Cada change de OpenSpec
+  debe citar la clave FIRDOC-N que implementa.
+
+  Stack: Python + pyHanko (PAdES, firma interrumpida), FastAPI, SQLAlchemy + Alembic, React (widget),
+  agente local `agent/` con PKCS#11. Tests: pytest, SoftHSM para PKCS#11 en CI.
+  Estructura: backend/, widget/, admin-panel/, agent/.
+
+  Dominio:
+  - Proveedores de firma intercambiables: `token` (firma digital, AC licenciada, modo principal),
+    `local` (autofirmado, firma electrónica, demostración), `firmar` (remoto, mock, should-have).
+  - Firma diferida: el servidor prepara el PDF y calcula el hash (`prepare`), el token firma solo el hash,
+    el servidor incrusta la firma (`complete`). El PDF nunca viaja a la PC.
+  - Versionado: `Document` + `DocumentVersion` inmutables (append-only) con `current_version_id`.
+    Toda firma completada genera una nueva versión vigente Y queda descargable; nunca son alternativas.
+  - Desafíos de firma de un solo uso; `AuditEvent` y `DocumentVersion` sin UPDATE/DELETE.
+  - Confidencialidad: no nombrar al organismo empleador, la provincia ni al proveedor comercial de referencia.
+
+  Convenciones: documentación y specs en español; identificadores de código y endpoints en inglés;
+  conventional commits.
+
+rules:
+  proposal:
+    - Citar la clave FIRDOC-N del backlog y la historia de usuario (HU) del README que se implementa
+    - Incluir una sección "Fuera de alcance"
+  tasks:
+    - Dividir en tareas de máximo 2 horas
+    - Cada tarea de seguridad (desafíos, validación de confianza, agente local) debe tener su test
+
+operations:
+  apply:
+    guidance:
+      - Desarrollar contra SoftHSM antes de usar un token físico
+      - No ejecutar migraciones destructivas; las tablas append-only no admiten UPDATE/DELETE
