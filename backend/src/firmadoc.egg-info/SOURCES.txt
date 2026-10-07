@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+backend/src/firmadoc.egg-info/PKG-INFO
+backend/src/firmadoc.egg-info/SOURCES.txt
+backend/src/firmadoc.egg-info/dependency_links.txt
+backend/src/firmadoc.egg-info/requires.txt
+backend/src/firmadoc.egg-info/top_level.txt
+backend/src/firmadoc/__init__.py
+backend/src/firmadoc/config.py
+backend/src/firmadoc/db.py
+backend/src/firmadoc/main.py
+backend/src/firmadoc/models.py
+backend/src/firmadoc.egg-info/SOURCES.txt

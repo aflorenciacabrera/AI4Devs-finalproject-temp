@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: firmadoc
+      POSTGRES_PASSWORD: firmadoc
+      POSTGRES_DB: firmadoc
+    ports:
+      - "5432:5432"
