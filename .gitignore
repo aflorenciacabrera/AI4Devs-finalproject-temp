@@ -12,3 +12,4 @@ backend/trust/*.key
 tests/pki/out/
 firmadoc.db
 .venv/
+*.egg-info/
