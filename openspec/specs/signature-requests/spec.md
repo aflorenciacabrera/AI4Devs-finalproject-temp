@@ -36,12 +36,16 @@ Todos los endpoints de `/api/v1` del flujo de firma SHALL exigir la cabecera `X-
 - **WHEN** `document_base64` no es base64 válido, no es un PDF o excede el tamaño máximo
 - **THEN** la respuesta es `422` con el detalle del motivo
 
+#### Scenario: Proveedor token habilitado
+- **WHEN** `provider` es `token`
+- **THEN** la solicitud se crea con `201` igual que con `local`
+
 #### Scenario: Proveedor no habilitado
-- **WHEN** `provider` es `token` o `firmar` y ese proveedor aún no está disponible
+- **WHEN** `provider` es `firmar` y ese proveedor aún no está disponible
 - **THEN** la respuesta es `422` indicando que el proveedor no está habilitado
 
 ### Requirement: Preparar la firma
-`POST /api/v1/signature-requests/{id}/prepare` SHALL calcular el hash a firmar, crear un `SigningChallenge` de un solo uso con vencimiento y atado a la sesión, pasar la solicitud a `signing` y responder `200` con `challenges` y `expires_at`.
+`POST /api/v1/signature-requests/{id}/prepare` SHALL calcular el hash a firmar, crear un `SigningChallenge` de un solo uso con vencimiento y atado a la sesión, pasar la solicitud a `signing` y responder `200` con `challenges` y `expires_at`. Cuando el proveedor valida un certificado, los rechazos SHALL responder con un cuerpo `{detail, code}` y no SHALL crear ningún desafío.
 
 #### Scenario: Preparación exitosa
 - **WHEN** se prepara una solicitud en estado `pending`
@@ -54,6 +58,10 @@ Todos los endpoints de `/api/v1` del flujo de firma SHALL exigir la cabecera `X-
 #### Scenario: Estado inválido
 - **WHEN** la solicitud ya está `signed` o `failed`
 - **THEN** la respuesta es `409`
+
+#### Scenario: Certificado rechazado
+- **WHEN** el proveedor rechaza el certificado enviado
+- **THEN** la respuesta es `403` (identidad) o `422` (certificado) con `code`, la solicitud permanece en su estado y se registra el evento de auditoría `rejected` con el motivo
 
 ### Requirement: Completar la firma
 `POST /api/v1/signature-requests/{id}/complete` SHALL verificar que cada firma corresponde a un desafío vigente, incrustar la firma PAdES como actualización incremental, crear la nueva `DocumentVersion` `signed`, actualizar `Document.current_version_id` y `signing_status`, y responder `200` con el bloque `document`.
