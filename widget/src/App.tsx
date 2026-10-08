@@ -16,6 +16,7 @@ import { AwaitingPin } from "./screens/AwaitingPin";
 import { CertRejected } from "./screens/CertRejected";
 import { ChooseCertificate } from "./screens/ChooseCertificate";
 import { ConfirmLocal } from "./screens/ConfirmLocal";
+import { BatchResult } from "./screens/BatchResult";
 import { Success } from "./screens/Success";
 import { ChooseProvider } from "./screens/ChooseProvider";
 import { ConfirmRemote } from "./screens/ConfirmRemote";
@@ -29,7 +30,7 @@ export interface AppProps {
 }
 
 export function App({ services, now = () => new Date() }: AppProps) {
-  const { state, actions } = useSigningFlow(services);
+  const { state, actions, agentStatus } = useSigningFlow(services);
   const [announcement, setAnnouncement] = useState("");
 
   const changeProvider = canChangeProvider(state) ? actions.changeProvider : undefined;
@@ -54,8 +55,8 @@ export function App({ services, now = () => new Date() }: AppProps) {
       case "choose_provider":
         return (
           <ChooseProvider
-            documentName={state.context.document_name}
-            providers={state.context.allowed_providers}
+            context={state.context}
+            agentStatus={agentStatus}
             pending={state.pending}
             failed={state.error !== null}
             onChoose={actions.chooseProvider}
@@ -197,7 +198,14 @@ export function App({ services, now = () => new Date() }: AppProps) {
           />
         );
       case "success":
-        return (
+        return state.context.batch ? (
+          <BatchResult
+            context={state.context}
+            onDownload={actions.download}
+            onRetry={actions.retryFailed}
+            onClose={actions.close}
+          />
+        ) : (
           <Success context={state.context} onDownload={actions.download} onClose={actions.close} />
         );
       case "failed":

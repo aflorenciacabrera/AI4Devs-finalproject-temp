@@ -10,6 +10,7 @@ from .api.admin_routes import router as admin_router
 from .api.firmar_routes import router as firmar_router
 from .api.pages import router as pages_router
 from .api.routes import router
+from .api.widget_batch_routes import router as widget_batch_router
 from .api.widget_routes import router as widget_router
 from .errors import DomainError
 
@@ -36,6 +37,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Firmadoc", lifespan=lifespan)
 app.include_router(router)
 app.include_router(widget_router)
+app.include_router(widget_batch_router)
 app.include_router(admin_router)
 app.include_router(firmar_router)
 app.include_router(mock_firmar.router)

@@ -3,8 +3,10 @@
 import type {
   AgentCertificate,
   AgentSignature,
+  BatchContextResponse,
   Challenge,
   PrepareResponse,
+  RetryResponse,
   WidgetContext,
 } from "./types";
 
@@ -26,6 +28,27 @@ export function isWidgetContext(x: unknown): x is WidgetContext {
     x.allowed_providers.every(isString) &&
     isString(x.agent_url)
   );
+}
+
+export function isBatchContext(x: unknown): x is BatchContextResponse {
+  return (
+    isObject(x) &&
+    isString(x.id) &&
+    isString(x.status) &&
+    isString(x.provider) &&
+    isString(x.signer_name) &&
+    Array.isArray(x.allowed_origins) &&
+    x.allowed_origins.every(isString) &&
+    Array.isArray(x.allowed_providers) &&
+    x.allowed_providers.every(isString) &&
+    isString(x.agent_url) &&
+    Array.isArray(x.documents) &&
+    x.documents.every((d) => isObject(d) && isString(d.signature_request_id) && isString(d.document_name) && isString(d.status))
+  );
+}
+
+export function isRetryResponse(x: unknown): x is RetryResponse {
+  return isObject(x) && isString(x.id) && isString(x.signing_url);
 }
 
 function isChallenge(x: unknown): x is Challenge {

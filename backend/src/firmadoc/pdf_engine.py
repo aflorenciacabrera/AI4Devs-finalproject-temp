@@ -54,6 +54,10 @@ def validate_pdf(data: bytes) -> None:
         raise PdfEngineError("el PDF no se pudo leer") from e
 
 
+def page_count(pdf: bytes) -> int:
+    return int(PdfFileReader(io.BytesIO(pdf)).root["/Pages"]["/Count"])
+
+
 def signature_count(pdf: bytes) -> int:
     return len(PdfFileReader(io.BytesIO(pdf)).embedded_signatures)
 

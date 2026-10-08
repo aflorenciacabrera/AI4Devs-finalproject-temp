@@ -54,11 +54,12 @@ El widget avisa con `window.parent.postMessage`, siempre con `targetOrigin` expl
 |---|---|---|
 | `firmadoc:ready` | cargó el contexto de la solicitud | — |
 | `firmadoc:signed` | la firma se completó | `document`: `id`, `version_number`, `is_active_version`, `signing_status`, `signature_level` |
+| `firmadoc:batch-completed` | un lote terminó (solo en `/sign/batch/{id}`) | `batchId`, `status`, `signed`, `total` y `documents[]` con `document_id`, `status`, `version_number` |
 | `firmadoc:failed` | error irrecuperable | `code` (sin detalles internos) |
 | `firmadoc:cancelled` | la persona canceló antes de firmar | — |
 | `firmadoc:closed` | la persona cerró la pantalla de resultado | — |
 
-Todos llevan `{ source: "firmadoc", type, requestId }`. El widget **no acepta mensajes entrantes**. Para saber el resultado de forma confiable, el backend del integrador debe consultar la solicitud con su API key (`GET /api/v1/signature-requests/{id}`): el mensaje del navegador es solo para actualizar la interfaz.
+Todos llevan `{ source: "firmadoc", type, requestId }` (en un lote, `requestId` es el id del lote). El widget **no acepta mensajes entrantes**. Para saber el resultado de forma confiable, el backend del integrador debe consultar la solicitud con su API key (`GET /api/v1/signature-requests/{id}`): el mensaje del navegador es solo para actualizar la interfaz.
 
 **Siempre validá el emisor** en la página anfitriona:
 

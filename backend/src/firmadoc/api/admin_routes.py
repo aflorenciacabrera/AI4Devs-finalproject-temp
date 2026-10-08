@@ -111,6 +111,29 @@ def rotate_local_certificate(
     return admin.rotate_local_certificate(db, settings)
 
 
+class BatchFileIn(BaseModel):
+    filename: str = Field(min_length=1, max_length=255)
+    document_base64: str = Field(min_length=1)
+
+
+class SigningBatchUploadIn(BaseModel):
+    documents: list[BatchFileIn]
+    signer: PanelSigner | None = None
+
+
+@router.post("/signing-batch-uploads", status_code=201)
+def signing_batch_upload(
+    body: SigningBatchUploadIn,
+    db: Session = Depends(get_db),
+    storage: DocumentStorage = Depends(get_storage),
+    settings: Settings = Depends(settings_dep),
+):
+    signer = (body.signer.full_name, body.signer.identifier, body.signer.email) if body.signer else None
+    return panel_upload.upload_batch(
+        db, storage, settings, documents=[d.model_dump() for d in body.documents], signer=signer
+    )
+
+
 @router.post("/signing-uploads", status_code=201)
 def signing_upload(
     body: SigningUploadIn,

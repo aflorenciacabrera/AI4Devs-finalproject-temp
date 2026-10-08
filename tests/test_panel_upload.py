@@ -14,6 +14,7 @@ from firmadoc.models import (
     Document,
     DocumentVersion,
     IntegratingSystem,
+    SignatureBatch,
     SignatureRequest,
     Signer,
     VersionOrigin,
@@ -236,3 +237,82 @@ def test_firma_completa_de_una_solicitud_del_panel(client, admin, session):
     )
     assert [v.version_number for v in versions] == [1, 2]
     assert session.get(Document, uuid.UUID(body["document_id"])).current_version_id == versions[1].id
+
+
+# --- varios PDF: lote del panel -----------------------------------------------------------------------
+
+BATCH_URL = "/api/v1/admin/signing-batch-uploads"
+
+
+def batch_body(n=3, **extra):
+    documents = [
+        {"filename": f"Expediente_{i}.pdf", "document_base64": b64(make_pdf(f"BT {i} ET".encode()))} for i in range(n)
+    ]
+    return {"documents": documents, **extra}
+
+
+def test_lote_valido_del_panel(client, admin, session):
+    r = client.post(BATCH_URL, headers=admin, json=batch_body(3))
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["signing_url"].startswith(f"http://test/sign/batch/{body['batch_id']}#t=")
+    assert sorted(d["filename"] for d in body["documents"]) == [f"Expediente_{i}.pdf" for i in range(3)]
+    assert all(d["page_count"] == 1 and d["size_bytes"] > 0 and d["document_hash"] for d in body["documents"])
+
+    session.expire_all()
+    batch = session.get(SignatureBatch, uuid.UUID(body["batch_id"]))
+    assert batch.allowed_providers == "token,local"  # sin firma remota en lotes
+    requests = session.scalars(select(SignatureRequest).where(SignatureRequest.batch_id == batch.id)).all()
+    assert len(requests) == 3 and {r.status.value for r in requests} == {"pending"}
+    versions = session.scalars(select(DocumentVersion)).all()
+    assert {v.version_number for v in versions if v.document_id in {r.document_id for r in requests}} == {1}
+    assert batch.integrating_system_id == panel_systems(session)[0].id
+
+
+def test_lote_con_archivo_invalido_no_deja_filas(client, admin, session):
+    before = (count(session, Document), count(session, SignatureRequest), count(session, SignatureBatch))
+    body = batch_body(2)
+    body["documents"][1]["document_base64"] = b64(b"no es un pdf")
+    assert client.post(BATCH_URL, headers=admin, json=body).status_code == 422
+    assert (count(session, Document), count(session, SignatureRequest), count(session, SignatureBatch)) == before
+    assert panel_systems(session) == []
+
+
+def test_lote_con_cantidad_fuera_de_rango(client, admin, settings):
+    assert client.post(BATCH_URL, headers=admin, json=batch_body(1)).status_code == 422
+    assert client.post(BATCH_URL, headers=admin, json={"documents": []}).status_code == 422
+    settings.max_batch_size = 3
+    assert client.post(BATCH_URL, headers=admin, json=batch_body(4)).status_code == 422
+    assert client.post(BATCH_URL, headers=admin, json=batch_body(3)).status_code == 201
+
+
+def test_lote_sin_credenciales(client, admin, settings):
+    assert client.post(BATCH_URL, json=batch_body(2)).status_code == 401
+    assert client.post(BATCH_URL, headers={"Authorization": "Bearer otro"}, json=batch_body(2)).status_code == 401
+    settings.admin_token = None
+    assert client.post(BATCH_URL, headers=admin, json=batch_body(2)).status_code == 404
+
+
+def test_lote_con_el_mismo_pdf_repetido_conserva_cada_nombre(client, admin):
+    pdf = b64(make_pdf())
+    documents = [{"filename": f"copia_{i}.pdf", "document_base64": pdf} for i in range(2)]
+    r = client.post(BATCH_URL, headers=admin, json={"documents": documents})
+    assert r.status_code == 201, r.text
+    assert sorted(d["filename"] for d in r.json()["documents"]) == ["copia_0.pdf", "copia_1.pdf"]
+
+
+def test_auditoria_del_lote_sin_contenido(client, admin, session):
+    body = client.post(BATCH_URL, headers=admin, json=batch_body(2)).json()
+    session.expire_all()
+    event = session.scalar(select(AdminEvent).where(AdminEvent.action == "panel_batch_upload"))
+    assert event.detail["batch_id"] == body["batch_id"] and len(event.detail["documents"]) == 2
+    assert "document_base64" not in str(event.detail)
+
+
+def test_el_widget_muestra_el_nombre_del_archivo_subido(client, admin):
+    from .test_widget_endpoints import WIDGET, bearer
+
+    body = upload(client, admin).json()
+    token = body["signing_url"].partition("#t=")[2]
+    ctx = TestClient(app).get(f"{WIDGET}/{body['request_id']}", headers=bearer(token)).json()
+    assert ctx["document_name"] == "Resolucion_0142-2026.pdf"

@@ -8,18 +8,20 @@
  * No hay mensajes entrantes: el widget no registra ningún listener de `message`.
  */
 
-import type { DocumentBlock } from "../api/types";
+import type { BatchInfo, DocumentBlock } from "../api/types";
 
 export type HostMessageType =
   | "firmadoc:ready"
   | "firmadoc:signed"
   | "firmadoc:failed"
+  | "firmadoc:batch-completed"
   | "firmadoc:cancelled"
   | "firmadoc:closed";
 
 export interface HostNotifier {
   ready(): void;
   signed(document: DocumentBlock | null): void;
+  batchCompleted(batch: BatchInfo, batchId: string): void;
   failed(code: string): void;
   cancelled(): void;
   closed(): void;
@@ -54,6 +56,18 @@ export function createHostNotifier(
     ready: () => send("firmadoc:ready"),
     signed: (document) => send("firmadoc:signed", { document: document ? publicDocument(document) : null }),
     failed: (code) => send("firmadoc:failed", { code }),
+    batchCompleted: (batch, batchId) =>
+      send("firmadoc:batch-completed", {
+        batchId,
+        status: batch.status,
+        signed: batch.documents.filter((d) => d.status === "signed").length,
+        total: batch.documents.length,
+        documents: batch.documents.map((d) => ({
+          document_id: d.document_id,
+          status: d.status,
+          version_number: d.version_number,
+        })),
+      }),
     cancelled: () => send("firmadoc:cancelled"),
     closed: () => send("firmadoc:closed"),
   };
@@ -62,6 +76,7 @@ export function createHostNotifier(
 export const silentNotifier: HostNotifier = {
   ready() {},
   signed() {},
+  batchCompleted() {},
   failed() {},
   cancelled() {},
   closed() {},

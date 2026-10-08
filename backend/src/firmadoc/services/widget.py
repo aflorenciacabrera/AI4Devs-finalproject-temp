@@ -84,7 +84,10 @@ def widget_context(ctx: Ctx, request: SignatureRequest, token_exp: int) -> dict:
         "signed_at": request.signed_at,
         "certificate": None,
         "document": None,
+        "signing_status": document.signing_status.value,
+        "signature_deadline": document.signature_deadline,
     }
+    context["page_count"], context["size_bytes"] = flow.document_stats(ctx, document)
     if request.certificate_id is not None:
         cert = db.get(Certificate, request.certificate_id)
         context["certificate"] = {

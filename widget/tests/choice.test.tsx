@@ -18,55 +18,94 @@ const click = (name: string | RegExp) => userEvent.click(screen.getByRole("butto
 
 describe("elección del método", () => {
   const two = () => makeContext({ provider: "token", allowed_providers: ["token", "local"] });
+  const TITLE = "Elegí el método de firma";
+  const pick = (name: RegExp) => userEvent.click(screen.getByRole("radio", { name }));
 
-  it("con varios métodos no consulta al agente hasta elegir el token", async () => {
+  it("consulta al agente para mostrar su estado y firma con el token preseleccionado", async () => {
     const fakes = makeFakes(two());
     fakes.server.selectProvider.mockResolvedValue(two());
     const createAgent = vi.fn(fakes.services.createAgent);
     fakes.services.createAgent = createAgent;
     mount(fakes);
-    await heading("¿Cómo querés firmar?");
-    expect(createAgent).not.toHaveBeenCalled();
-    expect(fakes.agent.certificates).not.toHaveBeenCalled();
+    await heading(TITLE);
+    expect(await screen.findByText("Firmadoc Agent conectado · token detectado")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Firma con token/ })).toBeChecked();
 
-    await click(/Firmar con mi token/);
+    await click("Firmar documento");
     await heading("Elegí el certificado");
     expect(fakes.server.selectProvider).toHaveBeenCalledWith("token");
-    expect(createAgent).toHaveBeenCalledOnce();
   });
 
-  it("elegir la firma de demostración la completa sin tocar al agente", async () => {
+  it("cada método lleva su etiqueta de validez", async () => {
+    mount(makeFakes(two()));
+    await heading(TITLE);
+    expect(screen.getByText("Firma digital")).toBeInTheDocument();
+    expect(screen.getByText("Demostración")).toBeInTheDocument();
+    expect(screen.getByText(/no tiene la presunción legal/)).toBeInTheDocument();
+  });
+
+  it("muestra la tarjeta del documento con su estado y vencimiento", async () => {
+    const fakes = makeFakes({
+      ...two(),
+      page_count: 3,
+      size_bytes: 493568,
+      signing_status: "pending_signature",
+      signature_deadline: "2026-09-15T12:00:00-03:00",
+    });
+    mount(fakes);
+    await heading(TITLE);
+    expect(screen.getByText("resolucion-0142-2026.pdf")).toBeInTheDocument();
+    expect(screen.getByText("3 páginas · 482 KB")).toBeInTheDocument();
+    expect(screen.getByText("Pendiente de firma")).toBeInTheDocument();
+    expect(screen.getByText(/Vence 15\/09\/2026/)).toBeInTheDocument();
+  });
+
+  it("elegir la firma de demostración la completa sin tocar al agente para firmar", async () => {
     const fakes = makeFakes(two());
     fakes.server.selectProvider.mockResolvedValue({ ...two(), provider: "local" });
     mount(fakes);
-    await heading("¿Cómo querés firmar?");
-    await click(/Firma electrónica de demostración/);
+    await heading(TITLE);
+    await pick(/Firma propia/);
+    await click("Firmar documento");
     await heading("Firmar el documento");
     await click("Firmar");
     await heading("Documento firmado correctamente");
-    expect(fakes.agent.certificates).not.toHaveBeenCalled();
+    expect(fakes.server.selectProvider).toHaveBeenCalledWith("local");
+    expect(fakes.agent.sign).not.toHaveBeenCalled();
   });
 
-  it("si el agente no está, se puede elegir otro método", async () => {
+  it("si el agente no está, lo indica y se puede elegir otro método", async () => {
     const fakes = makeFakes(two());
     fakes.agent.certificates.mockRejectedValue(new AgentUnreachableError());
     fakes.server.selectProvider.mockResolvedValue(two());
     mount(fakes);
-    await heading("¿Cómo querés firmar?");
-    await click(/Firmar con mi token/);
+    await heading(TITLE);
+    expect(await screen.findByText("No detectamos Firmadoc Agent en esta PC")).toBeInTheDocument();
+    await pick(/Firma con token/);
+    await click("Firmar documento");
     await heading("No detectamos Firmadoc Agent");
     await click("Elegir otro método");
-    await heading("¿Cómo querés firmar?");
+    await heading(TITLE);
   });
 
   it("un rechazo del servidor se informa y permite reintentar", async () => {
     const fakes = makeFakes(two());
     fakes.server.selectProvider.mockRejectedValue(new ServerError("provider_not_allowed", 422, "x"));
     mount(fakes);
-    await heading("¿Cómo querés firmar?");
-    await click(/Firmar con mi token/);
+    await heading(TITLE);
+    await click("Firmar documento");
     expect(await screen.findByRole("alert")).toHaveTextContent("No se pudo elegir ese método");
-    expect(screen.getByRole("button", { name: /Firmar con mi token/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Firmar documento" })).toBeEnabled();
+  });
+
+  it("se elige con el teclado", async () => {
+    const fakes = makeFakes(two());
+    fakes.server.selectProvider.mockResolvedValue({ ...two(), provider: "local" });
+    mount(fakes);
+    await heading(TITLE);
+    screen.getByRole("radio", { name: /Firma con token/ }).focus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(screen.getByRole("radio", { name: /Firma propia/ })).toBeChecked();
   });
 
   it("con un solo método no hay elección ni 'Elegir otro método'", async () => {
@@ -78,7 +117,7 @@ describe("elección del método", () => {
 
   it("cumple las reglas de accesibilidad", async () => {
     const { container } = mount(makeFakes(two()));
-    await heading("¿Cómo querés firmar?");
+    await heading(TITLE);
     expect((await axe(container)).violations).toEqual([]);
   });
 });

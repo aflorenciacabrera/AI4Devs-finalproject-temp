@@ -65,3 +65,13 @@ integrador. El navegador envía `POST /api/v1/admin/signing-uploads` (token de a
 - Cada carga queda en `admin_event` (`panel_upload`: documento, solicitud, nombre de archivo y hash, sin contenido).
 - La sección acepta un solo PDF (el lote desde el panel es otro cambio). «Quitar» o «Reemplazar» no borra lo ya
   cargado: las versiones son append-only y la solicitud queda pendiente en el listado.
+
+### Varios PDF: lote desde el panel
+
+La misma sección acepta varios PDF. Con más de uno arma una lista (se puede quitar alguno) y, al confirmar, envía
+`POST /api/v1/admin/signing-batch-uploads` con `{"documents": [{"filename", "document_base64"}, …], "signer"?}`
+(de 2 a `FIRMADOC_MAX_BATCH_SIZE`; es atómico: si uno es inválido no se crea nada, `422`). El lote queda en el sistema
+interno del panel con los métodos `token` y `local` según estén habilitados (sin firma remota) y se firma con el widget
+de lote embebido. Responde `201` con `batch_id`, `signing_url` y, por documento, `document_id`, `filename`, `page_count`,
+`size_bytes` y `document_hash`. Queda un evento `panel_batch_upload` en `admin_event` (sin contenido). Los documentos
+cargados desde el panel se muestran en el widget con el nombre del archivo.

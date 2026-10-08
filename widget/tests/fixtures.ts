@@ -98,6 +98,7 @@ export function makeFakes(context: WidgetContext = makeContext()): Fakes {
   const host = {
     ready: vi.fn(),
     signed: vi.fn(),
+    batchCompleted: vi.fn(),
     failed: vi.fn(),
     cancelled: vi.fn(),
     closed: vi.fn(),

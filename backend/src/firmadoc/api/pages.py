@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from ..config import Settings
-from ..models import IntegratingSystem, SignatureRequest
+from ..models import IntegratingSystem, SignatureBatch, SignatureRequest
 from ..services.widget import allowed_origins
 from .deps import get_db, settings_dep
 
@@ -67,6 +67,24 @@ def sign_page(
     if not index.is_file():
         return JSONResponse(NOT_BUILT, status_code=503)
     system = db.get(IntegratingSystem, request.integrating_system_id)
+    return FileResponse(
+        index, media_type="text/html; charset=utf-8", headers=page_headers(settings, allowed_origins(system))
+    )
+
+
+@router.get("/sign/batch/{batch_id}")
+def sign_batch_page(
+    batch_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(settings_dep),
+):
+    batch = db.get(SignatureBatch, batch_id)
+    if batch is None:
+        return Response(status_code=404)  # sin cabeceras de widget ni detalle
+    index = _dist(settings) / "index.html"
+    if not index.is_file():
+        return JSONResponse(NOT_BUILT, status_code=503)
+    system = db.get(IntegratingSystem, batch.integrating_system_id)
     return FileResponse(
         index, media_type="text/html; charset=utf-8", headers=page_headers(settings, allowed_origins(system))
     )

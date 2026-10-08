@@ -78,7 +78,9 @@ function firstUsable(certs: AgentCertificate[], now: Date): string | null {
 function route(context: WidgetContext, allowChoice: boolean): State {
   if (context.status === "signed") return { name: "success", context };
   if (context.status === "failed") return { name: "failed", code: "request_failed", context };
-  if (allowChoice && context.status === "pending" && context.allowed_providers.length > 1) {
+  // Un lote siempre pasa por la revisión (lista de documentos y método), aun con un solo método.
+  const review = context.allowed_providers.length > 1 || context.batch !== undefined;
+  if (allowChoice && context.status === "pending" && review) {
     return { name: "choose_provider", pending: null, error: null, context };
   }
   if (context.provider === "local") return { name: "confirm_local", context };
@@ -90,6 +92,9 @@ function route(context: WidgetContext, allowChoice: boolean): State {
   }
   return { name: "unsupported", context };
 }
+
+/** Pantalla que sigue a la elección del método (nunca vuelve a ofrecer la elección). */
+export const routeAfterChoice = (context: WidgetContext): State => route(context, false);
 
 /** Primera pantalla al cargar el contexto (el hook la usa para saber si hay que detectar el agente). */
 export const initialRoute = (context: WidgetContext): State => route(context, true);

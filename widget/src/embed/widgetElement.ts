@@ -9,6 +9,7 @@
 const EVENTS: Record<string, string> = {
   "firmadoc:ready": "firmadoc-ready",
   "firmadoc:signed": "firmadoc-signed",
+  "firmadoc:batch-completed": "firmadoc-batch-completed",
   "firmadoc:failed": "firmadoc-failed",
   "firmadoc:cancelled": "firmadoc-cancelled",
   "firmadoc:closed": "firmadoc-closed",

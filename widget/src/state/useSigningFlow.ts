@@ -3,7 +3,7 @@
  * Toda la lógica de decisión está en `machine.ts`; acá solo están los efectos.
  */
 
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 
 import { AgentError, AgentUnreachableError, ServerError } from "../api/errors";
 import type { AgentClient } from "../api/agentClient";
@@ -11,7 +11,8 @@ import type { ServerClient } from "../api/serverClient";
 import type { AgentCertificate, Challenge } from "../api/types";
 import { CERT_REJECTION_CODES } from "../messages/es";
 import type { HostNotifier } from "../embed/hostMessages";
-import { initialRoute, initialState, reducer, type State } from "./machine";
+import type { WidgetContext } from "../api/types";
+import { initialRoute, initialState, reducer, routeAfterChoice, type State } from "./machine";
 
 export interface FlowServices {
   server: ServerClient;
@@ -20,6 +21,8 @@ export interface FlowServices {
   /** Crea el notificador cuando se conocen los orígenes permitidos. */
   createHost: (allowedOrigins: string[], requestId: string) => HostNotifier;
   saveFile: (blob: Blob, filename: string) => void;
+  /** Pasa a otra página de firma (el reintento de un lote abre el lote nuevo). */
+  navigate?: (url: string) => void;
   /** Cada cuánto se consulta el estado mientras se espera la firma remota (ms). */
   pollMs?: number;
 }
@@ -38,11 +41,20 @@ export interface FlowActions {
   cancel(): void;
   close(): void;
   download(): Promise<void>;
+  /** Solo en lotes: crea otro lote con los documentos fallidos y lo abre. */
+  retryFailed(): Promise<void>;
 }
+
+/** Cómo está el agente local, para la pantalla de elección del método. */
+export type AgentStatus = "unknown" | "checking" | "connected" | "no_token" | "missing";
 
 const isCertCode = (code: string) => (CERT_REJECTION_CODES as readonly string[]).includes(code);
 
-export function useSigningFlow(services: FlowServices): { state: State; actions: FlowActions } {
+export function useSigningFlow(services: FlowServices): {
+  state: State;
+  actions: FlowActions;
+  agentStatus: AgentStatus;
+} {
   const [state, dispatch] = useReducer((s: State, e: Parameters<typeof reducer>[1]) => reducer(s, e), initialState);
   const stateRef = useRef(state);
   useEffect(() => {
@@ -51,6 +63,7 @@ export function useSigningFlow(services: FlowServices): { state: State; actions:
   const agentRef = useRef<AgentClient | null>(null);
   const hostRef = useRef<HostNotifier | null>(null);
   const started = useRef(false);
+  const [agentResult, setAgentResult] = useState<{ url: string; status: AgentStatus } | null>(null);
 
   const { server } = services;
 
@@ -69,12 +82,17 @@ export function useSigningFlow(services: FlowServices): { state: State; actions:
     }
   }, []);
 
+  const notifySuccess = useCallback((context: WidgetContext) => {
+    if (context.batch) hostRef.current?.batchCompleted(context.batch, context.id);
+    else hostRef.current?.signed(context.document);
+  }, []);
+
   const complete = useCallback(
     async (signatures: { challenge_id: string; signature_base64: string }[]) => {
       try {
         const context = await server.complete(signatures);
         dispatch({ type: "success", context });
-        hostRef.current?.signed(context.document);
+        notifySuccess(context);
       } catch (error) {
         const code = error instanceof ServerError ? error.code : "unknown";
         const status = error instanceof ServerError ? error.status : 0;
@@ -86,7 +104,7 @@ export function useSigningFlow(services: FlowServices): { state: State; actions:
         }
       }
     },
-    [server],
+    [server, notifySuccess],
   );
 
   const sign = useCallback(
@@ -165,6 +183,32 @@ export function useSigningFlow(services: FlowServices): { state: State; actions:
     })();
   }, [server, services, detect]);
 
+  // Elección del método: si el token es una opción, se consulta al agente para mostrar si está conectado.
+  const choosing = state.name === "choose_provider" ? state.context : null;
+  const offersToken = choosing?.allowed_providers.includes("token") ?? false;
+  const agentUrl = choosing?.agent_url ?? null;
+  useEffect(() => {
+    if (!offersToken || !agentUrl) return;
+    let stopped = false;
+    services
+      .createAgent(agentUrl)
+      .certificates()
+      .then((certs) => !stopped && setAgentResult({ url: agentUrl, status: certs.length > 0 ? "connected" : "no_token" }))
+      .catch((error: unknown) => {
+        if (stopped) return;
+        setAgentResult({ url: agentUrl, status: error instanceof AgentError ? "no_token" : "missing" });
+      });
+    return () => {
+      stopped = true;
+    };
+  }, [offersToken, agentUrl, services]);
+
+  const agentStatus: AgentStatus = !offersToken
+    ? "unknown"
+    : agentResult && agentResult.url === agentUrl
+      ? agentResult.status
+      : "checking";
+
   // Firma remota: se consulta el estado hasta que el callback del servicio resuelva la solicitud.
   const pollMs = services.pollMs ?? 3000;
   useEffect(() => {
@@ -179,9 +223,11 @@ export function useSigningFlow(services: FlowServices): { state: State; actions:
         .then((context) => {
           if (stopped) return;
           if (context.status === "signed") {
+            stopped = true; // un segundo ciclo no debe avisar de nuevo mientras React desmonta el efecto
             dispatch({ type: "success", context });
-            hostRef.current?.signed(context.document);
+            notifySuccess(context);
           } else if (context.status === "failed") {
+            stopped = true;
             dispatch({ type: "failed", code: "request_failed" });
             hostRef.current?.failed("request_failed");
           }
@@ -195,7 +241,7 @@ export function useSigningFlow(services: FlowServices): { state: State; actions:
       stopped = true;
       clearInterval(timer);
     };
-  }, [state.name, server, pollMs]);
+  }, [state.name, server, pollMs, notifySuccess]);
 
   const actions: FlowActions = {
     retryDetection: () => void detect(),
@@ -228,7 +274,7 @@ export function useSigningFlow(services: FlowServices): { state: State; actions:
           await server.prepare();
           const context = await server.complete([]);
           dispatch({ type: "success", context });
-          hostRef.current?.signed(context.document);
+          notifySuccess(context);
         } catch (error) {
           const code = error instanceof ServerError ? error.code : "unknown";
           dispatch({ type: "failed", code });
@@ -243,7 +289,7 @@ export function useSigningFlow(services: FlowServices): { state: State; actions:
       void (async () => {
         try {
           const context = await server.selectProvider(provider);
-          const next = initialRoute({ ...context, allowed_providers: [context.provider] });
+          const next = routeAfterChoice(context);
           if (next.name === "detecting_agent") agentRef.current = services.createAgent(context.agent_url);
           dispatch({ type: "provider_selected", context });
           if (next.name === "detecting_agent") await detect();
@@ -278,11 +324,16 @@ export function useSigningFlow(services: FlowServices): { state: State; actions:
       hostRef.current?.cancelled();
     },
     close: () => hostRef.current?.closed(),
+    retryFailed: async () => {
+      if (!server.retry) return;
+      const { signing_url } = await server.retry();
+      (services.navigate ?? ((url: string) => window.location.assign(url)))(signing_url);
+    },
     download: async () => {
       const { blob, filename } = await server.downloadPdf();
       services.saveFile(blob, filename);
     },
   };
 
-  return { state, actions };
+  return { state, actions, agentStatus };
 }

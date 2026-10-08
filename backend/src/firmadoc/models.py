@@ -211,6 +211,7 @@ class SignatureBatch(Base):
     signer_id: Mapped[uuid.UUID] = _fk("signer.id")
     provider: Mapped[Provider] = mapped_column(_enum(Provider))
     status: Mapped[BatchStatus] = mapped_column(_enum(BatchStatus), default=BatchStatus.PENDING)
+    allowed_providers: Mapped[str | None] = mapped_column(String(100), nullable=True)  # CSV; nulo = solo `provider`
     created_at: Mapped[datetime] = _ts(default=True)
     completed_at: Mapped[datetime | None] = _ts(nullable=True)
 

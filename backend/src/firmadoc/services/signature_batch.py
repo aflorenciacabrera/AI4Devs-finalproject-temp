@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select
 
-from .. import webhooks
+from .. import signing_token, webhooks
 from ..errors import Conflict, DomainError, NotFound, Unprocessable
 from ..models import (
     AuditEvent,
@@ -35,6 +35,13 @@ def derive_status(statuses: list[RequestStatus]) -> BatchStatus:
     if any(s == RequestStatus.SIGNING for s in statuses):
         return BatchStatus.SIGNING
     return BatchStatus.PENDING
+
+
+def signing_url(ctx: Ctx, batch: SignatureBatch) -> str:
+    """URL del widget de lote. El token va en el fragmento: el navegador no lo envía al servidor."""
+    settings = ctx.settings
+    token = signing_token.issue(signing_token.secret_for(settings), batch.id, settings.signing_token_ttl_seconds)
+    return f"{settings.public_base_url.rstrip('/')}/sign/batch/{batch.id}#t={token}"
 
 
 def _audit(ctx: Ctx, batch: SignatureBatch, event_type: str, payload: dict | None = None) -> None:
@@ -104,7 +111,11 @@ def create_batch(
     signer_email: str,
     provider: Provider,
     callback_url: str | None,
+    allowed_providers: list[Provider] | None = None,
 ) -> dict:
+    if Provider.FIRMAR in {provider, *(allowed_providers or [])}:
+        raise Unprocessable("la firma remota (firmar) no está disponible para lotes")
+    allowed_csv = flow._validate_allowed(ctx.settings, provider, allowed_providers)
     limit = ctx.settings.max_batch_size
     if not 1 <= len(documents) <= limit:
         raise Unprocessable(f"un lote admite entre 1 y {limit} documentos")
@@ -114,7 +125,10 @@ def create_batch(
     try:
         signer = flow.get_or_create_signer(db, signer_name, signer_identifier, signer_email)
         batch = SignatureBatch(
-            integrating_system_id=ctx.system.id, signer_id=signer.id, provider=provider
+            integrating_system_id=ctx.system.id,
+            signer_id=signer.id,
+            provider=provider,
+            allowed_providers=allowed_csv,
         )
         db.add(batch)
         db.flush()
@@ -131,13 +145,14 @@ def create_batch(
                 callback_url=callback_url,
                 batch_id=batch.id,
                 commit=False,
+                allowed_providers=allowed_providers,
             )
         _audit(ctx, batch, "batch_created", {"documents": len(documents), "provider": provider.value})
         db.commit()
     except Exception:
         db.rollback()  # atómico: no queda ninguna fila del lote
         raise
-    return batch_out(ctx, batch)
+    return {**batch_out(ctx, batch), "signing_url": signing_url(ctx, batch)}
 
 
 def prepare(ctx: Ctx, batch_id: uuid.UUID, certificate_pem: str | None, session_ref: str) -> dict:

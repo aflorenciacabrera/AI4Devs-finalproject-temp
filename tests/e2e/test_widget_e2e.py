@@ -1,5 +1,6 @@
 """Widget en un Chrome real: página anfitriona (otro origen) → iframe → servidor y agente reales."""
 
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -44,6 +45,12 @@ def wait_for_message(page, message_type: str, timeout: float = 15.0) -> dict:
 def open_widget(page, live, request, mode="iframe", origin=None):
     page.goto(live.host_url(request["signing_url"], mode=mode, origin=origin))
     return widget_of(page, "firmadoc-widget iframe" if mode == "component" else "iframe")
+
+
+def choose_method(widget, name: str) -> None:
+    """Elige una tarjeta de método (por parte de su nombre) y confirma con «Firmar documento»."""
+    widget.get_by_role("radio", name=re.compile(name)).check()
+    widget.get_by_role("button", name="Firmar documento").click()
 
 
 def token_of(request) -> str:

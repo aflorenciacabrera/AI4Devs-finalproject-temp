@@ -36,6 +36,10 @@ body {
 }
 
 .card {
+  display: flex;
+  flex-direction: column;
+  /* El contenido se desplaza dentro de la tarjeta: los botones quedan siempre visibles al pie. */
+  max-height: calc(100vh - 24px);
   width: 100%;
   max-width: 480px;
   background: var(--surface);
@@ -71,6 +75,13 @@ body {
 
 .body {
   padding: 16px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.brandbar,
+.actions {
+  flex: 0 0 auto;
 }
 h1 {
   margin: 0 0 4px;
@@ -291,9 +302,172 @@ p {
   }
 }
 
-.choices { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.choice { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
-.choice:hover:not(:disabled) { border-color: var(--focus); }
-.choice:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-.choice:disabled { opacity: 0.6; cursor: default; }
 a.btn { display: inline-block; text-decoration: none; }
+
+/* Tarjeta del documento, lista del lote y tarjetas de método (mockup Main / MainBatch). */
+.doc-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  margin: 12px 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.doc-card__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.doc-card__label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.doc-card__name {
+  overflow-wrap: anywhere;
+}
+.doc-card__meta,
+.doc-card__status small {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.doc-card__status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.badge {
+  display: inline-block;
+  padding: 1px 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brand);
+  background: var(--brand-tint);
+  border-radius: 999px;
+}
+.badge--amber {
+  color: var(--amber);
+  background: var(--amber-tint);
+}
+
+.batch-list {
+  margin: 12px 0;
+}
+.batch-list__title {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.batch-list__count {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.batch-list ul,
+.result-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-height: 180px;
+  overflow-y: auto;
+}
+.batch-list li,
+.result-item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.batch-list li:last-child,
+.result-item:last-child {
+  border-bottom: 0;
+}
+.batch-list li span,
+.result-item span {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.result-list {
+  margin-top: 12px;
+  max-height: 260px;
+}
+.result-item--signed span {
+  color: var(--teal);
+}
+.result-item--failed span {
+  color: var(--red);
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+.choice-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 10px 38px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+}
+.choice-card input {
+  position: absolute;
+  top: 14px;
+  left: 12px;
+  margin: 0;
+}
+.choice-card--selected {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+}
+.choice-card:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.choice-card--disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+.choice-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.choice-card__text,
+.choice-card__note {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.choice-card__note {
+  font-weight: 600;
+}
+.agent-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.agent-status--connected {
+  color: var(--teal);
+}
+.agent-status--missing,
+.agent-status--no_token {
+  color: var(--amber);
+}

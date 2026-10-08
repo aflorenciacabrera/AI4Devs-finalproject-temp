@@ -49,8 +49,16 @@
             <span>o seleccionalo desde tu PC</span>
             <span class="button-like">Seleccionar archivo</span>
           </label>
-          <input id="sign-file" type="file" accept="application/pdf,.pdf" hidden>
-          <p class="muted">Solo archivos PDF, de a uno. La firma de varios documentos en lote se habilita más adelante.</p>
+          <input id="sign-file" type="file" accept="application/pdf,.pdf" multiple hidden>
+          <p class="muted">Solo archivos PDF. Si cargás varios, se firman en lote con un solo PIN.</p>
+          <div id="sign-staged" hidden>
+            <h3>Documentos a firmar (<span id="sign-staged-count">0</span>)</h3>
+            <ul id="sign-staged-list" class="staged-list"></ul>
+            <div class="doc-actions">
+              <button type="button" id="sign-staged-clear">Cancelar</button>
+              <button type="button" id="sign-staged-go" class="primary">Cargar y firmar</button>
+            </div>
+          </div>
           </div>
           <aside class="sign-help" aria-label="Cómo se firma">
           <h3>Cómo se firma</h3>
@@ -67,6 +75,7 @@
             <div>
               <strong id="sign-name"></strong>
               <div id="sign-meta" class="muted"></div>
+              <ul id="sign-docs" class="staged-list" hidden></ul>
             </div>
             <div class="doc-actions">
               <button type="button" id="sign-replace">Reemplazar</button>

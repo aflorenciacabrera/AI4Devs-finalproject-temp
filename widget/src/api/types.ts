@@ -19,6 +19,24 @@ export interface WidgetCertificate {
   serial_number: string;
 }
 
+/** Un documento de un lote, tal como lo muestra el widget (sin binarios). */
+export interface BatchDocument {
+  signature_request_id: string;
+  document_id: string;
+  document_name: string;
+  page_count: number | null;
+  size_bytes: number | null;
+  status: string;
+  version_number: number | null;
+  error: { code: string | null; detail: string; http_status: number } | null;
+}
+
+/** El lote visto desde el widget: lista de documentos y estado del lote. */
+export interface BatchInfo {
+  status: string; // pending | signing | completed | partial_failure | failed
+  documents: BatchDocument[];
+}
+
 export interface WidgetContext {
   id: string;
   status: "pending" | "signing" | "signed" | "failed";
@@ -33,6 +51,32 @@ export interface WidgetContext {
   signed_at: string | null;
   certificate: WidgetCertificate | null;
   document: DocumentBlock | null;
+  /** Estado del documento (firma individual) para la tarjeta del documento. */
+  signing_status?: string | null;
+  signature_deadline?: string | null;
+  page_count?: number | null;
+  size_bytes?: number | null;
+  /** Presente solo en el widget de un lote. */
+  batch?: BatchInfo;
+}
+
+/** Respuesta del servidor para un lote (`/api/v1/widget/batches/{id}`). */
+export interface BatchContextResponse {
+  id: string;
+  status: string;
+  provider: string;
+  allowed_providers: string[];
+  signer_name: string;
+  allowed_origins: string[];
+  agent_url: string;
+  token_expires_at: string;
+  completed_at: string | null;
+  documents: BatchDocument[];
+}
+
+export interface RetryResponse {
+  id: string;
+  signing_url: string;
 }
 
 export interface Challenge {

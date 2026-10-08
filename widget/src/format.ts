@@ -38,3 +38,16 @@ export function formatDateTime(iso: string, locale = "es-AR"): string {
     second: "2-digit",
   });
 }
+
+export function formatSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+/** «3 páginas · 482 KB»; vacío si se desconocen ambos datos. */
+export function formatDocumentMeta(pages: number | null | undefined, bytes: number | null | undefined): string {
+  const parts: string[] = [];
+  if (typeof pages === "number") parts.push(pages === 1 ? "1 página" : `${pages} páginas`);
+  if (typeof bytes === "number") parts.push(formatSize(bytes));
+  return parts.join(" · ");
+}

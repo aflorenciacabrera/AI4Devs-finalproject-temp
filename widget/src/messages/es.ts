@@ -210,19 +210,46 @@ export const providerLabel = (provider: string): string =>
         ? "Servicio de firma remota"
         : provider;
 
-export const PROVIDER_CHOICES: Record<string, { title: string; description: string }> = {
+export interface ProviderChoice {
+  title: string;
+  badge: string;
+  description: string;
+  /** Texto de la tarjeta cuando se firma un lote (`{n}` = cantidad de documentos). */
+  batchDescription?: string;
+}
+
+export const PROVIDER_CHOICES: Record<string, ProviderChoice> = {
   token: {
-    title: "Firmar con mi token",
-    description: "Firma digital con el certificado de tu token USB. Necesita Firmadoc Agent en esta PC y tu PIN.",
+    title: "Firma con token",
+    badge: "Firma digital",
+    description:
+      "Firmás con el token USB conectado a tu PC. El PIN se ingresa solo en tu PC y la clave nunca sale del token.",
+    batchDescription:
+      "El PIN se pide una sola vez para los {n} documentos. Se firman todos juntos y la clave nunca sale del token.",
   },
   local: {
-    title: "Firma electrónica de demostración",
-    description: "Inmediata y sin token, con un certificado propio de Firmadoc. Sirve para probar y no equivale a una firma digital.",
+    title: "Firma propia",
+    badge: "Demostración",
+    description:
+      "Certificado de demostración, sin token. Es firma electrónica: no tiene la presunción legal de la firma digital (Ley 25.506).",
   },
   firmar: {
-    title: "Firmar con el servicio de firma remota",
-    description: "Firmás en el servicio de firma remota con tu certificado remoto, confirmando con un código (OTP) y tu PIN en ese servicio.",
+    title: "Firma remota",
+    badge: "Firmar",
+    description:
+      "Te redirigimos al servicio de firma remota para que confirmes con tu certificado remoto. Firmadoc no accede a tu credencial.",
+    batchDescription:
+      "Confirmás con tu certificado remoto en el servicio externo. Puede limitar la cantidad de documentos por lote.",
   },
+};
+
+export const REMOTE_NOT_FOR_BATCHES = "No está disponible para firmar lotes.";
+
+export const AGENT_STATUS_TEXT: Record<string, string> = {
+  checking: "Buscando Firmadoc Agent…",
+  connected: "Firmadoc Agent conectado · token detectado",
+  no_token: "Firmadoc Agent conectado · no se detectó el token",
+  missing: "No detectamos Firmadoc Agent en esta PC",
 };
 
 export const CHOOSE_FAILED: Message = {

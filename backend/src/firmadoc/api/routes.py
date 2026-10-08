@@ -90,6 +90,7 @@ def create_signature_batch(body: schemas.CreateSignatureBatch, ctx: Ctx = Depend
         signer_email=body.signer.email,
         provider=body.provider,
         callback_url=body.callback_url,
+        allowed_providers=body.allowed_providers,
     )
 
 

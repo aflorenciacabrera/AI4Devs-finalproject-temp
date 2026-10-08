@@ -45,7 +45,10 @@ def test_contexto_de_una_solicitud_pendiente(client, anon):
     assert set(body) == {
         "id", "status", "provider", "document_name", "signer_name", "allowed_origins",
         "agent_url", "allowed_providers", "token_expires_at", "signed_at", "certificate", "document",
+        "signing_status", "signature_deadline", "page_count", "size_bytes",
     }
+    assert body["page_count"] == 1 and body["size_bytes"] > 0 and body["signing_status"] == "draft"
+    assert body["signature_deadline"] is None
     assert body["status"] == "pending" and body["provider"] == "local"
     assert body["document_name"] == "exp-1_doc-1.pdf"
     assert body["signer_name"] == SIGNER["full_name"]

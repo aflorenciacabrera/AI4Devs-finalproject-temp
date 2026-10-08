@@ -34,6 +34,16 @@ export function requestIdFromPath(pathname: string): string | null {
   return candidate && UUID.test(candidate) ? candidate : null;
 }
 
+export type SigningLink = { kind: "request" | "batch"; id: string };
+
+/** `/sign/{uuid}` (una solicitud) o `/sign/batch/{uuid}` (un lote). */
+export function linkFromPath(pathname: string): SigningLink | null {
+  const batch = /^\/sign\/batch\/([^/]+)\/?$/.exec(pathname)?.[1];
+  if (batch !== undefined) return UUID.test(batch) ? { kind: "batch", id: batch } : null;
+  const id = requestIdFromPath(pathname);
+  return id ? { kind: "request", id } : null;
+}
+
 /** Identifica esta carga de la página; ata los desafíos de firma a esta sesión del navegador. */
 export function newSessionRef(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));

@@ -34,6 +34,7 @@ from ..pdf_engine import (
     PdfEngineError,
     TimestampUnavailable,
     finish_pdf,
+    page_count,
     prepare_pdf,
     validate_pdf,
     verify_hash_signature,
@@ -95,6 +96,18 @@ def document_name(document: Document) -> str:
     base = document.external_document_id or str(document.id)
     safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in base)
     return f"{safe}.pdf"
+
+
+def document_stats(ctx: Ctx, document: Document) -> tuple[int | None, int | None]:
+    """Páginas y tamaño del PDF vigente (None si todavía no se puede leer)."""
+    version = ctx.db.get(DocumentVersion, document.current_version_id) if document.current_version_id else None
+    if version is None:
+        return None, None
+    try:
+        data = ctx.storage.read(version.storage_ref)
+        return page_count(data), len(data)
+    except (StorageError, PdfEngineError, KeyError, ValueError, TypeError):
+        return None, None
 
 
 def _validate_allowed(

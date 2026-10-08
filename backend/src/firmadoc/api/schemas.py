@@ -119,6 +119,45 @@ class WidgetContext(BaseModel):
     signed_at: datetime | None = None
     certificate: WidgetCertificate | None = None
     document: DocumentBlock | None = None
+    signing_status: str | None = None
+    signature_deadline: datetime | None = None
+    page_count: int | None = None
+    size_bytes: int | None = None
+
+
+class BatchError(BaseModel):
+    code: str | None
+    detail: str
+    http_status: int
+
+
+class WidgetBatchItem(BaseModel):
+    signature_request_id: uuid.UUID
+    document_id: uuid.UUID
+    document_name: str
+    page_count: int | None = None
+    size_bytes: int | None = None
+    status: str
+    version_number: int | None = None
+    error: BatchError | None = None
+
+
+class WidgetBatchContext(BaseModel):
+    id: uuid.UUID
+    status: str
+    provider: str
+    allowed_providers: list[str]
+    signer_name: str
+    allowed_origins: list[str]
+    agent_url: str
+    token_expires_at: datetime
+    completed_at: datetime | None = None
+    documents: list[WidgetBatchItem]
+
+
+class RetryOut(BaseModel):
+    id: uuid.UUID
+    signing_url: str
 
 
 class BatchDocumentIn(BaseModel):
@@ -132,6 +171,7 @@ class CreateSignatureBatch(BaseModel):
     signer: SignerIn
     provider: Provider
     callback_url: str | None = None
+    allowed_providers: list[Provider] | None = None  # métodos que la persona puede elegir en el widget
 
 
 class BatchChallenge(Challenge):
@@ -141,12 +181,6 @@ class BatchChallenge(Challenge):
 class BatchPrepareResponse(BaseModel):
     challenges: list[BatchChallenge]
     expires_at: datetime
-
-
-class BatchError(BaseModel):
-    code: str | None
-    detail: str
-    http_status: int
 
 
 class BatchItem(BaseModel):
@@ -165,6 +199,7 @@ class SignatureBatchOut(BaseModel):
     created_at: datetime
     completed_at: datetime | None
     requests: list[BatchItem]
+    signing_url: str | None = None  # solo al crear el lote
 
 
 class DocumentOut(BaseModel):
