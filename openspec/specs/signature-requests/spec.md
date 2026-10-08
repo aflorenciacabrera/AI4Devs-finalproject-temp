@@ -18,7 +18,7 @@ Todos los endpoints de `/api/v1` del flujo de firma SHALL exigir la cabecera `X-
 - **THEN** la respuesta es `401`
 
 ### Requirement: Crear solicitud de firma
-`POST /api/v1/signature-requests` SHALL crear una `SignatureRequest` en estado `pending` sobre un `Document` y responder `201` con `id`, `document_id`, `status`, `signing_url` y `created_at`.
+`POST /api/v1/signature-requests` SHALL crear una `SignatureRequest` en estado `pending` sobre un `Document` y responder `201` con `id`, `document_id`, `status`, `signing_url` y `created_at`. La `signing_url` SHALL tener la forma `{public_base_url}/sign/{id}#t={token}`, donde el token es la credencial acotada y de corta vida del widget para esa solicitud.
 
 #### Scenario: Documento nuevo
 - **WHEN** el integrador envía `document_base64` con un PDF válido, `signer` y `provider`
@@ -43,6 +43,10 @@ Todos los endpoints de `/api/v1` del flujo de firma SHALL exigir la cabecera `X-
 #### Scenario: Proveedor no habilitado
 - **WHEN** `provider` es `firmar` y ese proveedor aún no está disponible
 - **THEN** la respuesta es `422` indicando que el proveedor no está habilitado
+
+#### Scenario: URL de firma con token
+- **WHEN** se crea una solicitud
+- **THEN** la `signing_url` termina en `#t=<token>`, el token solo sirve para esa solicitud y vence a la hora por defecto
 
 ### Requirement: Preparar la firma
 `POST /api/v1/signature-requests/{id}/prepare` SHALL calcular el hash a firmar, crear un `SigningChallenge` de un solo uso con vencimiento y atado a la sesión, pasar la solicitud a `signing` y responder `200` con `challenges` y `expires_at`. Cuando el proveedor valida un certificado, los rechazos SHALL responder con un cuerpo `{detail, code}` y no SHALL crear ningún desafío.
