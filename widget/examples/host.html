@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sistema integrador de ejemplo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 24px; display: grid; gap: 16px; max-width: 980px; }
+      main { display: grid; grid-template-columns: 500px 1fr; gap: 24px; align-items: start; }
+      h1 { font-size: 20px; margin: 0; }
+      #log { font: 12px/1.5 ui-monospace, monospace; background: #f4f6f8; padding: 12px; border-radius: 8px; min-height: 120px; }
+      #log li { margin-bottom: 6px; white-space: pre-wrap; word-break: break-all; }
+      iframe { width: 480px; height: 760px; border: 1px solid #ccd; border-radius: 10px; }
+      #status { font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <h1>Sistema integrador de ejemplo</h1>
+    <p>
+      Página anfitriona de prueba. Recibe la <code>signing_url</code> en el fragmento
+      (<code>#signing_url=...&amp;mode=iframe|component</code>): el fragmento no llega al servidor que
+      entrega esta página. En un sistema real la <code>signing_url</code> la obtiene el <b>backend</b>
+      del integrador (con su API key) y se la entrega al navegador.
+    </p>
+    <p id="status">Esperando la firma…</p>
+    <main>
+      <div id="slot"></div>
+      <section>
+        <h2>Mensajes recibidos</h2>
+        <ol id="log"></ol>
+      </section>
+    </main>
+    <script src="host.js"></script>
+  </body>
+</html>

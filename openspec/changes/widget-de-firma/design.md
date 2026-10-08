@@ -33,6 +33,10 @@ La restricción que más condiciona el diseño: **el navegador no puede tener la
 15. **Descarga del PDF sin exponer el token**: `fetch` con `Authorization` → `Blob` → URL de objeto → enlace de descarga; el token no pasa por la barra de direcciones.
 16. **Datos mostrados tal como los informa el servidor**: el nivel de firma (`B-B`), la fecha y el certificado se toman de la respuesta; el mockup muestra `B-LT` como ejemplo y no debe copiarse.
 
+## Hallazgos durante la implementación
+
+- **El rechazo de origen del agente es opaco para el navegador.** El agente responde `403 origin_not_allowed` sin cabeceras CORS (decisión del change `agente-local`: no revelar nada a orígenes no autorizados). Un `fetch` entre orígenes no puede leer esa respuesta, así que el widget no puede distinguirla de un agente ausente. Se mantiene la política del agente y la pantalla de "agente no detectado" incorpora la comprobación "este sitio autorizado en el agente". Se descartó agregar CORS a los 403: filtraría la presencia del agente a cualquier página sin ganancia real para la persona, que de todos modos necesita a su área de sistemas para autorizar el sitio.
+
 ## Risks / Trade-offs
 
 - **Token de una hora en memoria del navegador:** un script malicioso dentro del iframe (XSS) podría usarlo. Mitigación: CSP estricta en la página del widget (`script-src 'self'`, sin `unsafe-inline`), sin contenido de terceros, token de alcance mínimo y vida corta.

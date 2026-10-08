@@ -54,3 +54,40 @@ jobs:
       - run: pip install -e "agent[dev,build]"
       - run: pytest agent/tests
       - run: powershell -File agent/packaging/build.ps1
+
+  widget:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: widget
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: widget/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: widget-dist
+          path: widget/dist
+
+  e2e:
+    # Chrome real: servidor y agente reales, página anfitriona en otro origen (usa el Chrome del runner).
+    needs: widget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/download-artifact@v4
+        with:
+          name: widget-dist
+          path: widget/dist
+      - run: pip install -e ".[dev]" -e "agent[dev]"
+      - run: pytest tests/e2e -v

@@ -20,14 +20,18 @@ Para una solicitud con proveedor `token`, el widget SHALL consultar `GET {agent_
 
 #### Scenario: Agente no detectado
 - **WHEN** no hay respuesta del agente
-- **THEN** se muestra "No detectamos Firmadoc Agent" con la lista de comprobaciones (agente abierto, token conectado, permiso de red local del navegador) y los botones "Reintentar detección" y "Cancelar"
+- **THEN** se muestra "No detectamos Firmadoc Agent" con la lista de comprobaciones (agente abierto, token conectado, sitio autorizado en el agente, permiso de red local del navegador) y los botones "Reintentar detección" y "Cancelar"
 
 #### Scenario: Token sin conectar
 - **WHEN** el agente responde `token_not_found`
 - **THEN** se indica que conecte el token y se ofrece reintentar
 
 #### Scenario: Sitio no autorizado en el agente
-- **WHEN** el agente responde `origin_not_allowed`
+- **WHEN** el agente rechaza el origen del sitio (su respuesta `403` no lleva cabeceras CORS, por lo que el navegador no permite leerla y el widget la percibe como un agente que no responde)
+- **THEN** la pantalla de agente no detectado incluye entre sus comprobaciones que el sitio esté autorizado en el agente y que debe pedirlo al área de sistemas
+
+#### Scenario: Origen rechazado con respuesta legible
+- **WHEN** el agente responde `origin_not_allowed` con un cuerpo legible (por ejemplo, el widget y el agente en el mismo origen durante el desarrollo)
 - **THEN** se explica que el agente de esa PC no autoriza este sitio y que debe pedirlo al área de sistemas
 
 #### Scenario: Biblioteca del token

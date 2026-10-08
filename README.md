@@ -75,7 +75,7 @@ Firmadoc resuelve esto con un **widget embebible** (diseñado para integrarse ta
 ```html
 <!-- Opción 2: Web Component in-page -->
 <script src="https://firmadoc.example.org/widget.js"></script> <!-- una sola vez -->
-<firmadoc-widget request-id="b3f1c2e0-..."></firmadoc-widget> <!-- requiere CUSTOM_ELEMENTS_SCHEMA en el módulo Angular -->
+<firmadoc-widget signing-url="https://firmadoc.example.org/sign/b3f1c2e0-...#t=eyJ..."></firmadoc-widget> <!-- usa la signing_url que devuelve la API; requiere CUSTOM_ELEMENTS_SCHEMA en el módulo Angular -->
 ```
 
 ### **1.3. Diseño y experiencia de usuario:**
