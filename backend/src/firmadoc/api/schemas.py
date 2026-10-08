@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from ..models import Provider
+from ..models import Provider, SigningStatus
 
 
 class SignerIn(BaseModel):
@@ -153,3 +153,54 @@ class SignatureBatchOut(BaseModel):
     created_at: datetime
     completed_at: datetime | None
     requests: list[BatchItem]
+
+
+class DocumentOut(BaseModel):
+    id: uuid.UUID
+    external_document_id: str | None
+    signing_status: str
+    signature_deadline: datetime | None
+    deadline_passed: bool
+    current_version_number: int | None
+    download_url: str | None
+
+
+class UpdateDocument(BaseModel):
+    signing_status: SigningStatus | None = None
+    signature_deadline: datetime | None = None
+
+
+class SignatureEntryCertificate(BaseModel):
+    subject: str
+    issuer_subject: str
+    serial_number: str
+
+
+class SignatureEntry(BaseModel):
+    version_number: int
+    signer_name: str
+    signer_identifier: str
+    signed_at: datetime | None
+    provider: str
+    certificate: SignatureEntryCertificate | None
+
+
+class SignatureCheckOut(BaseModel):
+    field_name: str
+    signer_subject: str
+    serial_number: str
+    claimed_signing_time: str | None
+    intact: bool
+    valid: bool
+    trusted: bool
+    modification_level: str
+    ok: bool
+
+
+class VerifyOut(BaseModel):
+    document_id: uuid.UUID
+    version_number: int
+    hash_matches: bool
+    signatures: list[SignatureCheckOut]
+    valid: bool
+    checked_at: datetime

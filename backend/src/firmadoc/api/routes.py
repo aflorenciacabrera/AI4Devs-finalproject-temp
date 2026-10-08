@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Response
 
+from ..services import documents as docs
 from ..services import signature_batch as batches
 from ..services import signature_flow as flow
 from ..services.signature_flow import Ctx
@@ -116,3 +117,23 @@ def complete_signature_batch(
 @router.get("/signature-batches/{batch_id}", response_model=schemas.SignatureBatchOut)
 def get_signature_batch(batch_id: uuid.UUID, ctx: Ctx = Depends(get_ctx)):
     return batches.get_batch(ctx, batch_id)
+
+
+@router.get("/documents/{document_id}", response_model=schemas.DocumentOut)
+def get_document(document_id: uuid.UUID, ctx: Ctx = Depends(get_ctx)):
+    return docs.get_document(ctx, document_id)
+
+
+@router.patch("/documents/{document_id}", response_model=schemas.DocumentOut)
+def update_document(document_id: uuid.UUID, body: schemas.UpdateDocument, ctx: Ctx = Depends(get_ctx)):
+    return docs.update_document(ctx, document_id, body.model_dump(exclude_unset=True))
+
+
+@router.get("/documents/{document_id}/signatures", response_model=list[schemas.SignatureEntry])
+def list_document_signatures(document_id: uuid.UUID, ctx: Ctx = Depends(get_ctx)):
+    return docs.list_signatures(ctx, document_id)
+
+
+@router.post("/documents/{document_id}/verify", response_model=schemas.VerifyOut)
+def verify_document(document_id: uuid.UUID, ctx: Ctx = Depends(get_ctx)):
+    return docs.verify_document(ctx, document_id)

@@ -121,6 +121,56 @@ def verify_hash_signature(cert_der: bytes, hash_to_sign: bytes, signature: bytes
     return True
 
 
+@dataclass(frozen=True)
+class SignatureCheck:
+    field_name: str
+    signer_subject: str
+    serial_number: str
+    claimed_signing_time: str | None
+    intact: bool
+    valid: bool
+    trusted: bool
+    modification_level: str
+    ok: bool  # íntegra, válida, de confianza y sin modificaciones posteriores no permitidas
+
+
+_ALLOWED_MODIFICATIONS = {"NONE", "LTA_UPDATES", "FORM_FILLING"}  # firmas posteriores, sellos y campos
+
+
+def verify_pdf(
+    pdf: bytes, trust_roots: list[ax509.Certificate], other_certs: list[ax509.Certificate]
+) -> list[SignatureCheck]:
+    """Valida todas las firmas incrustadas, sin consultar revocación ni la red."""
+    context = ValidationContext(
+        trust_roots=trust_roots, other_certs=other_certs, allow_fetching=False
+    )
+    checks = []
+    for sig in PdfFileReader(io.BytesIO(pdf)).embedded_signatures:
+        status = validate_pdf_signature(sig, context)
+        level = status.modification_level.name if status.modification_level else "NONE"
+        cert = sig.signer_cert
+        reported = status.signer_reported_dt
+        checks.append(
+            SignatureCheck(
+                field_name=sig.field_name,
+                signer_subject=cert.subject.human_friendly,
+                serial_number=str(cert.serial_number),
+                claimed_signing_time=reported.isoformat() if reported else None,
+                intact=bool(status.intact),
+                valid=bool(status.valid),
+                trusted=bool(status.trusted),
+                modification_level=level,
+                ok=bool(
+                    status.intact
+                    and status.valid
+                    and status.trusted
+                    and level in _ALLOWED_MODIFICATIONS
+                ),
+            )
+        )
+    return checks
+
+
 def verify_last_signature(
     pdf: bytes, trust_roots: list[ax509.Certificate], other_certs: list[ax509.Certificate]
 ) -> bool:

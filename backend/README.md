@@ -83,3 +83,7 @@ Alta de integradores: `python -m firmadoc.integrators --help`.
 ## Firma en lote
 
 Varios documentos con una confirmación y un PIN: ver [`docs/signature-batches.md`](../docs/signature-batches.md).
+
+## Estado, firmantes y verificación
+
+Plazo de firma, listado de firmantes y verificación de un PDF firmado: ver [`docs/documents-api.md`](../docs/documents-api.md).
