@@ -99,3 +99,19 @@ def test_cerrar_sesion_borra_el_token(live, page):
     assert page.evaluate("sessionStorage.getItem('firmadoc-admin-token')") is None
     assert page.is_visible("#login")
     assert page.context.cookies() == []  # no se usan cookies
+
+
+def test_el_tema_se_cambia_y_se_recuerda(live, page):
+    live.settings.admin_token = TOKEN
+    page.goto(f"{live.base}/admin")
+    page.click("#theme")
+    first = page.evaluate("document.documentElement.getAttribute('data-theme')")
+    page.click("#theme")
+    second = page.evaluate("document.documentElement.getAttribute('data-theme')")
+    assert {first, second} == {"light", "dark"}
+    dark_bg = page.evaluate("getComputedStyle(document.body).backgroundColor")
+    page.reload()
+    assert page.evaluate("document.documentElement.getAttribute('data-theme')") == second  # se recuerda
+    assert page.evaluate("getComputedStyle(document.body).backgroundColor") == dark_bg
+    assert page.evaluate("localStorage.getItem('firmadoc-admin-theme')") == second
+    assert page.evaluate("sessionStorage.getItem('firmadoc-admin-token')") is None  # el token no se toca

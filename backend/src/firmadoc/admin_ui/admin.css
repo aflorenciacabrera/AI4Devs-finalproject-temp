@@ -3,8 +3,13 @@
   --card: #fff; --accent: #1f5fbf; --danger: #b3261e; --ok: #1b7f3b;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #14171c; --fg: #e8eaee; --muted: #9aa4b2; --line: #2c333d; --card: #1c2128; --accent: #6ea3f2; --danger: #f2827a; --ok: #6fd28a; }
+  :root:not([data-theme="light"]) { --bg: #14171c; --fg: #e8eaee; --muted: #9aa4b2; --line: #2c333d; --card: #1c2128; --accent: #6ea3f2; --danger: #f2827a; --ok: #6fd28a; }
 }
+:root[data-theme="dark"] { --bg: #14171c; --fg: #e8eaee; --muted: #9aa4b2; --line: #2c333d; --card: #1c2128; --accent: #6ea3f2; --danger: #f2827a; --ok: #6fd28a; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+.header-actions { display: flex; gap: 8px; align-items: center; }
+.icon-button { font-size: 18px; line-height: 1; padding: 5px 10px; }
 * { box-sizing: border-box; }
 body { margin: 0; font: 15px/1.45 system-ui, sans-serif; background: var(--bg); color: var(--fg); }
 header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--card); border-bottom: 1px solid var(--line); }
@@ -36,7 +41,11 @@ td.mono, .mono { font-family: ui-monospace, monospace; word-break: break-all; }
 .dropzone { align-items: center; gap: 6px; padding: 36px 16px; border: 2px dashed var(--line); border-radius: 10px; background: var(--card); color: var(--fg); text-align: center; cursor: pointer; font-size: 15px; }
 .dropzone.over { border-color: var(--accent); }
 .button-like { margin-top: 8px; padding: 6px 12px; border: 1px solid var(--accent); border-radius: 6px; color: var(--accent); font-size: 14px; }
-.steps { padding-left: 20px; margin: 16px 0; }
+.sign-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+.sign-help { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 4px 18px 8px; }
+.sign-help h3 { font-size: 14px; margin: 14px 0 0; }
+@media (max-width: 800px) { .sign-layout { grid-template-columns: 1fr; } }
+.steps { padding-left: 20px; margin: 12px 0; }
 .steps li { margin-bottom: 8px; }
 .steps strong { display: block; }
 .doc-card { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }

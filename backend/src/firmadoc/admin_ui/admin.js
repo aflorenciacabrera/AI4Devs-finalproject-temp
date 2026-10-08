@@ -19,6 +19,29 @@ function saveToken(value) {
   } catch { /* sin almacenamiento: la sesión dura lo que dure la página */ }
 }
 
+// --- Tema claro / oscuro: sigue al sistema hasta que la persona elige; la elección queda en este navegador ---
+const THEME_KEY = "firmadoc-admin-theme";
+
+function systemTheme() {
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+function readTheme() {
+  try { const value = localStorage.getItem(THEME_KEY); return value === "dark" || value === "light" ? value : null; } catch { return null; }
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  const button = $("theme");
+  const next = theme === "dark" ? "claro" : "oscuro";
+  button.textContent = theme === "dark" ? "☀" : "☾";
+  button.setAttribute("aria-label", "Cambiar a modo " + next);
+  button.title = "Cambiar a modo " + next;
+}
+function toggleTheme() {
+  const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  applyTheme(next);
+  try { localStorage.setItem(THEME_KEY, next); } catch { /* sin almacenamiento: vale para esta página */ }
+}
+
 function el(tag, text, attrs) {
   const node = document.createElement(tag);
   if (text !== undefined && text !== null) node.textContent = String(text);
@@ -348,6 +371,8 @@ $("sign-replace").addEventListener("click", () => { resetSign(); $("sign-file").
 
 $("login-form").addEventListener("submit", (event) => { event.preventDefault(); login($("token").value.trim()); });
 $("logout").addEventListener("click", () => logout(""));
+$("theme").addEventListener("click", toggleTheme);
+applyTheme(readTheme() || systemTheme());
 for (const b of document.querySelectorAll("nav button")) b.addEventListener("click", () => switchTab(b.dataset.tab));
 $("requests-filters").addEventListener("submit", (event) => { event.preventDefault(); requestsOffset = 0; loadRequests().catch((e) => show(e.message, "bad")); });
 $("requests-prev").addEventListener("click", () => { requestsOffset = Math.max(0, requestsOffset - PAGE); loadRequests(); });

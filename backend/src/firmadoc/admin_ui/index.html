@@ -10,7 +10,10 @@
 <body>
   <header>
     <h1>Firmadoc · Administración</h1>
-    <button id="logout" type="button" hidden>Cerrar sesión</button>
+    <div class="header-actions">
+      <button id="theme" class="icon-button" type="button" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro"></button>
+      <button id="logout" type="button" hidden>Cerrar sesión</button>
+    </div>
   </header>
 
   <main>
@@ -39,7 +42,8 @@
       <section id="tab-sign" hidden>
         <h2>Firmar documento</h2>
         <p class="muted">Cargá un PDF y firmalo con tu token. Firmadoc guarda el original y la versión firmada.</p>
-        <div id="sign-upload">
+        <div id="sign-upload" class="sign-layout">
+          <div class="sign-main">
           <label id="sign-drop" class="dropzone" for="sign-file">
             <strong>Arrastrá un PDF acá</strong>
             <span>o seleccionalo desde tu PC</span>
@@ -47,12 +51,16 @@
           </label>
           <input id="sign-file" type="file" accept="application/pdf,.pdf" hidden>
           <p class="muted">Solo archivos PDF, de a uno. La firma de varios documentos en lote se habilita más adelante.</p>
+          </div>
+          <aside class="sign-help" aria-label="Cómo se firma">
+          <h3>Cómo se firma</h3>
           <ol class="steps">
             <li><strong>Cargá el PDF</strong> Queda guardado como versión original (v1).</li>
             <li><strong>Elegí el método de firma</strong> Con token, remota o propia (demostración).</li>
             <li><strong>Elegí el certificado y confirmá con el PIN</strong> El PIN se ingresa en tu PC, en Firmadoc Agent.</li>
             <li><strong>Descargá el documento firmado</strong> Queda como nueva versión vigente; el original se conserva.</li>
           </ol>
+          </aside>
         </div>
         <div id="sign-ready" hidden>
           <div class="card doc-card">
