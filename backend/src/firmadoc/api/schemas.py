@@ -87,3 +87,23 @@ class SignatureRequestOut(BaseModel):
     certificate: CertificateOut | None = None
     document: DocumentBlock | None = None
     events: list[EventOut] = []
+
+
+class WidgetCertificate(BaseModel):
+    subject: str
+    issuer_subject: str
+    serial_number: str
+
+
+class WidgetContext(BaseModel):
+    id: uuid.UUID
+    status: str
+    provider: str
+    document_name: str
+    signer_name: str
+    allowed_origins: list[str]
+    agent_url: str
+    token_expires_at: datetime
+    signed_at: datetime | None = None
+    certificate: WidgetCertificate | None = None
+    document: DocumentBlock | None = None

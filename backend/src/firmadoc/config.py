@@ -1,4 +1,7 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+MIN_SECRET_LENGTH = 32
 
 
 class Settings(BaseSettings):
@@ -14,6 +17,22 @@ class Settings(BaseSettings):
     revocation_mode: str = "soft-fail"  # hard-fail | soft-fail | off
     revocation_fetch: bool = True  # consultar CRL/OCSP por red
     crl_dir: str | None = None  # CRLs locales (.crl/.der), útil sin salida a internet
+    # Widget de firma
+    signing_secret: str | None = None  # secreto HMAC de los tokens del widget (>= 32 caracteres)
+    signing_token_ttl_seconds: int = 3600
+    agent_url: str = "http://127.0.0.1:47123"  # dónde busca el widget al agente local
+    widget_dist: str = "widget/dist"  # widget compilado
+
+    @field_validator("signing_secret", mode="before")
+    @classmethod
+    def _check_secret(cls, value):
+        if value is None or value == "":
+            return None
+        if len(str(value)) < MIN_SECRET_LENGTH:
+            raise ValueError(
+                f"FIRMADOC_SIGNING_SECRET debe tener al menos {MIN_SECRET_LENGTH} caracteres"
+            )
+        return value
 
 
 def get_settings() -> Settings:

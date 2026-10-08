@@ -94,7 +94,9 @@ def test_create_documento_nuevo(client, session):
     assert r.status_code == 201
     body = r.json()
     assert body["status"] == "pending"
-    assert body["signing_url"] == f"http://test/sign/{body['id']}"
+    base, _, fragment = body["signing_url"].partition("#t=")
+    assert base == f"http://test/sign/{body['id']}"
+    assert fragment  # el token del widget va en el fragmento
     versions = session.scalars(select(DocumentVersion)).all()
     mine = [v for v in versions if str(v.document_id) == body["document_id"]]
     assert [(v.version_number, v.origin.value) for v in mine] == [(1, "uploaded")]

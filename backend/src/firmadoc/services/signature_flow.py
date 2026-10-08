@@ -12,6 +12,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from .. import signing_token
 from ..config import Settings
 from ..errors import Conflict, DomainError, NotFound, Unprocessable
 from ..models import (
@@ -172,7 +173,12 @@ def create_request(
 
 
 def signing_url(ctx: Ctx, request: SignatureRequest) -> str:
-    return f"{ctx.settings.public_base_url.rstrip('/')}/sign/{request.id}"
+    """URL del widget. El token va en el fragmento: el navegador no lo envía al servidor."""
+    settings = ctx.settings
+    token = signing_token.issue(
+        signing_token.secret_for(settings), request.id, settings.signing_token_ttl_seconds
+    )
+    return f"{settings.public_base_url.rstrip('/')}/sign/{request.id}#t={token}"
 
 
 def prepare(
