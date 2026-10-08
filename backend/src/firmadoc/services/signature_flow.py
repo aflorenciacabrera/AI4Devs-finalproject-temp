@@ -200,6 +200,10 @@ def prepare(
     request = _get_request(ctx, request_id)
     if request.status not in (RequestStatus.PENDING, RequestStatus.SIGNING):
         raise Conflict(f"la solicitud está en estado '{request.status.value}'")
+    if request.provider == Provider.FIRMAR:
+        from . import remote_signing  # evita el import circular
+
+        return remote_signing.prepare(ctx, request)
 
     provider = get_provider(request.provider, ctx.settings)
     document = db.get(Document, request.document_id)
@@ -266,6 +270,58 @@ def _fail(ctx: Ctx, request: SignatureRequest, reason: str, code: str | None = N
     raise Unprocessable(reason, code=code)
 
 
+def _register_signed(
+    ctx: Ctx, request: SignatureRequest, signed_pdf: bytes, stamp: dict, now: datetime
+) -> DocumentVersion:
+    """Crea la `DocumentVersion` firmada y deja la solicitud `signed` (auditoría y webhook incluidos).
+
+    Es común a todos los proveedores: la firma por hash (`complete`) y la remota (callback).
+    """
+    db = ctx.db
+    document = db.get(Document, request.document_id)
+    number = (
+        db.scalar(
+            select(func.max(DocumentVersion.version_number)).where(
+                DocumentVersion.document_id == document.id
+            )
+        )
+        + 1
+    )
+    version = DocumentVersion(
+        id=uuid.uuid4(),
+        document_id=document.id,
+        version_number=number,
+        origin=VersionOrigin.SIGNED,
+        signature_request_id=request.id,
+        signature_level=SignatureLevel.B_T if stamp["status"] == "embedded" else SignatureLevel.B_B,
+        storage_ref="",
+        document_hash=sha256_hex(signed_pdf),
+    )
+    version.storage_ref = _blob_ref(document.id, number, version.id)
+    ctx.storage.save(version.storage_ref, signed_pdf)
+    try:
+        db.add(version)
+        db.flush()
+        document.current_version_id = version.id
+        document.signing_status = SigningStatus.SIGNED
+        request.status = RequestStatus.SIGNED
+        request.signed_at = now
+        _audit(
+            db,
+            request,
+            "signed",
+            {"version_number": number, "signature_level": version.signature_level.value, "timestamp": stamp},
+        )
+        if stamp["status"] == "unavailable":
+            _audit(db, request, "timestamp_unavailable", {"reason": stamp["reason"]})
+        webhooks.enqueue(ctx, request, webhooks.EVENT_SIGNED)
+        db.commit()
+    except IntegrityError as e:
+        db.rollback()
+        raise Conflict("otra firma se completó al mismo tiempo sobre el documento") from e
+    return version
+
+
 def complete(
     ctx: Ctx,
     request_id: uuid.UUID,
@@ -277,6 +333,10 @@ def complete(
     request = _get_request(ctx, request_id)
     if request.status != RequestStatus.SIGNING:
         raise Conflict(f"la solicitud está en estado '{request.status.value}': no está preparada")
+    if request.provider == Provider.FIRMAR:
+        raise Conflict(
+            "la firma remota se completa por el callback del servicio", code="remote_signature_pending"
+        )
     if len(signatures) > 1:
         raise Unprocessable("una solicitud admite una sola firma; para varias usar un lote")
 
@@ -374,47 +434,7 @@ def complete(
         db.rollback()
         raise Conflict("el desafío ya fue usado o venció")
 
-    document = db.get(Document, request.document_id)
-    number = (
-        db.scalar(
-            select(func.max(DocumentVersion.version_number)).where(
-                DocumentVersion.document_id == document.id
-            )
-        )
-        + 1
-    )
-    version = DocumentVersion(
-        id=uuid.uuid4(),
-        document_id=document.id,
-        version_number=number,
-        origin=VersionOrigin.SIGNED,
-        signature_request_id=request.id,
-        signature_level=SignatureLevel.B_T if stamp["status"] == "embedded" else SignatureLevel.B_B,
-        storage_ref="",
-        document_hash=sha256_hex(signed_pdf),
-    )
-    version.storage_ref = _blob_ref(document.id, number, version.id)
-    ctx.storage.save(version.storage_ref, signed_pdf)
-    try:
-        db.add(version)
-        db.flush()
-        document.current_version_id = version.id
-        document.signing_status = SigningStatus.SIGNED
-        request.status = RequestStatus.SIGNED
-        request.signed_at = now
-        _audit(
-            db,
-            request,
-            "signed",
-            {"version_number": number, "signature_level": version.signature_level.value, "timestamp": stamp},
-        )
-        if stamp["status"] == "unavailable":
-            _audit(db, request, "timestamp_unavailable", {"reason": stamp["reason"]})
-        webhooks.enqueue(ctx, request, webhooks.EVENT_SIGNED)
-        db.commit()
-    except IntegrityError as e:
-        db.rollback()
-        raise Conflict("otra firma se completó al mismo tiempo sobre el documento") from e
+    _register_signed(ctx, request, signed_pdf, stamp, now)
 
     for name in ("doc.pdf", "state.json"):
         ctx.storage.delete_prepared(f"prepared/{challenge.id}/{name}")

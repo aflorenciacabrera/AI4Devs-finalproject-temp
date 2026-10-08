@@ -95,3 +95,7 @@ Panel `/admin`, auditoría, anclas de confianza y rotación del certificado prop
 ## Sello de tiempo
 
 PAdES B-T con una TSA configurable: ver [`docs/timestamping.md`](../docs/timestamping.md).
+
+## Firma remota (`firmar`)
+
+Adaptador y servicio simulado: ver [`docs/firmar.md`](../docs/firmar.md).

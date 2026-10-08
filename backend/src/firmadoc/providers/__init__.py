@@ -6,6 +6,7 @@ from ..errors import Unprocessable
 from ..models import Provider
 from ..trust import load_trust_store
 from .base import SignatureProvider
+from .firmar import RemoteProvider
 from .local import LocalPAdESProvider
 from .token import TokenAgentProvider
 
@@ -29,6 +30,8 @@ def _token(settings: Settings) -> TokenAgentProvider:
 
 
 def get_provider(provider: Provider, settings: Settings) -> SignatureProvider:
+    if provider == Provider.FIRMAR and settings.firmar_base_url:
+        return RemoteProvider()  # type: ignore[return-value]  # familia distinta: recibe el PDF completo
     if provider not in ENABLED:
         raise Unprocessable(f"el proveedor '{provider.value}' todavía no está habilitado")
     if provider == Provider.TOKEN:

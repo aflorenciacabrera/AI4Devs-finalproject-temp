@@ -137,6 +137,12 @@ def verification_anchors(ctx: Ctx) -> tuple[list[ax509.Certificate], list[ax509.
     if local.is_file():
         data = local.read_bytes()
         roots.append(ax509.Certificate.load(pem.unarmor(data)[2] if pem.detect(data) else data))
+    if ctx.settings.firmar_mock_enabled:  # la AC del servicio simulado (solo desarrollo y pruebas)
+        from ..mock_firmar import mock_ca_certificate
+
+        mock_ca = mock_ca_certificate(ctx.settings)
+        if mock_ca is not None:
+            roots.append(mock_ca)
     archive = local.parent / "archive"  # certificados propios de rotaciones anteriores (solo la parte pública)
     if archive.is_dir():
         for path in sorted(archive.glob("*.crt")):

@@ -228,6 +228,9 @@ class SignatureRequest(Base):
         _enum(RequestStatus), default=RequestStatus.PENDING
     )
     callback_url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    remote_operation_id: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, unique=True, index=True
+    )  # operación en el servicio de firma remota (`firmar`)
     created_at: Mapped[datetime] = _ts(default=True)
     signed_at: Mapped[datetime | None] = _ts(nullable=True)
 

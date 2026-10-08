@@ -41,9 +41,15 @@ class Challenge(BaseModel):
     hash_to_sign: str
 
 
+class RemoteInfo(BaseModel):
+    operation_id: str
+    authorization_url: str
+
+
 class PrepareResponse(BaseModel):
     challenges: list[Challenge]
     expires_at: datetime
+    remote: RemoteInfo | None = None
 
 
 class SignatureIn(BaseModel):

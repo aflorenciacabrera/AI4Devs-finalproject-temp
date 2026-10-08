@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     widget_dist: str = "widget/dist"  # widget compilado
     max_batch_size: int = 50  # documentos por lote de firma
     admin_token: str | None = None  # token de administración (>= 32 caracteres); sin él, deshabilitada
+    # Firma remota (`firmar`): habilitada solo con firmar_base_url
+    firmar_base_url: str | None = None
+    firmar_client_id: str = "firmadoc"
+    firmar_client_secret: str | None = None
+    firmar_callback_secret: str | None = None  # HMAC del callback (>= 32 caracteres)
+    firmar_timeout_seconds: float = 10.0
+    firmar_mock_enabled: bool = False  # servicio simulado (solo desarrollo y pruebas)
     # Sello de tiempo (RFC 3161). Sin tsa_url las firmas son B-B.
     tsa_url: str | None = None
     tsa_timeout_seconds: float = 10.0
@@ -35,16 +42,16 @@ class Settings(BaseSettings):
     webhook_worker_enabled: bool = True
     webhook_poll_seconds: float = 5.0
 
-    @field_validator("tsa_url", mode="before")
+    @field_validator("tsa_url", "firmar_base_url", mode="before")
     @classmethod
     def _check_tsa_url(cls, value):
         if value is None or value == "":
             return None
         if not str(value).startswith(("http://", "https://")):
-            raise ValueError("FIRMADOC_TSA_URL debe empezar con http:// o https://")
+            raise ValueError("la URL debe empezar con http:// o https://")
         return value
 
-    @field_validator("signing_secret", "admin_token", mode="before")
+    @field_validator("signing_secret", "admin_token", "firmar_callback_secret", mode="before")
     @classmethod
     def _check_secret(cls, value):
         if value is None or value == "":

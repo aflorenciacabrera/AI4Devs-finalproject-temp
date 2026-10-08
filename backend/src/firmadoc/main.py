@@ -3,10 +3,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from . import webhooks
+from . import mock_firmar, webhooks
 from .api import deps
 from .api.admin_pages import router as admin_pages_router
 from .api.admin_routes import router as admin_router
+from .api.firmar_routes import router as firmar_router
 from .api.pages import router as pages_router
 from .api.routes import router
 from .api.widget_routes import router as widget_router
@@ -31,6 +32,8 @@ app = FastAPI(title="Firmadoc", lifespan=lifespan)
 app.include_router(router)
 app.include_router(widget_router)
 app.include_router(admin_router)
+app.include_router(firmar_router)
+app.include_router(mock_firmar.router)
 app.include_router(admin_pages_router)
 app.include_router(pages_router)
 
