@@ -96,6 +96,15 @@ def document_name(document: Document) -> str:
     return f"{safe}.pdf"
 
 
+def get_or_create_signer(db: Session, name: str, identifier: str, email: str) -> Signer:
+    signer = db.scalar(select(Signer).where(Signer.identifier == identifier, Signer.email == email))
+    if signer is None:
+        signer = Signer(full_name=name, identifier=identifier, email=email)
+        db.add(signer)
+        db.flush()
+    return signer
+
+
 def create_request(
     ctx: Ctx,
     *,
@@ -107,6 +116,8 @@ def create_request(
     signer_email: str,
     provider: Provider,
     callback_url: str | None = None,
+    batch_id: uuid.UUID | None = None,
+    commit: bool = True,
 ) -> SignatureRequest:
     get_provider(provider, ctx.settings)  # 422 si no está habilitado
     if callback_url is not None:
@@ -154,13 +165,7 @@ def create_request(
         db.flush()
         document.current_version_id = version.id
 
-    signer = db.scalar(
-        select(Signer).where(Signer.identifier == signer_identifier, Signer.email == signer_email)
-    )
-    if signer is None:
-        signer = Signer(full_name=signer_name, identifier=signer_identifier, email=signer_email)
-        db.add(signer)
-        db.flush()
+    signer = get_or_create_signer(db, signer_name, signer_identifier, signer_email)
 
     request = SignatureRequest(
         document_id=document.id,
@@ -168,11 +173,13 @@ def create_request(
         signer_id=signer.id,
         provider=provider,
         callback_url=callback_url,
+        batch_id=batch_id,
     )
     db.add(request)
     db.flush()
     _audit(db, request, "created", {"provider": provider.value})
-    db.commit()
+    if commit:
+        db.commit()
     return request
 
 
@@ -259,7 +266,11 @@ def _fail(ctx: Ctx, request: SignatureRequest, reason: str, code: str | None = N
 
 
 def complete(
-    ctx: Ctx, request_id: uuid.UUID, signatures: list[tuple[uuid.UUID, str]], session_ref: str
+    ctx: Ctx,
+    request_id: uuid.UUID,
+    signatures: list[tuple[uuid.UUID, str]],
+    session_ref: str,
+    include_bytes: bool = True,
 ) -> dict:
     db = ctx.db
     request = _get_request(ctx, request_id)
@@ -386,7 +397,7 @@ def complete(
 
     for name in ("doc.pdf", "state.json"):
         ctx.storage.delete_prepared(f"prepared/{challenge.id}/{name}")
-    return request_result(ctx, request)
+    return request_result(ctx, request, include_bytes=include_bytes)
 
 
 def document_block(ctx: Ctx, version: DocumentVersion, include_bytes: bool = True) -> dict:
@@ -410,7 +421,7 @@ def document_block(ctx: Ctx, version: DocumentVersion, include_bytes: bool = Tru
     return block
 
 
-def request_result(ctx: Ctx, request: SignatureRequest) -> dict:
+def request_result(ctx: Ctx, request: SignatureRequest, include_bytes: bool = True) -> dict:
     db = ctx.db
     result = {
         "id": request.id,
@@ -430,7 +441,7 @@ def request_result(ctx: Ctx, request: SignatureRequest) -> dict:
         select(DocumentVersion).where(DocumentVersion.signature_request_id == request.id)
     )
     if signed is not None:
-        result["document"] = document_block(ctx, signed)
+        result["document"] = document_block(ctx, signed, include_bytes=include_bytes)
     events = db.scalars(
         select(AuditEvent)
         .where(AuditEvent.signature_request_id == request.id)

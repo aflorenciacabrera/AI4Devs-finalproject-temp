@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Response
 
+from ..services import signature_batch as batches
 from ..services import signature_flow as flow
 from ..services.signature_flow import Ctx
 from . import schemas
@@ -71,3 +72,47 @@ def download_version(document_id: uuid.UUID, number: int, ctx: Ctx = Depends(get
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="documento-v{number}.pdf"'},
     )
+
+
+def _batch_session(batch_id: uuid.UUID, header: str | None) -> str:
+    return header or f"batch:{batch_id}"
+
+
+@router.post("/signature-batches", status_code=201, response_model=schemas.SignatureBatchOut)
+def create_signature_batch(body: schemas.CreateSignatureBatch, ctx: Ctx = Depends(get_ctx)):
+    return batches.create_batch(
+        ctx,
+        documents=[d.model_dump() for d in body.documents],
+        signer_name=body.signer.full_name,
+        signer_identifier=body.signer.identifier,
+        signer_email=body.signer.email,
+        provider=body.provider,
+        callback_url=body.callback_url,
+    )
+
+
+@router.post("/signature-batches/{batch_id}/prepare", response_model=schemas.BatchPrepareResponse)
+def prepare_signature_batch(
+    batch_id: uuid.UUID,
+    body: schemas.PrepareBody | None = None,
+    ctx: Ctx = Depends(get_ctx),
+    header: str | None = Depends(session_ref),
+):
+    certificate_pem = body.certificate_pem if body else None
+    return batches.prepare(ctx, batch_id, certificate_pem, _batch_session(batch_id, header))
+
+
+@router.post("/signature-batches/{batch_id}/complete", response_model=schemas.SignatureBatchOut)
+def complete_signature_batch(
+    batch_id: uuid.UUID,
+    body: schemas.CompleteBody | None = None,
+    ctx: Ctx = Depends(get_ctx),
+    header: str | None = Depends(session_ref),
+):
+    signatures = [(s.challenge_id, s.signature_base64) for s in (body.signatures if body else [])]
+    return batches.complete(ctx, batch_id, signatures, _batch_session(batch_id, header))
+
+
+@router.get("/signature-batches/{batch_id}", response_model=schemas.SignatureBatchOut)
+def get_signature_batch(batch_id: uuid.UUID, ctx: Ctx = Depends(get_ctx)):
+    return batches.get_batch(ctx, batch_id)

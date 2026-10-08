@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     signing_token_ttl_seconds: int = 3600
     agent_url: str = "http://127.0.0.1:47123"  # dónde busca el widget al agente local
     widget_dist: str = "widget/dist"  # widget compilado
+    max_batch_size: int = 50  # documentos por lote de firma
     # Webhooks al integrador
     webhook_allow_http: bool = False  # solo desarrollo: permite http://
     webhook_allow_private_hosts: bool = False  # solo desarrollo y pruebas: permite hosts privados

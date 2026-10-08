@@ -107,3 +107,49 @@ class WidgetContext(BaseModel):
     signed_at: datetime | None = None
     certificate: WidgetCertificate | None = None
     document: DocumentBlock | None = None
+
+
+class BatchDocumentIn(BaseModel):
+    document_base64: str | None = None
+    document_id: uuid.UUID | None = None
+    external_document_id: str | None = Field(default=None, max_length=200)
+
+
+class CreateSignatureBatch(BaseModel):
+    documents: list[BatchDocumentIn]
+    signer: SignerIn
+    provider: Provider
+    callback_url: str | None = None
+
+
+class BatchChallenge(Challenge):
+    signature_request_id: uuid.UUID
+
+
+class BatchPrepareResponse(BaseModel):
+    challenges: list[BatchChallenge]
+    expires_at: datetime
+
+
+class BatchError(BaseModel):
+    code: str | None
+    detail: str
+    http_status: int
+
+
+class BatchItem(BaseModel):
+    signature_request_id: uuid.UUID
+    document_id: uuid.UUID
+    status: str
+    version_number: int | None
+    download_url: str | None
+    error: BatchError | None = None
+
+
+class SignatureBatchOut(BaseModel):
+    id: uuid.UUID
+    status: str
+    provider: str
+    created_at: datetime
+    completed_at: datetime | None
+    requests: list[BatchItem]

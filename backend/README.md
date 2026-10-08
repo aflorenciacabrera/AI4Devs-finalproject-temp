@@ -79,3 +79,7 @@ Los tests recorren el flujo completo con un **simulador de agente** (`tests/agen
 
 Aviso al integrador al firmar o fallar una solicitud: ver [`docs/webhooks.md`](../docs/webhooks.md).
 Alta de integradores: `python -m firmadoc.integrators --help`.
+
+## Firma en lote
+
+Varios documentos con una confirmación y un PIN: ver [`docs/signature-batches.md`](../docs/signature-batches.md).
