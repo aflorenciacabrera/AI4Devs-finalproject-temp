@@ -12,8 +12,10 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     Uuid,
+    func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -125,6 +127,7 @@ class IntegratingSystem(Base):
     name: Mapped[str] = mapped_column(String(200))
     api_key_hash: Mapped[str] = mapped_column(String(128), unique=True)
     allowed_origins: Mapped[str] = mapped_column(String(2000), default="")
+    webhook_secret: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = _ts(default=True)
 
 
@@ -224,6 +227,7 @@ class SignatureRequest(Base):
     status: Mapped[RequestStatus] = mapped_column(
         _enum(RequestStatus), default=RequestStatus.PENDING
     )
+    callback_url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     created_at: Mapped[datetime] = _ts(default=True)
     signed_at: Mapped[datetime | None] = _ts(nullable=True)
 
@@ -273,3 +277,11 @@ class WebhookDelivery(Base):
     )
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     last_attempt_at: Mapped[datetime | None] = _ts(nullable=True)
+    event_type: Mapped[str] = mapped_column(String(40), default="", server_default="")
+    body: Mapped[str] = mapped_column(Text, default="", server_default="")  # JSON fijo del evento
+    next_attempt_at: Mapped[datetime | None] = _ts(nullable=True)
+    last_error: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    response_status: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, server_default=func.now()
+    )

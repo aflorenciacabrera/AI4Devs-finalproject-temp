@@ -1,12 +1,31 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from . import webhooks
+from .api import deps
 from .api.pages import router as pages_router
 from .api.routes import router
 from .api.widget_routes import router as widget_router
 from .errors import DomainError
 
-app = FastAPI(title="Firmadoc")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Arranca el trabajador de webhooks (si está habilitado) y lo detiene al apagar."""
+    settings = app.dependency_overrides.get(deps.settings_dep, deps.settings_dep)()
+    worker = None
+    if settings.webhook_worker_enabled:
+        worker = webhooks.WebhookWorker(settings, deps._session_factory(settings.database_url)).start()
+    try:
+        yield
+    finally:
+        if worker is not None:
+            worker.stop()
+
+
+app = FastAPI(title="Firmadoc", lifespan=lifespan)
 app.include_router(router)
 app.include_router(widget_router)
 app.include_router(pages_router)

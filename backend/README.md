@@ -74,3 +74,8 @@ python -m firmadoc.trust list      # sujeto y huella SHA-256 de cada ancla carga
 Sin anclas cargadas, todo certificado de tercero se rechaza como `certificate_untrusted`. Los rechazos devuelven `{"detail", "code"}` (`certificate_untrusted`, `certificate_expired`, `certificate_revoked`, `certificate_invalid`, `cuil_mismatch`).
 
 Los tests recorren el flujo completo con un **simulador de agente** (`tests/agent_simulator.py`) y una PKI de prueba (`tests/pki.py`), sin hardware ni valor legal.
+
+## Webhooks
+
+Aviso al integrador al firmar o fallar una solicitud: ver [`docs/webhooks.md`](../docs/webhooks.md).
+Alta de integradores: `python -m firmadoc.integrators --help`.

@@ -25,6 +25,7 @@ def create_signature_request(body: schemas.CreateSignatureRequest, ctx: Ctx = De
         signer_identifier=body.signer.identifier,
         signer_email=body.signer.email,
         provider=body.provider,
+        callback_url=body.callback_url,
     )
     return {
         "id": request.id,

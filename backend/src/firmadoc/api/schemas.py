@@ -19,7 +19,7 @@ class CreateSignatureRequest(BaseModel):
     external_document_id: str | None = Field(default=None, max_length=200)
     signer: SignerIn
     provider: Provider
-    callback_url: str | None = None  # aceptado; los webhooks se implementan en FIRDOC-24
+    callback_url: str | None = None  # https; se notifica al completarse o fallar
 
 
 class SignatureRequestCreated(BaseModel):

@@ -24,6 +24,7 @@ from .models import (
 )
 
 DEMO_SYSTEM_NAME = "Sistema de demostración"
+DEMO_WEBHOOK_SECRET = "whsec_demo_solo_para_desarrollo"
 DEMO_API_KEY = "firmadoc-demo-key"  # solo demo; en la base queda únicamente el hash
 
 
@@ -41,6 +42,7 @@ def seed_demo(session: Session) -> bool:
         name=DEMO_SYSTEM_NAME,
         api_key_hash=hash_api_key(DEMO_API_KEY),
         allowed_origins="http://localhost:4200",
+        webhook_secret=DEMO_WEBHOOK_SECRET,
     )
     signer = Signer(full_name="Firmante de Prueba", identifier="20000000001", email="demo@example.org")
     session.add_all([system, signer])

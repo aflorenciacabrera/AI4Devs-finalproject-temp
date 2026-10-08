@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     signing_token_ttl_seconds: int = 3600
     agent_url: str = "http://127.0.0.1:47123"  # dónde busca el widget al agente local
     widget_dist: str = "widget/dist"  # widget compilado
+    # Webhooks al integrador
+    webhook_allow_http: bool = False  # solo desarrollo: permite http://
+    webhook_allow_private_hosts: bool = False  # solo desarrollo y pruebas: permite hosts privados
+    webhook_timeout_seconds: float = 5.0
+    webhook_worker_enabled: bool = True
+    webhook_poll_seconds: float = 5.0
 
     @field_validator("signing_secret", mode="before")
     @classmethod

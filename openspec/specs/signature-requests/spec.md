@@ -18,7 +18,7 @@ Todos los endpoints de `/api/v1` del flujo de firma SHALL exigir la cabecera `X-
 - **THEN** la respuesta es `401`
 
 ### Requirement: Crear solicitud de firma
-`POST /api/v1/signature-requests` SHALL crear una `SignatureRequest` en estado `pending` sobre un `Document` y responder `201` con `id`, `document_id`, `status`, `signing_url` y `created_at`. La `signing_url` SHALL tener la forma `{public_base_url}/sign/{id}#t={token}`, donde el token es la credencial acotada y de corta vida del widget para esa solicitud.
+`POST /api/v1/signature-requests` SHALL crear una `SignatureRequest` en estado `pending` sobre un `Document` y responder `201` con `id`, `document_id`, `status`, `signing_url` y `created_at`. La `signing_url` SHALL tener la forma `{public_base_url}/sign/{id}#t={token}`, donde el token es la credencial acotada y de corta vida del widget para esa solicitud. Si se envía `callback_url`, SHALL validarse y conservarse en la solicitud para notificar al integrador cuando termine.
 
 #### Scenario: Documento nuevo
 - **WHEN** el integrador envía `document_base64` con un PDF válido, `signer` y `provider`
@@ -48,6 +48,14 @@ Todos los endpoints de `/api/v1` del flujo de firma SHALL exigir la cabecera `X-
 - **WHEN** se crea una solicitud
 - **THEN** la `signing_url` termina en `#t=<token>`, el token solo sirve para esa solicitud y vence a la hora por defecto
 
+#### Scenario: Callback válido
+- **WHEN** se envía una `callback_url` pública `https`
+- **THEN** la solicitud se crea y la URL queda guardada
+
+#### Scenario: Callback inválido
+- **WHEN** `callback_url` es insegura (esquema no permitido, credenciales en la URL, host privado o que resuelve a una dirección privada)
+- **THEN** la respuesta es `422` con `code: "invalid_callback_url"` y no se crea ninguna solicitud ni documento
+
 ### Requirement: Preparar la firma
 `POST /api/v1/signature-requests/{id}/prepare` SHALL calcular el hash a firmar, crear un `SigningChallenge` de un solo uso con vencimiento y atado a la sesión, pasar la solicitud a `signing` y responder `200` con `challenges` y `expires_at`. Cuando el proveedor valida un certificado, los rechazos SHALL responder con un cuerpo `{detail, code}` y no SHALL crear ningún desafío.
 
@@ -68,7 +76,7 @@ Todos los endpoints de `/api/v1` del flujo de firma SHALL exigir la cabecera `X-
 - **THEN** la respuesta es `403` (identidad) o `422` (certificado) con `code`, la solicitud permanece en su estado y se registra el evento de auditoría `rejected` con el motivo
 
 ### Requirement: Completar la firma
-`POST /api/v1/signature-requests/{id}/complete` SHALL verificar que cada firma corresponde a un desafío vigente, incrustar la firma PAdES como actualización incremental, crear la nueva `DocumentVersion` `signed`, actualizar `Document.current_version_id` y `signing_status`, y responder `200` con el bloque `document`.
+`POST /api/v1/signature-requests/{id}/complete` SHALL verificar que cada firma corresponde a un desafío vigente, incrustar la firma PAdES como actualización incremental, crear la nueva `DocumentVersion` `signed`, actualizar `Document.current_version_id` y `signing_status`, registrar la notificación al integrador cuando hay `callback_url`, y responder `200` con el bloque `document`.
 
 #### Scenario: Firma completada
 - **WHEN** se completa una solicitud con un desafío vigente y una firma válida
@@ -89,6 +97,10 @@ Todos los endpoints de `/api/v1` del flujo de firma SHALL exigir la cabecera `X-
 #### Scenario: Firma que no verifica
 - **WHEN** la firma enviada no verifica contra el hash preparado
 - **THEN** la respuesta es `422`, la solicitud pasa a `failed` y se registra el evento `failed`
+
+#### Scenario: Notificación al completar
+- **WHEN** la solicitud tiene `callback_url` y se completa la firma
+- **THEN** queda registrada una entrega `pending` del evento `signature.signed`
 
 ### Requirement: Descarga y versionado simultáneos
 Toda firma completada SHALL dejar el documento descargable y versionado a la vez, sin modificar ni eliminar versiones anteriores.

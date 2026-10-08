@@ -12,7 +12,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .. import signing_token
+from .. import signing_token, webhooks
 from ..config import Settings
 from ..errors import Conflict, DomainError, NotFound, Unprocessable
 from ..models import (
@@ -106,8 +106,11 @@ def create_request(
     signer_identifier: str,
     signer_email: str,
     provider: Provider,
+    callback_url: str | None = None,
 ) -> SignatureRequest:
     get_provider(provider, ctx.settings)  # 422 si no está habilitado
+    if callback_url is not None:
+        webhooks.validate_callback_url(callback_url, ctx.settings)  # antes de crear nada
     db = ctx.db
 
     if (document_id is None) == (document_base64 is None):
@@ -164,6 +167,7 @@ def create_request(
         integrating_system_id=ctx.system.id,
         signer_id=signer.id,
         provider=provider,
+        callback_url=callback_url,
     )
     db.add(request)
     db.flush()
@@ -249,6 +253,7 @@ def prepare(
 def _fail(ctx: Ctx, request: SignatureRequest, reason: str, code: str | None = None) -> None:
     request.status = RequestStatus.FAILED
     _audit(ctx.db, request, "failed", {"reason": reason, "code": code})
+    webhooks.enqueue(ctx, request, webhooks.EVENT_FAILED, error_code=code)
     ctx.db.commit()
     raise Unprocessable(reason, code=code)
 
@@ -373,6 +378,7 @@ def complete(
         request.status = RequestStatus.SIGNED
         request.signed_at = now
         _audit(db, request, "signed", {"version_number": number})
+        webhooks.enqueue(ctx, request, webhooks.EVENT_SIGNED)
         db.commit()
     except IntegrityError as e:
         db.rollback()
