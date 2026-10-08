@@ -22,6 +22,8 @@ from pyhanko.sign import signers
 from pyhanko.sign.fields import SigSeedSubFilter
 from pyhanko.sign.signers.pdf_byterange import PreparedByteRangeDigest
 from pyhanko.sign.signers.pdf_signer import PdfSignatureMetadata, PdfSigner, PdfTBSDocument
+from pyhanko.sign.validation import validate_pdf_signature
+from pyhanko_certvalidator import ValidationContext
 from pyhanko_certvalidator.registry import SimpleCertificateStore
 
 RESERVED_BYTES = 16 * 1024
@@ -117,3 +119,17 @@ def verify_hash_signature(cert_der: bytes, hash_to_sign: bytes, signature: bytes
     except (InvalidSignature, TypeError, AttributeError):
         return False
     return True
+
+
+def verify_last_signature(
+    pdf: bytes, trust_roots: list[ax509.Certificate], other_certs: list[ax509.Certificate]
+) -> bool:
+    """¿La última firma del PDF es íntegra, válida y llega a un ancla de confianza?"""
+    signatures = PdfFileReader(io.BytesIO(pdf)).embedded_signatures
+    if not signatures:
+        return False
+    context = ValidationContext(
+        trust_roots=trust_roots, other_certs=other_certs, allow_fetching=False
+    )
+    status = validate_pdf_signature(signatures[-1], context)
+    return bool(status.intact and status.valid and status.trusted)

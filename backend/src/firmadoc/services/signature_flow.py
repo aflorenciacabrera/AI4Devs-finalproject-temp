@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..config import Settings
-from ..errors import Conflict, NotFound, Unprocessable
+from ..errors import Conflict, DomainError, NotFound, Unprocessable
 from ..models import (
     AuditEvent,
     Certificate,
@@ -106,7 +106,7 @@ def create_request(
     signer_email: str,
     provider: Provider,
 ) -> SignatureRequest:
-    get_provider(provider, ctx.settings.local_cert_dir)  # 422 si no está habilitado
+    get_provider(provider, ctx.settings)  # 422 si no está habilitado
     db = ctx.db
 
     if (document_id is None) == (document_base64 is None):
@@ -183,7 +183,7 @@ def prepare(
     if request.status not in (RequestStatus.PENDING, RequestStatus.SIGNING):
         raise Conflict(f"la solicitud está en estado '{request.status.value}'")
 
-    provider = get_provider(request.provider, ctx.settings.local_cert_dir)
+    provider = get_provider(request.provider, ctx.settings)
     document = db.get(Document, request.document_id)
     signer = db.get(Signer, request.signer_id)
     current = _latest_version(db, document)
@@ -192,7 +192,13 @@ def prepare(
     except StorageError as e:
         raise Conflict("no se pudo leer el documento") from e
 
-    resolved = provider.resolve_certificate(db, certificate_pem)
+    try:
+        resolved = provider.resolve_certificate(db, certificate_pem, signer)
+    except DomainError as e:
+        # Rechazo no destructivo: la solicitud no cambia de estado, pero queda constancia.
+        _audit(db, request, "rejected", {"code": e.code, "reason": e.detail})
+        db.commit()
+        raise
     reason = f"Firmado por {signer.full_name} (CUIL {signer.identifier}) vía Firmadoc"
     try:
         prepared = prepare_pdf(pdf, ax509.Certificate.load(resolved.der), reason)
@@ -234,11 +240,11 @@ def prepare(
     }
 
 
-def _fail(ctx: Ctx, request: SignatureRequest, reason: str) -> None:
+def _fail(ctx: Ctx, request: SignatureRequest, reason: str, code: str | None = None) -> None:
     request.status = RequestStatus.FAILED
-    _audit(ctx.db, request, "failed", {"reason": reason})
+    _audit(ctx.db, request, "failed", {"reason": reason, "code": code})
     ctx.db.commit()
-    raise Unprocessable(reason)
+    raise Unprocessable(reason, code=code)
 
 
 def complete(
@@ -291,7 +297,12 @@ def complete(
     cert_der = base64.b64decode(state["cert_der"])
     hash_to_sign = base64.b64decode(challenge.hash_to_sign)
 
-    provider = get_provider(request.provider, ctx.settings.local_cert_dir)
+    provider = get_provider(request.provider, ctx.settings)
+    signer = db.get(Signer, request.signer_id)
+    try:
+        provider.revalidate_certificate(cert_der, signer)  # vigencia y revocación pueden haber cambiado
+    except DomainError as e:
+        _fail(ctx, request, e.detail, e.code)
     try:
         signature = provider.obtain_signature(hash_to_sign, supplied)
     except ValueError as e:
@@ -317,10 +328,15 @@ def complete(
 
     try:
         signed_pdf = finish_pdf(prepared_pdf, state, ax509.Certificate.load(cert_der), signature)
+        result_ok = provider.verify_result(signed_pdf, cert_der)
     except Exception as e:  # noqa: BLE001 - pyHanko levanta tipos variados
         db.rollback()
         request = _get_request(ctx, request_id)
         _fail(ctx, request, f"no se pudo incrustar la firma: {e}")
+    if not result_ok:
+        db.rollback()
+        request = _get_request(ctx, request_id)
+        _fail(ctx, request, "el PDF firmado no valida contra las anclas de confianza")
 
     document = db.get(Document, request.document_id)
     number = (

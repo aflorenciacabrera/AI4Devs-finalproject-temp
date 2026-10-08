@@ -1,13 +1,18 @@
 class DomainError(Exception):
     status_code = 400
 
-    def __init__(self, detail: str):
+    def __init__(self, detail: str, code: str | None = None):
         super().__init__(detail)
         self.detail = detail
+        self.code = code
 
 
 class Unauthorized(DomainError):
     status_code = 401
+
+
+class Forbidden(DomainError):
+    status_code = 403
 
 
 class NotFound(DomainError):

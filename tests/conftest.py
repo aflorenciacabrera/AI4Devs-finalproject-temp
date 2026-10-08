@@ -14,6 +14,8 @@ from firmadoc.db import make_engine
 from firmadoc.main import app
 from firmadoc.seed import DEMO_API_KEY, seed_demo
 
+from .pki import Pki
+
 ROOT = Path(__file__).resolve().parent.parent
 PG_URL = os.environ.get("FIRMADOC_TEST_PG_URL")
 
@@ -71,3 +73,15 @@ def client(settings, session):
     app.dependency_overrides[settings_dep] = lambda: settings
     yield TestClient(app, headers={"X-API-Key": DEMO_API_KEY})
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="session")
+def pki():
+    return Pki()
+
+
+@pytest.fixture(scope="session")
+def anchors(pki, tmp_path_factory):
+    directory = tmp_path_factory.mktemp("trust")
+    pki.write_anchors(directory)
+    return directory

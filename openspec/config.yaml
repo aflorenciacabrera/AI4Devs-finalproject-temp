@@ -8,6 +8,7 @@ context: |
 
   Stack: Python + pyHanko (PAdES, firma interrumpida), FastAPI, SQLAlchemy + Alembic, React (widget),
   agente local `agent/` con PKCS#11. Tests: pytest, SoftHSM para PKCS#11 en CI.
+  Agente local (`agent/`): se implementa en Python (python-pkcs11, diálogo tkinter, PyInstaller).
   Estructura: backend/, widget/, admin-panel/, agent/.
 
   Dominio:

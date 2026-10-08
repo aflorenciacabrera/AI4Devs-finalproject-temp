@@ -5,6 +5,7 @@ import os
 import threading
 from pathlib import Path
 
+from asn1crypto import x509 as ax509
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa, utils
@@ -12,7 +13,8 @@ from cryptography.x509.oid import NameOID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..models import Certificate, Provider, RevocationStatus
+from ..models import Certificate, Provider, RevocationStatus, Signer
+from ..pdf_engine import verify_last_signature
 from .base import ResolvedCertificate
 
 KEY_FILE = "demo-signer.key"
@@ -75,8 +77,10 @@ class LocalPAdESProvider:
             f.write(pem_key)
         cert_path.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
 
-    def resolve_certificate(self, db: Session, certificate_pem: str | None) -> ResolvedCertificate:
-        _key, cert = self._load()  # `certificate_pem` se ignora: firma el servidor
+    def resolve_certificate(
+        self, db: Session, certificate_pem: str | None, signer: Signer
+    ) -> ResolvedCertificate:
+        _key, cert = self._load()  # `certificate_pem` y `signer` se ignoran: firma el servidor
         serial = str(cert.serial_number)
         record = db.scalar(select(Certificate).where(Certificate.serial_number == serial))
         if record is None:
@@ -92,6 +96,12 @@ class LocalPAdESProvider:
             db.add(record)
             db.flush()
         return ResolvedCertificate(record, cert.public_bytes(serialization.Encoding.DER))
+
+    def revalidate_certificate(self, cert_der: bytes, signer: Signer) -> None:
+        return None  # certificado propio: no hay terceros que validar
+
+    def verify_result(self, pdf: bytes, cert_der: bytes) -> bool:
+        return verify_last_signature(pdf, [ax509.Certificate.load(cert_der)], [])
 
     def obtain_signature(self, hash_to_sign: bytes, supplied: bytes | None) -> bytes:
         if supplied is not None:

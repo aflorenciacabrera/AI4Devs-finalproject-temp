@@ -10,7 +10,10 @@ app.include_router(router)
 
 @app.exception_handler(DomainError)
 def domain_error_handler(_request: Request, exc: DomainError) -> JSONResponse:
-    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    content = {"detail": exc.detail}
+    if exc.code:
+        content["code"] = exc.code
+    return JSONResponse(status_code=exc.status_code, content=content)
 
 
 @app.get("/health")

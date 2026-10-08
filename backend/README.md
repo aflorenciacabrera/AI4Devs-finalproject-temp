@@ -51,3 +51,26 @@ Notas:
 - `provider` `token` y `firmar` responden `422` hasta que se implementen.
 - `callback_url` se acepta pero todavía no se usa (los webhooks son FIRDOC-24).
 - La firma de `local` es **electrónica** (certificado autofirmado de demostración, nivel PAdES B-B). El certificado y su clave se generan en `FIRMADOC_LOCAL_CERT_DIR` (`data/` está fuera de git).
+
+## Firma con token (proveedor `token`)
+
+El servidor valida el certificado público del token y verifica las firmas de los hashes; la clave privada y el PIN nunca llegan a Firmadoc. El contrato con el agente local está en [`docs/agent-contract.md`](../docs/agent-contract.md).
+
+Configuración (variables de entorno, ver `.env.example`):
+
+| Variable | Por defecto | Uso |
+|---|---|---|
+| `FIRMADOC_TRUST_DIR` | `backend/trust` | anclas de confianza (`.crt`/`.pem`): raíces y ACs intermedias de los certificados de los firmantes |
+| `FIRMADOC_REVOCATION_MODE` | `soft-fail` | `hard-fail` rechaza si no se puede verificar la revocación; `soft-fail` acepta con estado `unknown`; `off` no consulta |
+| `FIRMADOC_REVOCATION_FETCH` | `true` | consultar CRL/OCSP por red |
+| `FIRMADOC_CRL_DIR` | — | CRLs locales (`.crl`/`.der`), útil sin salida a internet |
+
+Cargar las anclas **desde la fuente oficial de la AC** y confirmar su huella por otro canal:
+
+```bash
+python -m firmadoc.trust list      # sujeto y huella SHA-256 de cada ancla cargada
+```
+
+Sin anclas cargadas, todo certificado de tercero se rechaza como `certificate_untrusted`. Los rechazos devuelven `{"detail", "code"}` (`certificate_untrusted`, `certificate_expired`, `certificate_revoked`, `certificate_invalid`, `cuil_mismatch`).
+
+Los tests recorren el flujo completo con un **simulador de agente** (`tests/agent_simulator.py`) y una PKI de prueba (`tests/pki.py`), sin hardware ni valor legal.

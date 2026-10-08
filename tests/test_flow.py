@@ -154,11 +154,14 @@ def test_create_exige_documento_o_id(client):
     assert r.status_code == 422
 
 
-@pytest.mark.parametrize("provider", ["token", "firmar"])
-def test_create_proveedor_no_habilitado(client, provider):
-    r = create(client, provider=provider)
+def test_create_proveedor_no_habilitado(client):
+    r = create(client, provider="firmar")
     assert r.status_code == 422
     assert "habilitado" in r.json()["detail"]
+
+
+def test_create_proveedor_token_habilitado(client):
+    assert create(client, provider="token").status_code == 201
 
 
 # --- flujo completo --------------------------------------------------------------------------
