@@ -32,16 +32,6 @@ CUIL = SIGNER["identifier"]  # 20123456789
 DAY = datetime.timedelta(days=1)
 
 
-@pytest.fixture
-def token_env(settings, pki, anchors, tmp_path):
-    settings.trust_dir = str(anchors)
-    settings.revocation_mode = "hard-fail"
-    settings.revocation_fetch = False
-    settings.crl_dir = str(tmp_path / "crl")
-    pki.write_crls(Path(settings.crl_dir))
-    return settings
-
-
 def signer_identity(pki, **kw):
     return pki.ca.issue("Juan Pérez", CUIL, **kw)
 

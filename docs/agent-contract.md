@@ -45,9 +45,90 @@ Este documento fija lo que el **agente local** (`agent/`, FIRDOC-21) y el **serv
 
 El agente no interpreta estos códigos: los muestra el widget.
 
-## Requisitos para el agente real (change `agente-local`)
+## API HTTP del agente
 
-- Escuchar solo en `127.0.0.1` y aceptar únicamente pedidos de los orígenes permitidos del integrador.
-- Un único ingreso de PIN por lote, sin reintentos automáticos (un PIN erróneo cuenta contra el límite de bloqueo del token).
-- Confirmar con el usuario, mostrando el nombre del documento, antes de pedir el PIN.
-- Probar con SoftHSM y confirmar con un token físico que acepta `CKM_RSA_PKCS` con `DigestInfo`.
+El widget habla con el agente por HTTP en `http://127.0.0.1:{puerto}` (puerto 47123 por defecto, configurable). Solo existen **dos operaciones**; cualquier otra ruta responde `404` y otro método `405`. Implementación: `agent/src/firmadoc_agent/server.py`; pruebas: `agent/tests/test_agent_server.py`.
+
+### Controles de acceso
+
+- El agente escucha **solo** en `127.0.0.1`.
+- Todo pedido debe llevar la cabecera `Origin` con un origen de la lista `allowed_origins` del agente (coincidencia **exacta** de esquema, host y puerto; sin comodines). Sin `Origin`, con `null` o con un origen ajeno: `403 origin_not_allowed`, sin tocar el token ni mostrar diálogos y sin cabeceras CORS.
+- La cabecera `Host` debe ser `127.0.0.1:{puerto}` o `localhost:{puerto}`; otro valor (DNS rebinding): `403 host_not_allowed`.
+- Las respuestas incluyen `Access-Control-Allow-Origin` con el **origen exacto** del pedido (nunca `*`), también las de error, para que el widget pueda leerlas. Además `Vary: Origin`, `Cache-Control: no-store` y `X-Firmadoc-Agent: <versión>`.
+- La preflight `OPTIONS` (de ambas rutas) responde `204` para los orígenes permitidos, con `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers: Content-Type`, `Access-Control-Max-Age: 600` y, si el navegador envía `Access-Control-Request-Private-Network: true` (Chrome/Edge 142+), `Access-Control-Allow-Private-Network: true`.
+
+### `GET /certificates`
+
+Lista los certificados públicos de **usuario** de los tokens conectados (omite los de AC). No pide el PIN.
+
+```json
+{
+  "agent_version": "0.1.0",
+  "certificates": [
+    {
+      "id": "0123456789abcdef:01",
+      "token_label": "Token del funcionario",
+      "subject": "CN=Juan Pérez,2.5.4.5=CUIL 20123456789,C=AR",
+      "issuer": "CN=AC de ...",
+      "serial_number": "123456789",
+      "not_before": "2026-01-01T00:00:00+00:00",
+      "not_after": "2028-01-01T00:00:00+00:00",
+      "certificate_pem": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n"
+    }
+  ]
+}
+```
+
+`id` es opaco para el widget (internamente `<serie del token>:<CKA_ID en hex>`): se reenvía tal cual a `/sign`. `certificate_pem` es lo que se envía a `prepare` del servidor.
+
+### `POST /sign`
+
+`Content-Type: application/json` obligatorio (`415` si no). Cuerpo ≤ 1 MiB (`413 payload_too_large`) y ≤ 100 elementos (`413 too_many_items`).
+
+```json
+{
+  "certificate_id": "0123456789abcdef:01",
+  "items": [
+    {
+      "challenge_id": "c9e1a7b4-...",
+      "document_name": "resolucion-0457.pdf",
+      "hash_algorithm": "SHA-256",
+      "hash_to_sign": "q1w2e3r4t5y6...=="
+    }
+  ]
+}
+```
+
+El agente muestra **una** confirmación con todos los `document_name` y el sujeto del certificado, pide el PIN **una sola vez**, abre una sola sesión, firma todos los hashes y la cierra. Respuesta `200`:
+
+```json
+{ "signatures": [ { "challenge_id": "c9e1a7b4-...", "signature_base64": "MIIB...==" } ] }
+```
+
+Las firmas vuelven en el mismo orden y con el mismo `challenge_id`; el widget las envía a `complete`. **Nunca hay firmas parciales**: si falla una, falla el pedido entero.
+
+### Errores del agente
+
+Cuerpo `{"code": "...", "detail": "..."}` con `code` estable:
+
+| HTTP | `code` | Cuándo |
+|---|---|---|
+| 400 | `invalid_request` | cuerpo malformado, falta un campo, `hash_algorithm` distinto de `SHA-256` o hash que no mide 32 bytes |
+| 403 | `origin_not_allowed` / `host_not_allowed` | origen o `Host` no permitidos |
+| 404 | `not_found` / `token_not_found` / `certificate_not_found` / `private_key_not_found` | ruta inexistente, sin token, certificado o clave privada no presentes |
+| 405 | `method_not_allowed` | método no permitido para la ruta |
+| 409 | `user_cancelled` | el usuario canceló o no respondió en 120 s (no se hizo ningún login) |
+| 401 | `pin_incorrect` | PIN incorrecto: **un único intento**, el agente no reintenta; reintentar es decisión de la persona |
+| 401 | `pin_expired` | el PIN del token expiró |
+| 423 | `pin_locked` | el token tiene el PIN bloqueado |
+| 429 | `busy` | ya hay una firma esperando confirmación (una a la vez) |
+| 500 | `pkcs11_unavailable` / `pkcs11_error` | la biblioteca PKCS#11 no carga o el token falló |
+
+Si queda un único intento antes del bloqueo, el diálogo lo advierte antes de pedir el PIN.
+
+## Requisitos del agente real
+
+- Escuchar solo en `127.0.0.1` y aceptar únicamente pedidos de los orígenes permitidos (**cumplido**, `agent-local-api`).
+- Un único ingreso de PIN por lote, sin reintentos automáticos (**cumplido**, `agent-token-signing`).
+- Confirmar con el usuario, mostrando el nombre del documento, antes de pedir el PIN (**cumplido**).
+- Probado con SoftHSM (código PKCS#11) y de punta a punta contra el servidor con una PKI de prueba. **Pendiente:** confirmar con un token físico que acepta `CKM_RSA_PKCS` con `DigestInfo` (procedimiento en `agent/README.md`).

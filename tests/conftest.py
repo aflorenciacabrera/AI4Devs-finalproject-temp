@@ -85,3 +85,14 @@ def anchors(pki, tmp_path_factory):
     directory = tmp_path_factory.mktemp("trust")
     pki.write_anchors(directory)
     return directory
+
+
+@pytest.fixture
+def token_env(settings, pki, anchors, tmp_path):
+    """Servidor configurado para el proveedor token: anclas de la PKI de prueba y CRL local."""
+    settings.trust_dir = str(anchors)
+    settings.revocation_mode = "hard-fail"
+    settings.revocation_fetch = False
+    settings.crl_dir = str(tmp_path / "crl")
+    pki.write_crls(Path(settings.crl_dir))
+    return settings

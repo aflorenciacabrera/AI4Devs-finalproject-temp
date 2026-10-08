@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: firmadoc
+          POSTGRES_PASSWORD: firmadoc
+          POSTGRES_DB: firmadoc
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U firmadoc" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      # Los tests de esquema recrean el esquema `public`: base descartable.
+      FIRMADOC_TEST_PG_URL: postgresql+psycopg://firmadoc:firmadoc@localhost:5432/firmadoc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]" -e "agent[dev]"
+      - run: ruff check .
+      - run: pytest tests
+
+  agent:
+    runs-on: ubuntu-latest
+    env:
+      SOFTHSM2_MODULE: /usr/lib/softhsm/libsofthsm2.so
+      SOFTHSM2_UTIL: /usr/bin/softhsm2-util
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y softhsm2 python3-tk xvfb
+      - run: pip install -e "agent[dev]"
+      - run: ruff check agent
+      # xvfb: pantalla virtual para las pruebas del diálogo tkinter
+      - run: xvfb-run -a pytest agent/tests
+
+  agent-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - run: pip install -e "agent[dev,build]"
+      - run: pytest agent/tests
+      - run: powershell -File agent/packaging/build.ps1
