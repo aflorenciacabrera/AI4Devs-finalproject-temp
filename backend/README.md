@@ -103,3 +103,7 @@ Adaptador y servicio simulado: ver [`docs/firmar.md`](../docs/firmar.md).
 ## Base de datos real
 
 PostgreSQL con Docker, PDF dentro de la base y datos de conexión para DBeaver: ver [`docs/database.md`](../docs/database.md).
+
+## Modo real
+
+Operar con un token físico y sin datos de demostración: ver [`docs/real-mode.md`](../docs/real-mode.md).

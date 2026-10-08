@@ -130,6 +130,11 @@ def seed_demo(session: Session, storage: DocumentStorage | None = None) -> bool:
 
 def main() -> None:
     settings = get_settings()
+    if settings.real_mode:
+        raise SystemExit(
+            "El seed es de demostración y no se carga en modo real. "
+            "Crear integradores con: python -m firmadoc.integrators create --help"
+        )
     engine = make_engine(settings.database_url)
     with make_session_factory(engine)() as session:
         storage: DocumentStorage = (

@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from . import mock_firmar, webhooks
+from . import mock_firmar, preflight, webhooks
 from .api import deps
 from .api.admin_pages import router as admin_pages_router
 from .api.admin_routes import router as admin_router
@@ -18,6 +18,11 @@ from .errors import DomainError
 async def lifespan(app: FastAPI):
     """Arranca el trabajador de webhooks (si está habilitado) y lo detiene al apagar."""
     settings = app.dependency_overrides.get(deps.settings_dep, deps.settings_dep)()
+    if settings.real_mode:  # no se sirve nada con una configuración insegura
+        bad = preflight.errors(preflight.check(settings))
+        if bad:
+            detail = "\n".join(f"  - {f.code}: {f.message}" for f in bad)
+            raise RuntimeError(f"configuración inválida para el modo real:\n{detail}")
     worker = None
     if settings.webhook_worker_enabled:
         worker = webhooks.WebhookWorker(settings, deps._session_factory(settings.database_url)).start()

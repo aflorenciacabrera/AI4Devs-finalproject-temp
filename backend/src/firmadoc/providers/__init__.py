@@ -30,6 +30,8 @@ def _token(settings: Settings) -> TokenAgentProvider:
 
 
 def get_provider(provider: Provider, settings: Settings) -> SignatureProvider:
+    if settings.real_mode and provider == Provider.LOCAL:
+        raise Unprocessable("el proveedor 'local' (demostración) no está habilitado en modo real")
     if provider == Provider.FIRMAR and settings.firmar_base_url:
         return RemoteProvider()  # type: ignore[return-value]  # familia distinta: recibe el PDF completo
     if provider not in ENABLED:

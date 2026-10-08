@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     tsa_url: str | None = None
     tsa_timeout_seconds: float = 10.0
     tsa_required: bool = False  # True: sin sello no se firma (503, reintentable)
+    # Modo real: no arranca con una configuración insegura ni de demostración (docs/real-mode.md)
+    real_mode: bool = False
     # Webhooks al integrador
     webhook_allow_http: bool = False  # solo desarrollo: permite http://
     webhook_allow_private_hosts: bool = False  # solo desarrollo y pruebas: permite hosts privados
