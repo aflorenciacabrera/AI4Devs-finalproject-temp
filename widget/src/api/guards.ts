@@ -22,6 +22,8 @@ export function isWidgetContext(x: unknown): x is WidgetContext {
     isString(x.signer_name) &&
     Array.isArray(x.allowed_origins) &&
     x.allowed_origins.every(isString) &&
+    Array.isArray(x.allowed_providers) &&
+    x.allowed_providers.every(isString) &&
     isString(x.agent_url)
   );
 }
@@ -36,8 +38,12 @@ function isChallenge(x: unknown): x is Challenge {
   );
 }
 
+function isRemote(x: unknown): boolean {
+  return x === undefined || x === null || (isObject(x) && isString(x.operation_id) && isString(x.authorization_url));
+}
+
 export function isPrepareResponse(x: unknown): x is PrepareResponse {
-  return isObject(x) && Array.isArray(x.challenges) && x.challenges.every(isChallenge);
+  return isObject(x) && Array.isArray(x.challenges) && x.challenges.every(isChallenge) && isRemote(x.remote);
 }
 
 export function isAgentCertificate(x: unknown): x is AgentCertificate {

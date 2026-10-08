@@ -22,6 +22,7 @@ export function makeContext(overrides: Partial<WidgetContext> = {}): WidgetConte
     signer_name: "María Fernanda Ríos",
     allowed_origins: ["https://gestor.example.org"],
     agent_url: "http://127.0.0.1:47123",
+    allowed_providers: ["token"],
     token_expires_at: "2026-10-08T12:00:00Z",
     signed_at: null,
     certificate: null,
@@ -85,6 +86,7 @@ export interface Fakes {
 export function makeFakes(context: WidgetContext = makeContext()): Fakes {
   const server = {
     getContext: vi.fn().mockResolvedValue(context),
+    selectProvider: vi.fn().mockResolvedValue(context),
     prepare: vi.fn().mockResolvedValue({ challenges: [challenge], expires_at: "2099-01-01T00:00:00Z" }),
     complete: vi.fn().mockResolvedValue(signedContext({ provider: context.provider })),
     downloadPdf: vi.fn().mockResolvedValue({ blob: new Blob(["%PDF-"]), filename: "firmado.pdf" }),

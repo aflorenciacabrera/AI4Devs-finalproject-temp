@@ -26,8 +26,8 @@ describe("arranque", () => {
       "confirm_local",
     );
   });
-  it("proveedor firmar → no soportado", () => {
-    expect(run(initialState, { type: "context_loaded", context: makeContext({ provider: "firmar" }) }).name).toBe(
+  it("proveedor desconocido → no soportado", () => {
+    expect(run(initialState, { type: "context_loaded", context: makeContext({ provider: "inventado" }) }).name).toBe(
       "unsupported",
     );
   });
@@ -155,5 +155,78 @@ describe("local y cancelación", () => {
   it("failed conserva el contexto cuando existe", () => {
     expect(run(choosing, { type: "failed", code: "x" })).toMatchObject({ name: "failed", context: ctx });
     expect(run(initialState, { type: "failed", code: "x" })).toEqual({ name: "failed", code: "x" });
+  });
+});
+
+describe("elección del método", () => {
+  const two = makeContext({ provider: "token", allowed_providers: ["token", "local"] });
+
+  it("con varios métodos abre la elección y no detecta el agente", () => {
+    expect(run(initialState, { type: "context_loaded", context: two }).name).toBe("choose_provider");
+  });
+  it("con un solo método salta la elección", () => {
+    expect(run(initialState, { type: "context_loaded", context: makeContext({ provider: "local", allowed_providers: ["local"] }) }).name).toBe("confirm_local");
+  });
+  it("no ofrece elegir si la solicitud ya no está pendiente", () => {
+    const signing = makeContext({ provider: "token", allowed_providers: ["token", "local"], status: "signing" });
+    expect(run(initialState, { type: "context_loaded", context: signing }).name).toBe("detecting_agent");
+  });
+  it("elegir pasa por 'choosing' y enruta según el método confirmado", () => {
+    const s1 = run(initialState, { type: "context_loaded", context: two }, { type: "choosing", provider: "local" });
+    expect(s1).toMatchObject({ name: "choose_provider", pending: "local" });
+    const s2 = run(s1, { type: "provider_selected", context: { ...two, provider: "local" } });
+    expect(s2.name).toBe("confirm_local");
+    const s3 = run(s1, { type: "provider_selected", context: { ...two, provider: "token" } });
+    expect(s3.name).toBe("detecting_agent");
+    const s4 = run(s1, { type: "provider_selected", context: { ...two, provider: "firmar" } });
+    expect(s4.name).toBe("confirm_remote");
+  });
+  it("un rechazo del servidor deja volver a elegir", () => {
+    const s = run(initialState, { type: "context_loaded", context: two }, { type: "choosing", provider: "local" }, { type: "choose_failed", code: "provider_not_allowed" });
+    expect(s).toMatchObject({ name: "choose_provider", pending: null, error: "provider_not_allowed" });
+  });
+  it("se puede volver a elegir desde la pantalla de espera, no durante la firma", () => {
+    const missing = run(initialState, { type: "context_loaded", context: two }, { type: "provider_selected", context: two }, { type: "agent_unreachable" });
+    expect(missing.name).toBe("agent_missing");
+    expect(run(missing, { type: "change_provider" }).name).toBe("choose_provider");
+    const awaiting = run(
+      initialState,
+      { type: "context_loaded", context: two },
+      { type: "provider_selected", context: two },
+      { type: "certificates", certificates: [cert] },
+      { type: "validating" },
+      { type: "awaiting_pin", challenges: [challenge] },
+      { type: "user_cancelled" },
+    );
+    expect(awaiting.name).toBe("choose_certificate"); // la firma ya estaba preparada en el servidor
+    expect(run(awaiting, { type: "change_provider" }).name).toBe("choose_certificate");
+  });
+  it("sin otro método no se puede cambiar", () => {
+    const single = run(initialState, { type: "context_loaded", context: makeContext({ provider: "local", allowed_providers: ["local"] }) });
+    expect(run(single, { type: "change_provider" }).name).toBe("confirm_local");
+  });
+});
+
+describe("firma remota", () => {
+  const remote = makeContext({ provider: "firmar", allowed_providers: ["firmar"] });
+  it("confirma, envía y espera", () => {
+    const s = run(initialState, { type: "context_loaded", context: remote }, { type: "remote_starting" });
+    expect(s).toMatchObject({ name: "confirm_remote", working: true });
+    const w = run(s, { type: "remote_started", authorizationUrl: "https://servicio.example/op/1" });
+    expect(w).toMatchObject({ name: "remote_waiting", authorizationUrl: "https://servicio.example/op/1" });
+    expect(isCancellable(w)).toBe(true);
+  });
+  it("servicio no disponible deja reintentar", () => {
+    const s = run(initialState, { type: "context_loaded", context: remote }, { type: "remote_starting" }, { type: "remote_failed", code: "remote_unavailable" });
+    expect(s).toMatchObject({ name: "confirm_remote", working: false, error: "remote_unavailable" });
+  });
+  it("recarga con la firma remota en curso: espera sin enlace", () => {
+    const s = run(initialState, { type: "context_loaded", context: { ...remote, status: "signing" } });
+    expect(s).toMatchObject({ name: "remote_waiting", authorizationUrl: null });
+  });
+  it("el resultado cierra la espera", () => {
+    const w = run(initialState, { type: "context_loaded", context: { ...remote, status: "signing" } });
+    expect(run(w, { type: "success", context: signedContext({ provider: "firmar" }) }).name).toBe("success");
+    expect(run(w, { type: "failed", code: "request_failed" }).name).toBe("failed");
   });
 });

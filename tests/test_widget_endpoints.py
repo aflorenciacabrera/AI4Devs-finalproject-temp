@@ -44,13 +44,14 @@ def test_contexto_de_una_solicitud_pendiente(client, anon):
     body = r.json()
     assert set(body) == {
         "id", "status", "provider", "document_name", "signer_name", "allowed_origins",
-        "agent_url", "token_expires_at", "signed_at", "certificate", "document",
+        "agent_url", "allowed_providers", "token_expires_at", "signed_at", "certificate", "document",
     }
     assert body["status"] == "pending" and body["provider"] == "local"
     assert body["document_name"] == "exp-1_doc-1.pdf"
     assert body["signer_name"] == SIGNER["full_name"]
     assert body["allowed_origins"] == ["http://localhost:4200"]
     assert body["agent_url"] == "http://127.0.0.1:47123"
+    assert body["allowed_providers"] == ["local"]
     assert body["document"] is None and body["certificate"] is None
 
 

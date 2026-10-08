@@ -97,11 +97,15 @@ Para una solicitud con proveedor `local`, el widget SHALL mostrar el documento, 
 - **THEN** se completa la firma sin consultar al agente y se muestra la pantalla de firma completada
 
 ### Requirement: Proveedor no soportado
-Para un proveedor que el widget no implementa (`firmar`), SHALL mostrar que ese método de firma no está disponible en este momento, sin intentar ninguna operación.
+Para un proveedor que el widget no conoce, SHALL mostrar que ese método de firma no está disponible en este momento, sin intentar ninguna operación. Los proveedores `token`, `local` y `firmar` SHALL estar soportados.
+
+#### Scenario: Proveedor desconocido
+- **WHEN** el contexto indica un proveedor que el widget no implementa
+- **THEN** se muestra un mensaje de método no disponible y solo se ofrece cancelar
 
 #### Scenario: Proveedor firmar
 - **WHEN** el contexto indica `provider: firmar`
-- **THEN** se muestra un mensaje de método no disponible y solo se ofrece cancelar
+- **THEN** se sigue el flujo de firma remota y no se muestra el mensaje de método no disponible
 
 ### Requirement: Firma completada
 Al completarse, el widget SHALL mostrar firmante, fecha y hora, método, nivel de firma, certificado y versión del documento tal como los informa el servidor (sin inventar valores), y SHALL ofrecer "Descargar PDF firmado" y "Cerrar".

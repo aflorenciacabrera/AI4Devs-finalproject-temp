@@ -4,6 +4,8 @@ import type { AgentSignature, PrepareResponse, WidgetContext } from "./types";
 
 export interface ServerClient {
   getContext(): Promise<WidgetContext>;
+  /** Fija el método de firma elegido (solo con la solicitud `pending`). */
+  selectProvider(provider: string): Promise<WidgetContext>;
   /** `certificatePem` solo para el proveedor token; con `local` se llama sin argumentos. */
   prepare(certificatePem?: string): Promise<PrepareResponse>;
   complete(signatures: AgentSignature[]): Promise<WidgetContext>;
@@ -74,6 +76,11 @@ export function createServerClient(options: ServerClientOptions): ServerClient {
   return {
     async getContext() {
       const body = await json("", { method: "GET" });
+      if (!isWidgetContext(body)) throw invalid();
+      return body;
+    },
+    async selectProvider(provider) {
+      const body = await json("/provider", { method: "POST", body: { provider } });
       if (!isWidgetContext(body)) throw invalid();
       return body;
     },

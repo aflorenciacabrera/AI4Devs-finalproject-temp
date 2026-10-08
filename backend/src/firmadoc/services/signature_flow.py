@@ -97,6 +97,21 @@ def document_name(document: Document) -> str:
     return f"{safe}.pdf"
 
 
+def _validate_allowed(
+    settings: Settings, provider: Provider, allowed: list[Provider] | None
+) -> str | None:
+    """Valida los métodos que se ofrecen a la persona; devuelve el CSV a guardar (None = solo `provider`)."""
+    if allowed is None:
+        return None
+    if len(set(allowed)) != len(allowed):
+        raise Unprocessable("'allowed_providers' no admite repetidos")
+    if provider not in allowed:
+        raise Unprocessable("'allowed_providers' debe incluir al proveedor inicial")
+    for item in allowed:
+        get_provider(item, settings)  # 422 si no está habilitado
+    return ",".join(p.value for p in allowed)
+
+
 def get_or_create_signer(db: Session, name: str, identifier: str, email: str) -> Signer:
     signer = db.scalar(select(Signer).where(Signer.identifier == identifier, Signer.email == email))
     if signer is None:
@@ -119,8 +134,10 @@ def create_request(
     callback_url: str | None = None,
     batch_id: uuid.UUID | None = None,
     commit: bool = True,
+    allowed_providers: list[Provider] | None = None,
 ) -> SignatureRequest:
     get_provider(provider, ctx.settings)  # 422 si no está habilitado
+    allowed_csv = _validate_allowed(ctx.settings, provider, allowed_providers)
     if callback_url is not None:
         webhooks.validate_callback_url(callback_url, ctx.settings)  # antes de crear nada
     db = ctx.db
@@ -175,6 +192,7 @@ def create_request(
         provider=provider,
         callback_url=callback_url,
         batch_id=batch_id,
+        allowed_providers=allowed_csv,
     )
     db.add(request)
     db.flush()

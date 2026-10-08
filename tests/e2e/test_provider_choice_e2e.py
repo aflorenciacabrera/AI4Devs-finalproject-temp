@@ -1,0 +1,98 @@
+"""Elección del método de firma en un Chrome real: token → demostración, y firma remota con el simulado."""
+
+import base64
+
+import httpx
+import pytest
+
+from firmadoc import mock_firmar, webhooks
+from firmadoc.providers import firmar
+from firmadoc.seed import DEMO_API_KEY
+
+from ..pdfs import make_pdf
+from ..test_flow import SIGNER
+from .test_widget_e2e import SIGNED, heading, open_widget, wait_for_message
+
+pytestmark = pytest.mark.e2e
+
+CLIENT_SECRET = "secreto-del-cliente-firmar"
+CALLBACK_SECRET = "secreto-del-callback-" + "x" * 24
+
+
+def create(live, provider, allowed):
+    body = {
+        "document_base64": base64.b64encode(make_pdf()).decode(),
+        "external_document_id": "e2e-eleccion/1",
+        "signer": SIGNER,
+        "provider": provider,
+        "allowed_providers": allowed,
+    }
+    r = httpx.post(f"{live.base}/api/v1/signature-requests", json=body, headers={"X-API-Key": DEMO_API_KEY})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def test_sin_agente_se_elige_la_firma_de_demostracion(live, page):
+    # no se inicia ningún agente: el token no está disponible y la persona cambia de método
+    request = create(live, "token", ["token", "local"])
+    widget = open_widget(page, live, request)
+    heading(widget, "¿Cómo querés firmar?").wait_for()
+    widget.get_by_role("button", name="Firmar con mi token").click()
+    heading(widget, "No detectamos Firmadoc Agent").wait_for()
+
+    widget.get_by_role("button", name="Elegir otro método").click()
+    heading(widget, "¿Cómo querés firmar?").wait_for()
+    widget.get_by_role("button", name="Firma electrónica de demostración").click()
+    heading(widget, "Firmar el documento").wait_for()
+    widget.get_by_role("button", name="Firmar", exact=True).click()
+    heading(widget, SIGNED).wait_for()
+
+    assert wait_for_message(page, "firmadoc:signed")["document"]["version_number"] == 2
+    final = live.get_request(request["id"])
+    assert final["status"] == "signed" and final["provider"] == "local"
+    kinds = [e["event_type"] for e in final["events"]]
+    assert "provider_selected" in kinds
+
+
+def test_firma_remota_desde_el_widget(live, page, monkeypatch):
+    settings = live.settings
+    settings.firmar_base_url = f"{live.base}/mock/firmar"
+    settings.firmar_client_secret = CLIENT_SECRET
+    settings.firmar_callback_secret = CALLBACK_SECRET
+    settings.firmar_mock_enabled = True
+    settings.webhook_worker_enabled = False
+    mock_firmar.reset()
+    monkeypatch.setattr(firmar, "TRANSPORT", None)
+    monkeypatch.setattr(webhooks, "RESOLVER", lambda host, port: ["93.184.216.34"])
+
+    request = create(live, "local", ["local", "firmar"])
+    widget = open_widget(page, live, request)
+    heading(widget, "¿Cómo querés firmar?").wait_for()
+    widget.get_by_role("button", name="Firmar con el servicio de firma remota").click()
+    heading(widget, "Firmar con el servicio de firma remota").wait_for()
+    widget.get_by_role("button", name="Continuar", exact=True).click()
+    heading(widget, "Esperando la firma en el servicio remoto").wait_for()
+
+    link = widget.get_by_role("link", name="Continuar en el servicio de firma")
+    href = link.get_attribute("href")
+    operation_id = href.rsplit("/", 1)[1]
+    assert href.startswith(f"{live.base}/mock/firmar/authorize/")
+
+    # la persona "autoriza en el servicio" (OTP + PIN) desde otra pestaña: acá, directamente al simulado
+    token = httpx.post(
+        f"{live.base}/mock/firmar/oauth/token",
+        content=f"grant_type=client_credentials&client_id=firmadoc&client_secret={CLIENT_SECRET}",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    ).json()["access_token"]
+    approved = httpx.post(
+        f"{live.base}/mock/firmar/v1/operations/{operation_id}/approve",
+        json={"otp": "123456", "pin": "1234"},
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=60,
+    )
+    assert approved.status_code == 200 and approved.json()["callback_status"] == 200, approved.text
+
+    heading(widget, SIGNED).wait_for(timeout=20_000)
+    assert wait_for_message(page, "firmadoc:signed")["document"]["version_number"] == 2
+    final = live.get_request(request["id"])
+    assert final["status"] == "signed" and final["provider"] == "firmar"

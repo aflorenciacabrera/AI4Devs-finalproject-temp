@@ -290,3 +290,10 @@ p {
     animation: none;
   }
 }
+
+.choices { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.choice { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.choice:hover:not(:disabled) { border-color: var(--focus); }
+.choice:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.choice:disabled { opacity: 0.6; cursor: default; }
+a.btn { display: inline-block; text-decoration: none; }

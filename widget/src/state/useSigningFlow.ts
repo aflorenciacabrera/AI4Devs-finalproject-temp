@@ -11,7 +11,7 @@ import type { ServerClient } from "../api/serverClient";
 import type { AgentCertificate, Challenge } from "../api/types";
 import { CERT_REJECTION_CODES } from "../messages/es";
 import type { HostNotifier } from "../embed/hostMessages";
-import { initialState, reducer, type State } from "./machine";
+import { initialRoute, initialState, reducer, type State } from "./machine";
 
 export interface FlowServices {
   server: ServerClient;
@@ -20,6 +20,8 @@ export interface FlowServices {
   /** Crea el notificador cuando se conocen los orígenes permitidos. */
   createHost: (allowedOrigins: string[], requestId: string) => HostNotifier;
   saveFile: (blob: Blob, filename: string) => void;
+  /** Cada cuánto se consulta el estado mientras se espera la firma remota (ms). */
+  pollMs?: number;
 }
 
 export interface FlowActions {
@@ -30,6 +32,9 @@ export interface FlowActions {
   chooseAnother(): void;
   restartSigning(): void;
   confirmLocal(): void;
+  chooseProvider(provider: string): void;
+  changeProvider(): void;
+  confirmRemote(): void;
   cancel(): void;
   close(): void;
   download(): Promise<void>;
@@ -145,10 +150,11 @@ export function useSigningFlow(services: FlowServices): { state: State; actions:
       try {
         const context = await server.getContext();
         hostRef.current = services.createHost(context.allowed_origins, context.id);
-        if (context.provider === "token") agentRef.current = services.createAgent(context.agent_url);
+        const detectsAgent = initialRoute(context).name === "detecting_agent";
+        if (detectsAgent) agentRef.current = services.createAgent(context.agent_url);
         dispatch({ type: "context_loaded", context });
         hostRef.current.ready();
-        if (context.provider === "token" && context.status !== "signed") await detect();
+        if (detectsAgent) await detect();
       } catch (error) {
         if (error instanceof ServerError && (error.status === 401 || error.code === "invalid_token")) {
           dispatch({ type: "link_invalid" });
@@ -158,6 +164,38 @@ export function useSigningFlow(services: FlowServices): { state: State; actions:
       }
     })();
   }, [server, services, detect]);
+
+  // Firma remota: se consulta el estado hasta que el callback del servicio resuelva la solicitud.
+  const pollMs = services.pollMs ?? 3000;
+  useEffect(() => {
+    if (state.name !== "remote_waiting") return;
+    let stopped = false;
+    let busy = false;
+    const timer = setInterval(() => {
+      if (busy || stopped) return;
+      busy = true;
+      server
+        .getContext()
+        .then((context) => {
+          if (stopped) return;
+          if (context.status === "signed") {
+            dispatch({ type: "success", context });
+            hostRef.current?.signed(context.document);
+          } else if (context.status === "failed") {
+            dispatch({ type: "failed", code: "request_failed" });
+            hostRef.current?.failed("request_failed");
+          }
+        })
+        .catch(() => undefined) // fallo transitorio: se reintenta en el próximo ciclo
+        .finally(() => {
+          busy = false;
+        });
+    }, pollMs);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [state.name, server, pollMs]);
 
   const actions: FlowActions = {
     retryDetection: () => void detect(),
@@ -195,6 +233,43 @@ export function useSigningFlow(services: FlowServices): { state: State; actions:
           const code = error instanceof ServerError ? error.code : "unknown";
           dispatch({ type: "failed", code });
           hostRef.current?.failed(code);
+        }
+      })();
+    },
+    chooseProvider: (provider) => {
+      const current = stateRef.current;
+      if (current.name !== "choose_provider" || current.pending) return;
+      dispatch({ type: "choosing", provider });
+      void (async () => {
+        try {
+          const context = await server.selectProvider(provider);
+          const next = initialRoute({ ...context, allowed_providers: [context.provider] });
+          if (next.name === "detecting_agent") agentRef.current = services.createAgent(context.agent_url);
+          dispatch({ type: "provider_selected", context });
+          if (next.name === "detecting_agent") await detect();
+        } catch (error) {
+          dispatch({ type: "choose_failed", code: error instanceof ServerError ? error.code : "unknown" });
+        }
+      })();
+    },
+    changeProvider: () => dispatch({ type: "change_provider" }),
+    confirmRemote: () => {
+      const current = stateRef.current;
+      if (current.name !== "confirm_remote" || current.working) return;
+      dispatch({ type: "remote_starting" });
+      void (async () => {
+        try {
+          const prepared = await server.prepare();
+          if (!prepared.remote) throw new ServerError("invalid_response", 200, "falta la operación remota");
+          dispatch({ type: "remote_started", authorizationUrl: prepared.remote.authorization_url });
+        } catch (error) {
+          if (error instanceof ServerError && error.status === 503) {
+            dispatch({ type: "remote_failed", code: "remote_unavailable" });
+          } else {
+            const code = error instanceof ServerError ? error.code : "unknown";
+            dispatch({ type: "failed", code });
+            hostRef.current?.failed(code);
+          }
         }
       })();
     },

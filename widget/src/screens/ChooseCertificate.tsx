@@ -13,6 +13,7 @@ interface Props {
   onSelect: (id: string) => void;
   onContinue: () => void;
   onCancel: () => void;
+  onChangeProvider?: () => void;
 }
 
 export function ChooseCertificate({
@@ -24,6 +25,7 @@ export function ChooseCertificate({
   onSelect,
   onContinue,
   onCancel,
+  onChangeProvider,
 }: Props) {
   const selected = certificates.find((c) => c.id === selectedId);
   const canContinue = !!selected && !isExpired(selected, now);
@@ -36,6 +38,11 @@ export function ChooseCertificate({
           <Button variant="secondary" onClick={onCancel}>
             Cancelar
           </Button>
+          {onChangeProvider ? (
+            <Button variant="secondary" onClick={onChangeProvider}>
+              Elegir otro método
+            </Button>
+          ) : null}
           <Button onClick={onContinue} disabled={!canContinue}>
             Validar y continuar
           </Button>

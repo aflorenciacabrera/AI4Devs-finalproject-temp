@@ -9,9 +9,10 @@ interface Props {
   code: string;
   onChooseAnother: () => void;
   onCancel: () => void;
+  onChangeProvider?: () => void;
 }
 
-export function CertRejected({ certificate, code, onChooseAnother, onCancel }: Props) {
+export function CertRejected({ certificate, code, onChooseAnother, onCancel, onChangeProvider }: Props) {
   const { reason, explanation } = certificateRejection(code);
   const info = parseSubject(certificate.subject);
   return (
@@ -24,6 +25,11 @@ export function CertRejected({ certificate, code, onChooseAnother, onCancel }: P
           <Button variant="secondary" onClick={onCancel}>
             Cancelar
           </Button>
+          {onChangeProvider ? (
+            <Button variant="secondary" onClick={onChangeProvider}>
+              Elegir otro método
+            </Button>
+          ) : null}
           <Button onClick={onChooseAnother}>Elegir otro certificado</Button>
         </>
       }

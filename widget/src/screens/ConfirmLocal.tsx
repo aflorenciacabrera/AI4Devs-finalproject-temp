@@ -7,9 +7,10 @@ interface Props {
   working: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  onChangeProvider?: () => void;
 }
 
-export function ConfirmLocal({ documentName, signerName, working, onConfirm, onCancel }: Props) {
+export function ConfirmLocal({ documentName, signerName, working, onConfirm, onCancel, onChangeProvider }: Props) {
   return (
     <Screen
       title="Firmar el documento"
@@ -19,6 +20,11 @@ export function ConfirmLocal({ documentName, signerName, working, onConfirm, onC
           <Button variant="secondary" onClick={onCancel} disabled={working}>
             Cancelar
           </Button>
+          {onChangeProvider ? (
+            <Button variant="secondary" onClick={onChangeProvider} disabled={working}>
+              Elegir otro método
+            </Button>
+          ) : null}
           <Button onClick={onConfirm} disabled={working}>
             {working ? "Firmando…" : "Firmar"}
           </Button>

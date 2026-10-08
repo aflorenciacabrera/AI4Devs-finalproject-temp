@@ -185,3 +185,14 @@ Estructura (`src/`): `api/` (clientes tipados del servidor y del agente, errores
 ## Prueba de punta a punta
 
 `pytest tests/e2e` levanta el servidor y el agente reales, sirve una página anfitriona en **otro origen** y recorre el widget en un Chrome real (Playwright, con el Chrome del sistema), incluido el bloqueo del iframe desde un origen no permitido. Requiere haber ejecutado `npm run build`; se omite si faltan el widget compilado o Chrome.
+
+## Elegir el método de firma
+
+Al crear la solicitud, el integrador puede enviar `allowed_providers` (por ejemplo `["token", "local"]`, con
+`provider` como método inicial). Con más de un método el widget abre en "¿Cómo querés firmar?"; la elección se
+confirma en el servidor (`POST /api/v1/widget/requests/{id}/provider`, solo con la solicitud `pending`) y queda en
+la auditoría (`provider_selected`). Mientras no se haya preparado la firma, las pantallas de espera o error
+ofrecen "Elegir otro método". Sin `allowed_providers` la solicitud admite solo `provider`, como antes.
+
+Con `firmar` el widget envía el documento al servicio, muestra el enlace "Continuar en el servicio de firma" (se
+abre en otra pestaña) y consulta el estado hasta que llega el resultado (ver `docs/firmar.md`).

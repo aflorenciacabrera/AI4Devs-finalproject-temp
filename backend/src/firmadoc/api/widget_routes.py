@@ -57,6 +57,16 @@ def get_context(auth: WidgetAuth = Depends(widget_auth)):
     return widget_service.widget_context(auth.ctx, auth.request, auth.token_exp)
 
 
+@router.post("/requests/{request_id}/provider", response_model=schemas.WidgetContext)
+def select_provider(
+    request_id: uuid.UUID,
+    body: schemas.SelectProviderBody,
+    auth: WidgetAuth = Depends(widget_auth),
+):
+    widget_service.select_provider(auth.ctx, auth.request, body.provider)
+    return widget_service.widget_context(auth.ctx, auth.request, auth.token_exp)
+
+
 @router.post("/requests/{request_id}/prepare", response_model=schemas.PrepareResponse)
 def prepare(
     request_id: uuid.UUID,

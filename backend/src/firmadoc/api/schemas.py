@@ -20,6 +20,7 @@ class CreateSignatureRequest(BaseModel):
     signer: SignerIn
     provider: Provider
     callback_url: str | None = None  # https; se notifica al completarse o fallar
+    allowed_providers: list[Provider] | None = None  # métodos que la persona puede elegir en el widget
 
 
 class SignatureRequestCreated(BaseModel):
@@ -95,6 +96,10 @@ class SignatureRequestOut(BaseModel):
     events: list[EventOut] = []
 
 
+class SelectProviderBody(BaseModel):
+    provider: Provider
+
+
 class WidgetCertificate(BaseModel):
     subject: str
     issuer_subject: str
@@ -109,6 +114,7 @@ class WidgetContext(BaseModel):
     signer_name: str
     allowed_origins: list[str]
     agent_url: str
+    allowed_providers: list[str]
     token_expires_at: datetime
     signed_at: datetime | None = None
     certificate: WidgetCertificate | None = None

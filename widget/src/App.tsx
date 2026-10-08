@@ -17,6 +17,10 @@ import { CertRejected } from "./screens/CertRejected";
 import { ChooseCertificate } from "./screens/ChooseCertificate";
 import { ConfirmLocal } from "./screens/ConfirmLocal";
 import { Success } from "./screens/Success";
+import { ChooseProvider } from "./screens/ChooseProvider";
+import { ConfirmRemote } from "./screens/ConfirmRemote";
+import { RemoteWaiting } from "./screens/RemoteWaiting";
+import { canChangeProvider } from "./state/machine";
 import { useSigningFlow, type FlowServices } from "./state/useSigningFlow";
 
 export interface AppProps {
@@ -27,6 +31,8 @@ export interface AppProps {
 export function App({ services, now = () => new Date() }: AppProps) {
   const { state, actions } = useSigningFlow(services);
   const [announcement, setAnnouncement] = useState("");
+
+  const changeProvider = canChangeProvider(state) ? actions.changeProvider : undefined;
 
   const screen = (() => {
     switch (state.name) {
@@ -45,6 +51,37 @@ export function App({ services, now = () => new Date() }: AppProps) {
             actions={<Button variant="secondary" onClick={actions.cancel}>Cancelar</Button>}
           />
         );
+      case "choose_provider":
+        return (
+          <ChooseProvider
+            documentName={state.context.document_name}
+            providers={state.context.allowed_providers}
+            pending={state.pending}
+            failed={state.error !== null}
+            onChoose={actions.chooseProvider}
+            onCancel={actions.cancel}
+          />
+        );
+      case "confirm_remote":
+        return (
+          <ConfirmRemote
+            documentName={state.context.document_name}
+            signerName={state.context.signer_name}
+            working={state.working}
+            unavailable={state.error === "remote_unavailable"}
+            onConfirm={actions.confirmRemote}
+            onChangeProvider={changeProvider}
+            onCancel={actions.cancel}
+          />
+        );
+      case "remote_waiting":
+        return (
+          <RemoteWaiting
+            documentName={state.context.document_name}
+            authorizationUrl={state.authorizationUrl}
+            onCancel={actions.cancel}
+          />
+        );
       case "confirm_local":
       case "working_local":
         return (
@@ -53,6 +90,7 @@ export function App({ services, now = () => new Date() }: AppProps) {
             signerName={state.context.signer_name}
             working={state.name === "working_local"}
             onConfirm={actions.confirmLocal}
+            onChangeProvider={changeProvider}
             onCancel={actions.cancel}
           />
         );
@@ -67,6 +105,7 @@ export function App({ services, now = () => new Date() }: AppProps) {
           <AgentMissing
             documentName={state.context.document_name}
             onRetry={actions.retryDetection}
+            onChangeProvider={changeProvider}
             onCancel={actions.cancel}
           />
         );
@@ -77,6 +116,9 @@ export function App({ services, now = () => new Date() }: AppProps) {
             actions={
               <>
                 <Button variant="secondary" onClick={actions.cancel}>Cancelar</Button>
+                {changeProvider ? (
+                  <Button variant="secondary" onClick={changeProvider}>Elegir otro método</Button>
+                ) : null}
                 <Button onClick={actions.retryDetection}>Reintentar detección</Button>
               </>
             }
@@ -92,6 +134,7 @@ export function App({ services, now = () => new Date() }: AppProps) {
             now={now()}
             onSelect={actions.select}
             onContinue={actions.validateAndContinue}
+            onChangeProvider={changeProvider}
             onCancel={actions.cancel}
           />
         );
@@ -107,6 +150,7 @@ export function App({ services, now = () => new Date() }: AppProps) {
             certificate={state.certificate}
             code={state.code}
             onChooseAnother={actions.chooseAnother}
+            onChangeProvider={changeProvider}
             onCancel={actions.cancel}
           />
         );

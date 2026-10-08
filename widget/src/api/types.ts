@@ -27,6 +27,8 @@ export interface WidgetContext {
   signer_name: string;
   allowed_origins: string[];
   agent_url: string;
+  /** Métodos que la persona puede elegir; con uno solo no hay pantalla de elección. */
+  allowed_providers: string[];
   token_expires_at: string;
   signed_at: string | null;
   certificate: WidgetCertificate | null;
@@ -40,9 +42,16 @@ export interface Challenge {
   hash_to_sign: string;
 }
 
+export interface RemoteInfo {
+  operation_id: string;
+  authorization_url: string;
+}
+
 export interface PrepareResponse {
   challenges: Challenge[];
   expires_at: string;
+  /** Solo con la firma remota (`firmar`): la operación abierta en el servicio. */
+  remote?: RemoteInfo | null;
 }
 
 export interface AgentCertificate {

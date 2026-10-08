@@ -146,6 +146,11 @@ export const PIN_LOCKED: Message = {
 };
 
 const FAILURES: Record<string, Message> = {
+  request_failed: {
+    title: "La firma no se completó",
+    body: "El servicio de firma remota informó que la firma fue rechazada o venció.",
+    hint: "Volvé al sistema de origen y pedí firmar el documento de nuevo.",
+  },
   network_error: {
     title: "No pudimos comunicarnos con Firmadoc",
     body: "Se perdió la conexión con el servidor.",
@@ -201,4 +206,33 @@ export const providerLabel = (provider: string): string =>
     ? "Token · firma digital"
     : provider === "local"
       ? "Firma electrónica de demostración"
-      : provider;
+      : provider === "firmar"
+        ? "Servicio de firma remota"
+        : provider;
+
+export const PROVIDER_CHOICES: Record<string, { title: string; description: string }> = {
+  token: {
+    title: "Firmar con mi token",
+    description: "Firma digital con el certificado de tu token USB. Necesita Firmadoc Agent en esta PC y tu PIN.",
+  },
+  local: {
+    title: "Firma electrónica de demostración",
+    description: "Inmediata y sin token, con un certificado propio de Firmadoc. Sirve para probar y no equivale a una firma digital.",
+  },
+  firmar: {
+    title: "Firmar con el servicio de firma remota",
+    description: "Firmás en el servicio de firma remota con tu certificado remoto, confirmando con un código (OTP) y tu PIN en ese servicio.",
+  },
+};
+
+export const CHOOSE_FAILED: Message = {
+  title: "No se pudo elegir ese método",
+  body: "Firmadoc no aceptó el método elegido para esta solicitud.",
+  hint: "Probá con otro método o volvé al sistema de origen.",
+};
+
+export const REMOTE_UNAVAILABLE: Message = {
+  title: "El servicio de firma remota no está disponible",
+  body: "Firmadoc no pudo comunicarse con el servicio para iniciar la firma.",
+  hint: "Reintentá en unos minutos o elegí otro método.",
+};

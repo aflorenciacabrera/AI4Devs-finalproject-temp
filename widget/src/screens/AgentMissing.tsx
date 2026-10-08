@@ -6,9 +6,10 @@ interface Props {
   documentName: string;
   onRetry: () => void;
   onCancel: () => void;
+  onChangeProvider?: () => void;
 }
 
-export function AgentMissing({ documentName, onRetry, onCancel }: Props) {
+export function AgentMissing({ documentName, onRetry, onCancel, onChangeProvider }: Props) {
   return (
     <Screen
       title="No detectamos Firmadoc Agent"
@@ -19,6 +20,11 @@ export function AgentMissing({ documentName, onRetry, onCancel }: Props) {
           <Button variant="secondary" onClick={onCancel}>
             Cancelar
           </Button>
+          {onChangeProvider ? (
+            <Button variant="secondary" onClick={onChangeProvider}>
+              Elegir otro método
+            </Button>
+          ) : null}
           <Button onClick={onRetry}>Reintentar detección</Button>
         </>
       }

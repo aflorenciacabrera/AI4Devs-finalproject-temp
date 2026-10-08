@@ -43,7 +43,8 @@ def test_vence_exactamente_en_el_limite():
         signing_token.verify(SECRET, token, RID, now=now + 10)
 
 
-@pytest.mark.parametrize("position", [0, 5, -1, -10])
+# No se altera el último carácter: en base64url solo aporta 4 bits y varios caracteres decodifican igual.
+@pytest.mark.parametrize("position", [0, 5, -2, -10])
 def test_token_alterado_un_solo_caracter(position):
     token = issue()
     index = position % len(token)

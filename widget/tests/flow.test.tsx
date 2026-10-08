@@ -267,7 +267,7 @@ describe("firma en el agente", () => {
 
 describe("otros estados", () => {
   it("método no soportado: no se intenta nada", async () => {
-    const fakes = makeFakes(makeContext({ provider: "firmar" }));
+    const fakes = makeFakes(makeContext({ provider: "inventado" }));
     const createAgent = vi.fn(fakes.services.createAgent);
     fakes.services.createAgent = createAgent;
     mount(fakes);
@@ -378,7 +378,7 @@ describe("accesibilidad", () => {
       },
       "El enlace de firma no es válido o venció",
     ],
-    ["método no soportado", () => makeFakes(makeContext({ provider: "firmar" })), "Este método de firma no está disponible"],
+    ["método no soportado", () => makeFakes(makeContext({ provider: "inventado" })), "Este método de firma no está disponible"],
   ];
 
   it.each(scenarios)("sin violaciones automáticas: %s", async (_name, make, title, act) => {
