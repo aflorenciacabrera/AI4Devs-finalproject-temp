@@ -13,3 +13,4 @@ tests/pki/out/
 firmadoc.db
 .venv/
 *.egg-info/
+data/

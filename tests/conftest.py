@@ -4,10 +4,15 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
+from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from firmadoc.api.deps import settings_dep
+from firmadoc.config import Settings
 from firmadoc.db import make_engine
+from firmadoc.main import app
+from firmadoc.seed import DEMO_API_KEY, seed_demo
 
 ROOT = Path(__file__).resolve().parent.parent
 PG_URL = os.environ.get("FIRMADOC_TEST_PG_URL")
@@ -47,3 +52,22 @@ def engine(db_url):
 def session(engine):
     with Session(engine) as s:
         yield s
+
+
+@pytest.fixture
+def settings(db_url, tmp_path, engine):
+    return Settings(
+        database_url=db_url,
+        storage_dir=str(tmp_path / "storage"),
+        local_cert_dir=str(tmp_path / "cert"),
+        public_base_url="http://test",
+        challenge_ttl_seconds=300,
+    )
+
+
+@pytest.fixture
+def client(settings, session):
+    seed_demo(session)  # sistema integrador demo con la API key DEMO_API_KEY
+    app.dependency_overrides[settings_dep] = lambda: settings
+    yield TestClient(app, headers={"X-API-Key": DEMO_API_KEY})
+    app.dependency_overrides.clear()

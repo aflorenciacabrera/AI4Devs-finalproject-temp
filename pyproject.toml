@@ -14,6 +14,9 @@ dependencies = [
     "alembic>=1.13",
     "psycopg[binary]>=3.1",
     "pydantic-settings>=2.2",
+    "pyhanko>=0.25",
+    "pyhanko-certvalidator>=0.26",
+    "cryptography>=42",
 ]
 
 [project.optional-dependencies]
@@ -30,3 +33,6 @@ pythonpath = ["backend/src"]
 line-length = 100
 src = ["backend/src", "tests"]
 extend-exclude = ["backend/migrations/versions"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Header"]

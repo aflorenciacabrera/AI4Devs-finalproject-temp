@@ -1,0 +1,119 @@
+"""Motor PAdES sobre pyHanko: firma interrumpida en dos pasos (prepare / finish).
+
+El PDF nunca se firma de una vez: `prepare_pdf` reserva el espacio de firma y devuelve el hash que
+debe firmar quien tenga la clave; `finish_pdf` incrusta la firma recibida.
+"""
+
+import asyncio
+import base64
+import hashlib
+import io
+from dataclasses import dataclass
+
+from asn1crypto import cms
+from asn1crypto import x509 as ax509
+from cryptography import x509
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding, utils
+from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+from pyhanko.pdf_utils.reader import PdfFileReader
+from pyhanko.sign import signers
+from pyhanko.sign.fields import SigSeedSubFilter
+from pyhanko.sign.signers.pdf_byterange import PreparedByteRangeDigest
+from pyhanko.sign.signers.pdf_signer import PdfSignatureMetadata, PdfSigner, PdfTBSDocument
+from pyhanko_certvalidator.registry import SimpleCertificateStore
+
+RESERVED_BYTES = 16 * 1024
+MD_ALGORITHM = "sha256"
+
+
+class PdfEngineError(Exception):
+    pass
+
+
+@dataclass(frozen=True)
+class PreparedPdf:
+    hash_to_sign: bytes
+    pdf: bytes  # PDF con el espacio de firma reservado (no es un documento válido todavía)
+    state: dict  # JSON-serializable: digest, región reservada y atributos firmados
+
+
+def validate_pdf(data: bytes) -> None:
+    if not data.startswith(b"%PDF-"):
+        raise PdfEngineError("el archivo no es un PDF")
+    try:
+        PdfFileReader(io.BytesIO(data))
+    except Exception as e:
+        raise PdfEngineError("el PDF no se pudo leer") from e
+
+
+def signature_count(pdf: bytes) -> int:
+    return len(PdfFileReader(io.BytesIO(pdf)).embedded_signatures)
+
+
+def _registry(cert: ax509.Certificate) -> SimpleCertificateStore:
+    registry = SimpleCertificateStore()
+    registry.register(cert)
+    return registry
+
+
+def prepare_pdf(pdf: bytes, cert: ax509.Certificate, reason: str) -> PreparedPdf:
+    return asyncio.run(_prepare(pdf, cert, reason))
+
+
+async def _prepare(pdf: bytes, cert: ax509.Certificate, reason: str) -> PreparedPdf:
+    signer = signers.ExternalSigner(
+        signing_cert=cert, cert_registry=_registry(cert), signature_value=bytes(256)
+    )
+    meta = PdfSignatureMetadata(
+        field_name=f"Firmadoc-{signature_count(pdf) + 1}",
+        md_algorithm=MD_ALGORITHM,
+        subfilter=SigSeedSubFilter.PADES,
+        reason=reason,
+    )
+    writer = IncrementalPdfFileWriter(io.BytesIO(pdf))
+    prepared, _tbs, output = await PdfSigner(meta, signer=signer).async_digest_doc_for_signing(
+        writer, bytes_reserved=RESERVED_BYTES
+    )
+    attrs = await signer.signed_attrs(prepared.document_digest, MD_ALGORITHM, use_pades=True)
+    attrs_der = attrs.dump()
+    state = {
+        "digest": base64.b64encode(prepared.document_digest).decode(),
+        "start": prepared.reserved_region_start,
+        "end": prepared.reserved_region_end,
+        "attrs": base64.b64encode(attrs_der).decode(),
+    }
+    return PreparedPdf(hashlib.sha256(attrs_der).digest(), output.getvalue(), state)
+
+
+def finish_pdf(prepared_pdf: bytes, state: dict, cert: ax509.Certificate, signature: bytes) -> bytes:
+    return asyncio.run(_finish(prepared_pdf, state, cert, signature))
+
+
+async def _finish(
+    prepared_pdf: bytes, state: dict, cert: ax509.Certificate, signature: bytes
+) -> bytes:
+    signer = signers.ExternalSigner(
+        signing_cert=cert, cert_registry=_registry(cert), signature_value=signature
+    )
+    attrs = cms.CMSAttributes.load(base64.b64decode(state["attrs"]))
+    signature_cms = await signer.async_sign_prescribed_attributes(MD_ALGORITHM, signed_attrs=attrs)
+    prepared = PreparedByteRangeDigest(
+        base64.b64decode(state["digest"]), state["start"], state["end"]
+    )
+    out = io.BytesIO(prepared_pdf)
+    await PdfTBSDocument.async_finish_signing(out, prepared, signature_cms)
+    return out.getvalue()
+
+
+def verify_hash_signature(cert_der: bytes, hash_to_sign: bytes, signature: bytes) -> bool:
+    """¿`signature` es una firma RSA PKCS#1 v1.5 válida de `hash_to_sign` con la clave del certificado?"""
+    public_key = x509.load_der_x509_certificate(cert_der).public_key()
+    try:
+        public_key.verify(
+            signature, hash_to_sign, padding.PKCS1v15(), utils.Prehashed(hashes.SHA256())
+        )
+    except (InvalidSignature, TypeError, AttributeError):
+        return False
+    return True
