@@ -5,6 +5,8 @@ from fastapi.responses import JSONResponse
 
 from . import webhooks
 from .api import deps
+from .api.admin_pages import router as admin_pages_router
+from .api.admin_routes import router as admin_router
 from .api.pages import router as pages_router
 from .api.routes import router
 from .api.widget_routes import router as widget_router
@@ -28,6 +30,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Firmadoc", lifespan=lifespan)
 app.include_router(router)
 app.include_router(widget_router)
+app.include_router(admin_router)
+app.include_router(admin_pages_router)
 app.include_router(pages_router)
 
 

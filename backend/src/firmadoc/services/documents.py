@@ -137,6 +137,10 @@ def verification_anchors(ctx: Ctx) -> tuple[list[ax509.Certificate], list[ax509.
     if local.is_file():
         data = local.read_bytes()
         roots.append(ax509.Certificate.load(pem.unarmor(data)[2] if pem.detect(data) else data))
+    archive = local.parent / "archive"  # certificados propios de rotaciones anteriores (solo la parte pública)
+    if archive.is_dir():
+        for path in sorted(archive.glob("*.crt")):
+            roots.append(ax509.Certificate.load(pem.unarmor(path.read_bytes())[2]))
     return roots, others
 
 

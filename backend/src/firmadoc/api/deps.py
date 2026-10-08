@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 from collections.abc import Iterator
 from functools import lru_cache
 
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from ..config import Settings, get_settings
 from ..db import make_engine, make_session_factory
-from ..errors import Unauthorized
+from ..errors import NotFound, Unauthorized
 from ..models import IntegratingSystem
 from ..services.signature_flow import Ctx
 from ..storage import DocumentStorage, LocalFileStorage
@@ -61,3 +62,18 @@ def get_ctx(
 
 def session_ref(x_session_ref: str | None = Header(default=None)) -> str | None:
     return x_session_ref
+
+
+def admin_auth(
+    authorization: str | None = Header(default=None),
+    settings: Settings = Depends(settings_dep),
+) -> str:
+    """Token de administración (distinto de las API keys). Sin token configurado: no existe (404)."""
+    if not settings.admin_token:
+        raise NotFound("no encontrado")
+    scheme, _, token = (authorization or "").partition(" ")
+    if scheme.lower() != "bearer" or not hmac.compare_digest(
+        token.strip().encode(), settings.admin_token.encode()
+    ):
+        raise Unauthorized("credenciales de administración inválidas")
+    return "admin"

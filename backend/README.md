@@ -87,3 +87,7 @@ Varios documentos con una confirmación y un PIN: ver [`docs/signature-batches.m
 ## Estado, firmantes y verificación
 
 Plazo de firma, listado de firmantes y verificación de un PDF firmado: ver [`docs/documents-api.md`](../docs/documents-api.md).
+
+## Administración
+
+Panel `/admin`, auditoría, anclas de confianza y rotación del certificado propio: ver [`docs/admin.md`](../docs/admin.md).

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Firmadoc - Administración</title>
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+  <header>
+    <h1>Firmadoc · Administración</h1>
+    <button id="logout" type="button" hidden>Cerrar sesión</button>
+  </header>
+
+  <main>
+    <section id="login">
+      <h2>Ingreso</h2>
+      <form id="login-form">
+        <label for="token">Token de administración</label>
+        <input id="token" name="token" type="password" autocomplete="off" required>
+        <button type="submit">Ingresar</button>
+      </form>
+      <p id="login-error" class="error" role="alert" hidden></p>
+    </section>
+
+    <div id="app" hidden>
+      <nav aria-label="Secciones">
+        <button type="button" data-tab="requests">Solicitudes</button>
+        <button type="button" data-tab="custody">Custodia</button>
+        <button type="button" data-tab="webhooks">Webhooks</button>
+        <button type="button" data-tab="anchors">Anclas de confianza</button>
+        <button type="button" data-tab="certificate">Certificado propio</button>
+        <button type="button" data-tab="events">Eventos de administración</button>
+      </nav>
+      <p id="message" role="status" hidden></p>
+
+      <section id="tab-requests" hidden>
+        <h2>Solicitudes de firma</h2>
+        <form id="requests-filters" class="filters">
+          <label>Estado
+            <select name="status">
+              <option value="">Todos</option>
+              <option value="pending">pending</option>
+              <option value="signing">signing</option>
+              <option value="signed">signed</option>
+              <option value="failed">failed</option>
+            </select>
+          </label>
+          <label>Proveedor
+            <select name="provider">
+              <option value="">Todos</option>
+              <option value="local">local</option>
+              <option value="token">token</option>
+              <option value="firmar">firmar</option>
+            </select>
+          </label>
+          <label>Firmante (CUIL o nombre)<input name="signer" type="text"></label>
+          <label>Desde<input name="created_from" type="date"></label>
+          <label>Hasta<input name="created_to" type="date"></label>
+          <button type="submit">Filtrar</button>
+        </form>
+        <div id="requests-table"></div>
+        <div class="pager"><button type="button" id="requests-prev">Anterior</button><span id="requests-page"></span><button type="button" id="requests-next">Siguiente</button></div>
+      </section>
+
+      <section id="tab-custody" hidden>
+        <h2>Cadena de custodia</h2>
+        <form id="custody-form" class="filters">
+          <label>Id del documento<input name="document_id" type="text" required></label>
+          <button type="submit">Consultar</button>
+        </form>
+        <div id="custody-result"></div>
+      </section>
+
+      <section id="tab-webhooks" hidden>
+        <h2>Entregas de webhook</h2>
+        <form id="webhooks-filters" class="filters">
+          <label>Estado
+            <select name="status">
+              <option value="">Todos</option>
+              <option value="pending">pending</option>
+              <option value="delivered">delivered</option>
+              <option value="failed">failed</option>
+            </select>
+          </label>
+          <button type="submit">Filtrar</button>
+        </form>
+        <div id="webhooks-table"></div>
+      </section>
+
+      <section id="tab-anchors" hidden>
+        <h2>Anclas de confianza</h2>
+        <div id="anchors-table"></div>
+        <form id="anchor-form">
+          <label for="anchor-pem">Agregar ancla (certificado PEM)</label>
+          <textarea id="anchor-pem" name="certificate_pem" rows="6" required></textarea>
+          <button type="submit">Agregar ancla</button>
+        </form>
+      </section>
+
+      <section id="tab-certificate" hidden>
+        <h2>Certificado propio (proveedor local)</h2>
+        <div id="certificate-info"></div>
+        <button type="button" id="rotate" class="danger">Rotar certificado</button>
+      </section>
+
+      <section id="tab-events" hidden>
+        <h2>Eventos de administración</h2>
+        <div id="events-table"></div>
+      </section>
+    </div>
+  </main>
+  <script src="/admin/admin.js"></script>
+</body>
+</html>

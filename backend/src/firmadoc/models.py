@@ -285,3 +285,17 @@ class WebhookDelivery(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, server_default=func.now()
     )
+
+
+class AdminEvent(Base):
+    """Append-only (triggers en la migración 0003): acciones de administración que modifican algo."""
+
+    __tablename__ = "admin_event"
+
+    id: Mapped[uuid.UUID] = _pk()
+    actor: Mapped[str] = mapped_column(String(100))
+    action: Mapped[str] = mapped_column(String(60))
+    detail: Mapped[dict] = mapped_column(JSONType, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, server_default=func.now()
+    )

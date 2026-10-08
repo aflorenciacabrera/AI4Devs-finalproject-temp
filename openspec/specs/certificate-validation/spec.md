@@ -90,3 +90,10 @@ Cada rechazo SHALL devolver un cuerpo con `detail` legible y `code` estable (`ce
 #### Scenario: Cuerpo del error
 - **WHEN** se rechaza un certificado revocado
 - **THEN** la respuesta incluye `code: "certificate_revoked"` y un `detail` con el motivo
+
+### Requirement: Verificación con certificados propios archivados
+La verificación de documentos SHALL usar como anclas del proveedor `local` el certificado vigente y todos los certificados propios archivados por rotaciones anteriores, de modo que las firmas emitidas antes de una rotación sigan verificándose.
+
+#### Scenario: Firma anterior a la rotación
+- **WHEN** se verifica un documento firmado con un certificado propio ya archivado
+- **THEN** su firma es válida y de confianza
