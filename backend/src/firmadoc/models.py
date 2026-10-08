@@ -11,6 +11,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -300,6 +301,21 @@ class AdminEvent(Base):
     actor: Mapped[str] = mapped_column(String(100))
     action: Mapped[str] = mapped_column(String(60))
     detail: Mapped[dict] = mapped_column(JSONType, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, server_default=func.now()
+    )
+
+
+class StoredBlob(Base):
+    """Binario guardado en la base (almacén `database`). Inmutable: triggers en la migración 0006
+    (solo las referencias `prepared/…`, estado intermedio de una firma, se pueden borrar)."""
+
+    __tablename__ = "stored_blob"
+
+    ref: Mapped[str] = mapped_column(String(500), primary_key=True)
+    content: Mapped[bytes] = mapped_column(LargeBinary)
+    size: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, server_default=func.now()
     )

@@ -12,7 +12,7 @@ from ..db import make_engine, make_session_factory
 from ..errors import NotFound, Unauthorized
 from ..models import IntegratingSystem
 from ..services.signature_flow import Ctx
-from ..storage import DocumentStorage, LocalFileStorage
+from ..storage import DatabaseStorage, DocumentStorage, LocalFileStorage
 
 
 @lru_cache
@@ -34,7 +34,12 @@ def get_db(settings: Settings = Depends(settings_dep)) -> Iterator[Session]:
         yield session
 
 
-def get_storage(settings: Settings = Depends(settings_dep)) -> DocumentStorage:
+def get_storage(
+    settings: Settings = Depends(settings_dep), db: Session = Depends(get_db)
+) -> DocumentStorage:
+    """El almacén configurado. El de la base usa la sesión del pedido (misma transacción que la versión)."""
+    if settings.storage_backend == "database":
+        return DatabaseStorage(db)
     return LocalFileStorage(settings.storage_dir)
 
 

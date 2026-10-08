@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./firmadoc.db"
     storage_dir: str = "./data/storage"
+    storage_backend: str = "files"  # files (disco) | database (tabla stored_blob)
     local_cert_dir: str = "./data/local-cert"
     public_base_url: str = "http://localhost:8000"
     challenge_ttl_seconds: int = 300
@@ -41,6 +42,13 @@ class Settings(BaseSettings):
     webhook_timeout_seconds: float = 5.0
     webhook_worker_enabled: bool = True
     webhook_poll_seconds: float = 5.0
+
+    @field_validator("storage_backend")
+    @classmethod
+    def _check_storage_backend(cls, value):
+        if value not in ("files", "database"):
+            raise ValueError("FIRMADOC_STORAGE_BACKEND debe ser 'files' o 'database'")
+        return value
 
     @field_validator("tsa_url", "firmar_base_url", mode="before")
     @classmethod

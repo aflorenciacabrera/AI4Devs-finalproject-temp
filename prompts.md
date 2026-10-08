@@ -7,7 +7,8 @@ Puedes añadir adicionalmente la conversación completa como link o archivo adju
 |---|---|---|
 | Claude Code | Sonnet 5 y Sonnet 5.5 | Definición de la idea, investigación técnica (documentación de FirmAR/SIU, antecedentes académicos), decisiones de arquitectura y stack, redacción y verificación de la documentación de la Entrega 1 |
 | Claude Code (flujo de diseño) | Sonnet 5 | Mockup interactivo de referencia visual, usado para detectar requisitos (`design/mockup/`) |
-| Jira (vía MCP de Atlassian) | — | Carga del backlog en el proyecto `FIRDOC` |
+| Jira (vía MCP de Atlassian) | — | Carga del backlog en el proyecto `FIRDOC` y mantenimiento de estados y asignaciones durante el desarrollo |
+| Claude Code + OpenSpec (comandos `/opsx:propose`, `/opsx:apply`, `/opsx:archive`) | Sonnet 5.5 | Implementación: cada cambio se propone (propuesta, diseño, especificaciones y tareas), se aplica, se prueba y se archiva sincronizando las especificaciones; ver `openspec/` |
 
 No se usaron subagentes ni comandos personalizados en esta fase; el trabajo fue conversacional directo con Claude Code, más búsqueda y lectura web para la investigación de antecedentes y conectores MCP (GitHub, Atlassian).
 
@@ -114,11 +115,17 @@ La firma en lote se priorizó como *should-have*, no *must-have*, siguiendo la d
 **Prompt 1:**
 Los tickets de backend, frontend y base de datos se redactaron con tareas, criterios de aceptación y estimación, y se actualizaron tras el cambio de versionado y de propuesta (flujo `prepare`/`complete`). El agente local quedó como ticket adicional, fuera de los 3 detallados.
 
+**Prompt 2 (implementación guiada por especificaciones):**
+Cada funcionalidad se pidió con `/opsx:propose <tema>` (por ejemplo: "flujo de firma create prepare complete con motor local", "proveedor token y agente local", "widget de firma react") y se implementó con `/opsx:apply` y se archivó con `/opsx:archive`. Los cambios archivados están en `openspec/changes/archive/` y las especificaciones vigentes en `openspec/specs/`: flujo de firma diferida, proveedor token, agente local, widget, webhooks, firma en lote, estado y verificación de documentos, panel de administración, sello de tiempo, firma remota simulada, elección del método en el widget y base de datos real.
+
+**Prompt 3 (autonomía acotada):**
+Se pidió completar el backlog restante "automáticamente" (proponer, aplicar, archivar y confirmar cada cambio sin preguntar entre pasos), con la regla de detenerse ante un riesgo de seguridad o una decisión que cambie el alcance, y de no publicar en GitHub salvo pedido expreso.
+
 ---
 
 ### 7. Pull Requests
 
-Pendiente: la Entrega 1 es 100% documentación, sin código. Se completará desde la Entrega 2.
+Todavía no se usaron Pull Requests: el trabajo está en commits sobre la rama principal del repositorio de Firmadoc, que se publicaron a pedido de la usuaria. Cada commit referencia la tarea de Jira que cierra.
 
 ---
 
@@ -134,3 +141,7 @@ Pendiente: la Entrega 1 es 100% documentación, sin código. Se completará desd
 - La firma **en lote** fue pedido de la usuaria; la priorización como *should-have* fue decisión de la IA y la usuaria no la corrigió.
 - Por confidencialidad, el README cita el paper académico utilizado como antecedente pero no nombra al organismo, a la provincia ni al proveedor comercial de referencia.
 - Pendiente de revisión humana antes de cerrar la Entrega 1: validar que las estimaciones de horas por ticket sean realistas y confirmar la viabilidad del despliegue on-premise.
+- La usuaria **decidió la arquitectura de firma**: el agente local en Python (no en otro lenguaje), el criterio de Angular cubierto con una página anfitriona y una guía (no con una app Angular), y que el widget no incluyera al principio la elección del método, el lote ni la administración (se agregaron después como cambios propios).
+- La usuaria **pidió la base de datos real** (con los PDF dentro de la base, conectable con DBeaver y pensada para migrar a la base institucional) y que quedara documentada con su propia tarea de Jira y su cambio de OpenSpec.
+- La IA **detectó y corrigió errores propios al verificar**: por ejemplo, un orden de operaciones en `complete` que gastaba la firma del token si fallaba la autoridad de sellado de tiempo, y restricciones duplicadas en la migración inicial que SQLite toleraba y PostgreSQL no (apareció al ejecutar por primera vez la suite contra PostgreSQL).
+- Quedan para revisión humana: la prueba con un **token físico** (solo se probó con SoftHSM y un token de software), la **firma del instalador** del agente, el contrato real de la firma remota (hoy simulado) y los valores de la política de la **autoridad de sellado de tiempo** institucional.
