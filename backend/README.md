@@ -91,3 +91,7 @@ Plazo de firma, listado de firmantes y verificación de un PDF firmado: ver [`do
 ## Administración
 
 Panel `/admin`, auditoría, anclas de confianza y rotación del certificado propio: ver [`docs/admin.md`](../docs/admin.md).
+
+## Sello de tiempo
+
+PAdES B-T con una TSA configurable: ver [`docs/timestamping.md`](../docs/timestamping.md).

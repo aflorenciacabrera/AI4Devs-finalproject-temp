@@ -34,6 +34,10 @@ class PdfEngineError(Exception):
     pass
 
 
+class TimestampUnavailable(Exception):
+    """La TSA no respondió, devolvió un error o un sello inválido."""
+
+
 @dataclass(frozen=True)
 class PreparedPdf:
     hash_to_sign: bytes
@@ -89,18 +93,36 @@ async def _prepare(pdf: bytes, cert: ax509.Certificate, reason: str) -> Prepared
     return PreparedPdf(hashlib.sha256(attrs_der).digest(), output.getvalue(), state)
 
 
-def finish_pdf(prepared_pdf: bytes, state: dict, cert: ax509.Certificate, signature: bytes) -> bytes:
-    return asyncio.run(_finish(prepared_pdf, state, cert, signature))
+def finish_pdf(
+    prepared_pdf: bytes,
+    state: dict,
+    cert: ax509.Certificate,
+    signature: bytes,
+    timestamper=None,
+) -> bytes:
+    return asyncio.run(_finish(prepared_pdf, state, cert, signature, timestamper))
 
 
 async def _finish(
-    prepared_pdf: bytes, state: dict, cert: ax509.Certificate, signature: bytes
+    prepared_pdf: bytes,
+    state: dict,
+    cert: ax509.Certificate,
+    signature: bytes,
+    timestamper=None,
 ) -> bytes:
     signer = signers.ExternalSigner(
         signing_cert=cert, cert_registry=_registry(cert), signature_value=signature
     )
     attrs = cms.CMSAttributes.load(base64.b64decode(state["attrs"]))
-    signature_cms = await signer.async_sign_prescribed_attributes(MD_ALGORITHM, signed_attrs=attrs)
+    if timestamper is None:
+        signature_cms = await signer.async_sign_prescribed_attributes(MD_ALGORITHM, signed_attrs=attrs)
+    else:
+        try:  # solo el pedido del sello: un PDF defectuoso no debe confundirse con una TSA caída
+            signature_cms = await signer.async_sign_prescribed_attributes(
+                MD_ALGORITHM, signed_attrs=attrs, timestamper=timestamper
+            )
+        except Exception as e:
+            raise TimestampUnavailable(f"{type(e).__name__}: {e}") from e
     prepared = PreparedByteRangeDigest(
         base64.b64decode(state["digest"]), state["start"], state["end"]
     )
@@ -131,7 +153,12 @@ class SignatureCheck:
     valid: bool
     trusted: bool
     modification_level: str
-    ok: bool  # íntegra, válida, de confianza y sin modificaciones posteriores no permitidas
+    ok: bool  # íntegra, válida, de confianza, sin modificaciones no permitidas y con sello confiable (si lo tiene)
+    timestamp_present: bool = False
+    timestamp_time: str | None = None
+    timestamp_intact: bool = False
+    timestamp_valid: bool = False
+    timestamp_trusted: bool = False
 
 
 _ALLOWED_MODIFICATIONS = {"NONE", "LTA_UPDATES", "FORM_FILLING"}  # firmas posteriores, sellos y campos
@@ -150,6 +177,8 @@ def verify_pdf(
         level = status.modification_level.name if status.modification_level else "NONE"
         cert = sig.signer_cert
         reported = status.signer_reported_dt
+        stamp = status.timestamp_validity
+        stamp_ok = stamp is None or bool(stamp.intact and stamp.valid and stamp.trusted)
         checks.append(
             SignatureCheck(
                 field_name=sig.field_name,
@@ -165,7 +194,13 @@ def verify_pdf(
                     and status.valid
                     and status.trusted
                     and level in _ALLOWED_MODIFICATIONS
+                    and stamp_ok
                 ),
+                timestamp_present=stamp is not None,
+                timestamp_time=stamp.timestamp.isoformat() if stamp is not None else None,
+                timestamp_intact=bool(stamp.intact) if stamp is not None else False,
+                timestamp_valid=bool(stamp.valid) if stamp is not None else False,
+                timestamp_trusted=bool(stamp.trusted) if stamp is not None else False,
             )
         )
     return checks

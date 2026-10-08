@@ -171,6 +171,13 @@ def verify_document(ctx: Ctx, document_id: uuid.UUID) -> dict:
             "trusted": c.trusted,
             "modification_level": c.modification_level,
             "ok": c.ok,
+            "timestamp": {
+                "present": c.timestamp_present,
+                "time": c.timestamp_time,
+                "intact": c.timestamp_intact,
+                "valid": c.timestamp_valid,
+                "trusted": c.timestamp_trusted,
+            },
         }
         for c in checks
     ]

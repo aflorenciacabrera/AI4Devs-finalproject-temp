@@ -12,9 +12,9 @@ from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .. import signing_token, webhooks
+from .. import signing_token, timestamping, webhooks
 from ..config import Settings
-from ..errors import Conflict, DomainError, NotFound, Unprocessable
+from ..errors import Conflict, DomainError, NotFound, ServiceUnavailable, Unprocessable
 from ..models import (
     AuditEvent,
     Certificate,
@@ -32,6 +32,7 @@ from ..models import (
 )
 from ..pdf_engine import (
     PdfEngineError,
+    TimestampUnavailable,
     finish_pdf,
     prepare_pdf,
     validate_pdf,
@@ -332,6 +333,31 @@ def complete(
     if not verify_hash_signature(cert_der, hash_to_sign, signature):
         _fail(ctx, request, "la firma no verifica contra el hash preparado")
 
+    # El PDF firmado (y su sello) se arma ANTES de consumir el desafío: si la TSA falla no se gasta la
+    # firma hecha en el token. La concurrencia sigue protegida por el consumo atómico de más abajo.
+    timestamper = timestamping.make_timestamper(ctx.settings)
+    stamp: dict = {"status": "absent"}
+    try:
+        try:
+            signed_pdf = finish_pdf(prepared_pdf, state, ax509.Certificate.load(cert_der), signature, timestamper)
+            if timestamper is not None:
+                stamp = {"status": "embedded"}
+        except TimestampUnavailable as e:
+            if ctx.settings.tsa_required:
+                raise ServiceUnavailable(
+                    "la autoridad de sellado de tiempo no está disponible: reintentar",
+                    code="timestamp_unavailable",
+                ) from e
+            stamp = {"status": "unavailable", "reason": str(e)[:200]}
+            signed_pdf = finish_pdf(prepared_pdf, state, ax509.Certificate.load(cert_der), signature)
+        result_ok = provider.verify_result(signed_pdf, cert_der)
+    except ServiceUnavailable:
+        raise
+    except Exception as e:  # noqa: BLE001 - pyHanko levanta tipos variados
+        _fail(ctx, request, f"no se pudo incrustar la firma: {e}")
+    if not result_ok:
+        _fail(ctx, request, "el PDF firmado no valida contra las anclas de confianza")
+
     # Consumo atómico: solo una de dos llamadas concurrentes puede ganar.
     now = _now()
     consumed = db.execute(
@@ -348,18 +374,6 @@ def complete(
         db.rollback()
         raise Conflict("el desafío ya fue usado o venció")
 
-    try:
-        signed_pdf = finish_pdf(prepared_pdf, state, ax509.Certificate.load(cert_der), signature)
-        result_ok = provider.verify_result(signed_pdf, cert_der)
-    except Exception as e:  # noqa: BLE001 - pyHanko levanta tipos variados
-        db.rollback()
-        request = _get_request(ctx, request_id)
-        _fail(ctx, request, f"no se pudo incrustar la firma: {e}")
-    if not result_ok:
-        db.rollback()
-        request = _get_request(ctx, request_id)
-        _fail(ctx, request, "el PDF firmado no valida contra las anclas de confianza")
-
     document = db.get(Document, request.document_id)
     number = (
         db.scalar(
@@ -375,7 +389,7 @@ def complete(
         version_number=number,
         origin=VersionOrigin.SIGNED,
         signature_request_id=request.id,
-        signature_level=SignatureLevel.B_B,
+        signature_level=SignatureLevel.B_T if stamp["status"] == "embedded" else SignatureLevel.B_B,
         storage_ref="",
         document_hash=sha256_hex(signed_pdf),
     )
@@ -388,7 +402,14 @@ def complete(
         document.signing_status = SigningStatus.SIGNED
         request.status = RequestStatus.SIGNED
         request.signed_at = now
-        _audit(db, request, "signed", {"version_number": number})
+        _audit(
+            db,
+            request,
+            "signed",
+            {"version_number": number, "signature_level": version.signature_level.value, "timestamp": stamp},
+        )
+        if stamp["status"] == "unavailable":
+            _audit(db, request, "timestamp_unavailable", {"reason": stamp["reason"]})
         webhooks.enqueue(ctx, request, webhooks.EVENT_SIGNED)
         db.commit()
     except IntegrityError as e:

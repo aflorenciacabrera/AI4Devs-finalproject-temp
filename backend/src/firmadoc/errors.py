@@ -23,5 +23,9 @@ class Conflict(DomainError):
     status_code = 409
 
 
+class ServiceUnavailable(DomainError):
+    status_code = 503
+
+
 class Unprocessable(DomainError):
     status_code = 422

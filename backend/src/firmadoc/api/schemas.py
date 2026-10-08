@@ -185,6 +185,14 @@ class SignatureEntry(BaseModel):
     certificate: SignatureEntryCertificate | None
 
 
+class TimestampCheckOut(BaseModel):
+    present: bool
+    time: str | None
+    intact: bool
+    valid: bool
+    trusted: bool
+
+
 class SignatureCheckOut(BaseModel):
     field_name: str
     signer_subject: str
@@ -195,6 +203,7 @@ class SignatureCheckOut(BaseModel):
     trusted: bool
     modification_level: str
     ok: bool
+    timestamp: TimestampCheckOut
 
 
 class VerifyOut(BaseModel):

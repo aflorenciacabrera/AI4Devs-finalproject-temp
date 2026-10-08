@@ -24,12 +24,25 @@ class Settings(BaseSettings):
     widget_dist: str = "widget/dist"  # widget compilado
     max_batch_size: int = 50  # documentos por lote de firma
     admin_token: str | None = None  # token de administración (>= 32 caracteres); sin él, deshabilitada
+    # Sello de tiempo (RFC 3161). Sin tsa_url las firmas son B-B.
+    tsa_url: str | None = None
+    tsa_timeout_seconds: float = 10.0
+    tsa_required: bool = False  # True: sin sello no se firma (503, reintentable)
     # Webhooks al integrador
     webhook_allow_http: bool = False  # solo desarrollo: permite http://
     webhook_allow_private_hosts: bool = False  # solo desarrollo y pruebas: permite hosts privados
     webhook_timeout_seconds: float = 5.0
     webhook_worker_enabled: bool = True
     webhook_poll_seconds: float = 5.0
+
+    @field_validator("tsa_url", mode="before")
+    @classmethod
+    def _check_tsa_url(cls, value):
+        if value is None or value == "":
+            return None
+        if not str(value).startswith(("http://", "https://")):
+            raise ValueError("FIRMADOC_TSA_URL debe empezar con http:// o https://")
+        return value
 
     @field_validator("signing_secret", "admin_token", mode="before")
     @classmethod
