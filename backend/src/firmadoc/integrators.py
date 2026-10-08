@@ -36,8 +36,13 @@ def parse_origins(raw: str) -> str:
     return ",".join(origins)
 
 
+RESERVED_NAMES = {"Firmadoc (panel)"}  # sistema interno de la sección «Firmar documento» del panel
+
+
 def create(db: Session, name: str, origins: str) -> tuple[IntegratingSystem, str, str]:
     """Devuelve el sistema, su API key y su secreto de webhook (solo se muestran esta vez)."""
+    if name.strip() in RESERVED_NAMES:
+        raise ValueError(f"el nombre {name!r} está reservado para uso interno")
     if db.scalar(select(IntegratingSystem).where(IntegratingSystem.name == name)) is not None:
         raise ValueError(f"ya existe un sistema llamado {name!r}")
     api_key, secret = new_api_key(), new_webhook_secret()

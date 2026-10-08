@@ -47,6 +47,7 @@ def test_ingreso_listado_y_texto_hostil(live, page):
     live.settings.admin_token = TOKEN
     sign_local(live, HOSTILE)
     login(page, live, TOKEN)
+    page.click("nav button[data-tab=requests]")  # la sección inicial es «Firmar documento»
     page.wait_for_selector("#requests-table table tr:nth-child(2)")
     assert page.is_visible("#app")
     table = page.inner_text("#requests-table")
@@ -63,6 +64,7 @@ def test_custodia_desde_el_listado(live, page):
     live.settings.admin_token = TOKEN
     document_id = sign_local(live, "Persona Normal")
     login(page, live, TOKEN)
+    page.click("nav button[data-tab=requests]")  # la sección inicial es «Firmar documento»
     page.wait_for_selector("#requests-table table tr:nth-child(2)")
     page.locator("#requests-table button", has_text="Ver custodia").first.click()
     page.wait_for_selector("#custody-result .card")

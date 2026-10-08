@@ -222,7 +222,7 @@ async function act(operation, okMessage, reload) {
   }
 }
 
-const LOADERS = { requests: loadRequests, webhooks: loadWebhooks, anchors: loadAnchors, certificate: loadCertificate, events: loadEvents, custody: async () => {} };
+const LOADERS = { sign: async () => {}, requests: loadRequests, webhooks: loadWebhooks, anchors: loadAnchors, certificate: loadCertificate, events: loadEvents, custody: async () => {} };
 
 function switchTab(name) {
   for (const section of document.querySelectorAll("[id^='tab-']")) section.hidden = section.id !== "tab-" + name;
@@ -256,8 +256,95 @@ async function login(value) {
   $("app").hidden = false;
   $("logout").hidden = false;
   $("login-error").hidden = true;
-  switchTab("requests");
+  switchTab("sign");
 }
+
+// --- Firmar documento: carga de un PDF y widget embebido -----------------------------------------------
+const MAX_PDF_BYTES = 20 * 1024 * 1024;
+let signFrame = null;
+
+function formatSize(bytes) {
+  return bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(bytes / 1024)) + " KB";
+}
+
+function resetSign() {
+  if (signFrame) { signFrame.remove(); signFrame = null; }
+  $("sign-widget").textContent = "";
+  $("sign-file").value = "";
+  $("sign-ready").hidden = true;
+  $("sign-upload").hidden = false;
+  const box = $("sign-result");
+  box.hidden = true;
+  box.textContent = "";
+}
+
+function signResult(message, kind) {
+  const box = $("sign-result");
+  box.textContent = message;
+  box.className = kind;
+  box.hidden = false;
+}
+
+function readBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",", 2)[1] || "");
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function mountWidget(signingUrl) {
+  const frame = document.createElement("iframe");
+  frame.title = "Firma de documento (Firmadoc)";
+  frame.setAttribute("allow", "local-network-access; local-network; loopback-network");
+  frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-downloads");
+  frame.referrerPolicy = "no-referrer";
+  frame.src = signingUrl;
+  $("sign-widget").appendChild(frame);
+  signFrame = frame;
+}
+
+async function chooseFile(file) {
+  show("");
+  if (!file) return;
+  if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) { show("El archivo debe ser un PDF.", "bad"); return; }
+  if (file.size > MAX_PDF_BYTES) { show("El PDF supera el tamaño máximo de " + formatSize(MAX_PDF_BYTES) + ".", "bad"); return; }
+  try {
+    const data = await api("POST", "/signing-uploads", { filename: file.name, document_base64: await readBase64(file) });
+    resetSign();
+    $("sign-name").textContent = data.filename;
+    $("sign-meta").textContent = data.page_count + (data.page_count === 1 ? " página" : " páginas") + " · " + formatSize(data.size_bytes);
+    $("sign-upload").hidden = true;
+    $("sign-ready").hidden = false;
+    mountWidget(data.signing_url);
+  } catch (e) {
+    if (e.message !== "unauthorized") show(e.message, "bad");
+  }
+}
+
+// Solo se atienden mensajes de la ventana del iframe y del propio origen.
+window.addEventListener("message", (event) => {
+  if (!signFrame || event.source !== signFrame.contentWindow || event.origin !== location.origin) return;
+  const data = event.data;
+  if (!data || data.source !== "firmadoc") return;
+  if (data.type === "firmadoc:signed") signResult("Documento firmado: quedó como nueva versión vigente. Descargalo desde el módulo de firma.", "ok");
+  else if (data.type === "firmadoc:failed") signResult("La firma falló" + (data.code ? " (" + String(data.code) + ")" : "") + ".", "bad");
+  else if (data.type === "firmadoc:cancelled") signResult("Firma cancelada. El documento quedó guardado sin firmar.", "bad");
+});
+
+$("sign-file").addEventListener("change", (event) => chooseFile(event.target.files[0]));
+$("sign-drop").addEventListener("dragover", (event) => { event.preventDefault(); $("sign-drop").classList.add("over"); });
+$("sign-drop").addEventListener("dragleave", () => $("sign-drop").classList.remove("over"));
+$("sign-drop").addEventListener("drop", (event) => {
+  event.preventDefault();
+  $("sign-drop").classList.remove("over");
+  const files = event.dataTransfer.files;
+  if (files.length > 1) { show("Cargá un solo PDF por vez.", "bad"); return; }
+  chooseFile(files[0]);
+});
+$("sign-remove").addEventListener("click", resetSign);
+$("sign-replace").addEventListener("click", () => { resetSign(); $("sign-file").click(); });
 
 $("login-form").addEventListener("submit", (event) => { event.preventDefault(); login($("token").value.trim()); });
 $("logout").addEventListener("click", () => logout(""));

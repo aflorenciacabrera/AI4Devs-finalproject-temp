@@ -26,6 +26,7 @@
 
     <div id="app" hidden>
       <nav aria-label="Secciones">
+        <button type="button" data-tab="sign">Firmar documento</button>
         <button type="button" data-tab="requests">Solicitudes</button>
         <button type="button" data-tab="custody">Custodia</button>
         <button type="button" data-tab="webhooks">Webhooks</button>
@@ -34,6 +35,41 @@
         <button type="button" data-tab="events">Eventos de administración</button>
       </nav>
       <p id="message" role="status" hidden></p>
+
+      <section id="tab-sign" hidden>
+        <h2>Firmar documento</h2>
+        <p class="muted">Cargá un PDF y firmalo con tu token. Firmadoc guarda el original y la versión firmada.</p>
+        <div id="sign-upload">
+          <label id="sign-drop" class="dropzone" for="sign-file">
+            <strong>Arrastrá un PDF acá</strong>
+            <span>o seleccionalo desde tu PC</span>
+            <span class="button-like">Seleccionar archivo</span>
+          </label>
+          <input id="sign-file" type="file" accept="application/pdf,.pdf" hidden>
+          <p class="muted">Solo archivos PDF, de a uno. La firma de varios documentos en lote se habilita más adelante.</p>
+          <ol class="steps">
+            <li><strong>Cargá el PDF</strong> Queda guardado como versión original (v1).</li>
+            <li><strong>Elegí el método de firma</strong> Con token, remota o propia (demostración).</li>
+            <li><strong>Elegí el certificado y confirmá con el PIN</strong> El PIN se ingresa en tu PC, en Firmadoc Agent.</li>
+            <li><strong>Descargá el documento firmado</strong> Queda como nueva versión vigente; el original se conserva.</li>
+          </ol>
+        </div>
+        <div id="sign-ready" hidden>
+          <div class="card doc-card">
+            <div>
+              <strong id="sign-name"></strong>
+              <div id="sign-meta" class="muted"></div>
+            </div>
+            <div class="doc-actions">
+              <button type="button" id="sign-replace">Reemplazar</button>
+              <button type="button" id="sign-remove">Quitar</button>
+            </div>
+          </div>
+          <p id="sign-versions" class="muted">Se guarda como versión original (v1). Al firmar, la versión firmada será la v2 y quedará como vigente.</p>
+          <div id="sign-widget"></div>
+          <p id="sign-result" role="status" hidden></p>
+        </div>
+      </section>
 
       <section id="tab-requests" hidden>
         <h2>Solicitudes de firma</h2>

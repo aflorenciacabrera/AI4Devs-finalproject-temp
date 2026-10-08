@@ -1,6 +1,6 @@
 # API de documentos: estado, firmantes y verificación
 
-Todas las rutas usan `X-API-Key` y solo ven los documentos del propio integrador (otro integrador recibe `404`).
+Todas las rutas usan `X-API-Key` y solo ven los documentos del propio integrador (otro integrador recibe `404`). Los PDF también pueden entrar desde el panel de administración (ver `docs/admin.md`, «Firmar documento»).
 
 ## Estado y plazo
 

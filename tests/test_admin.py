@@ -403,6 +403,7 @@ def test_pagina_con_cabeceras_restrictivas(client, admin):
     assert r.status_code == 200 and "Administración" in r.text
     csp = r.headers["content-security-policy"]
     assert "script-src 'self'" in csp and "frame-ancestors 'none'" in csp and "unsafe-inline" not in csp
+    assert "frame-src 'self'" in csp
     assert r.headers["cache-control"] == "no-store" and r.headers["x-content-type-options"] == "nosniff"
     js = client.get("/admin/admin.js")
     assert js.status_code == 200 and js.headers["content-type"].startswith("text/javascript")

@@ -20,7 +20,7 @@ FILES = {
 HEADERS = {
     "Content-Security-Policy": (
         "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; "
-        "img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+        "img-src 'self' data:; frame-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
     ),
     "Referrer-Policy": "no-referrer",
     "Cache-Control": "no-store",

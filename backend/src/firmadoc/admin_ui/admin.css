@@ -32,4 +32,18 @@ td.mono, .mono { font-family: ui-monospace, monospace; word-break: break-all; }
 .pager { display: flex; gap: 12px; align-items: center; margin-top: 10px; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 10px 0; }
 .card h3 { margin: 0 0 6px; font-size: 14px; }
+.muted { color: var(--muted); font-size: 13px; }
+.dropzone { align-items: center; gap: 6px; padding: 36px 16px; border: 2px dashed var(--line); border-radius: 10px; background: var(--card); color: var(--fg); text-align: center; cursor: pointer; font-size: 15px; }
+.dropzone.over { border-color: var(--accent); }
+.button-like { margin-top: 8px; padding: 6px 12px; border: 1px solid var(--accent); border-radius: 6px; color: var(--accent); font-size: 14px; }
+.steps { padding-left: 20px; margin: 16px 0; }
+.steps li { margin-bottom: 8px; }
+.steps strong { display: block; }
+.doc-card { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.doc-card strong { word-break: break-all; }
+.doc-actions { display: flex; gap: 8px; }
+#sign-widget iframe { width: 100%; max-width: 520px; height: 720px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+#sign-result { padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); }
+#sign-result.ok { color: var(--ok); }
+#sign-result.bad { color: var(--danger); }
 [hidden] { display: none !important; }

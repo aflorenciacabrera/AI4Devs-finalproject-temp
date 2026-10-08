@@ -4,19 +4,32 @@ import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..config import Settings
 from ..models import DeliveryStatus, Provider, RequestStatus
-from ..services import admin
-from .deps import admin_auth, get_db, settings_dep
+from ..services import admin, panel_upload
+from ..storage import DocumentStorage
+from .deps import admin_auth, get_db, get_storage, settings_dep
 
 router = APIRouter(prefix="/api/v1/admin", dependencies=[Depends(admin_auth)])
 
 
 class AnchorIn(BaseModel):
     certificate_pem: str
+
+
+class PanelSigner(BaseModel):
+    full_name: str = Field(min_length=1, max_length=200)
+    identifier: str = Field(min_length=1, max_length=20)
+    email: str = Field(min_length=3, max_length=320)
+
+
+class SigningUploadIn(BaseModel):
+    filename: str = Field(min_length=1, max_length=255)
+    document_base64: str = Field(min_length=1)
+    signer: PanelSigner | None = None
 
 
 @router.get("/signature-requests")
@@ -96,3 +109,16 @@ def rotate_local_certificate(
     db: Session = Depends(get_db), settings: Settings = Depends(settings_dep)
 ):
     return admin.rotate_local_certificate(db, settings)
+
+
+@router.post("/signing-uploads", status_code=201)
+def signing_upload(
+    body: SigningUploadIn,
+    db: Session = Depends(get_db),
+    storage: DocumentStorage = Depends(get_storage),
+    settings: Settings = Depends(settings_dep),
+):
+    signer = (body.signer.full_name, body.signer.identifier, body.signer.email) if body.signer else None
+    return panel_upload.upload(
+        db, storage, settings, filename=body.filename, document_base64=body.document_base64, signer=signer
+    )
