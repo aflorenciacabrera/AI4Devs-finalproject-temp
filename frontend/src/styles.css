@@ -340,8 +340,21 @@ textarea.pem {
   font-weight: 600;
   word-break: break-all;
 }
-.upload-hint {
+.upload-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
   margin: 0 12px 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--p-content-border-color);
+}
+.upload-footer .upload-buttons {
+  margin-left: auto;
+}
+.upload-hint {
+  margin: 0;
 }
 
 /* Tarjeta del documento cargado */
@@ -389,15 +402,27 @@ textarea.pem {
   gap: 8px;
   margin-top: 8px;
 }
-.sign-widget {
-  margin-top: 12px;
+.doc-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--p-content-border-color);
 }
-.sign-widget iframe {
+
+/* Widget de firma en el diálogo dinámico */
+.widget-dialog .p-dialog-content {
+  padding: 0;
+  overflow: hidden;
+}
+.widget-frame {
+  display: block;
   width: 100%;
-  max-width: 520px;
-  height: 720px;
-  border: 1px solid var(--p-content-border-color);
-  border-radius: 10px;
+  height: min(760px, 80vh);
+  border: 0;
   background: var(--p-content-background);
 }
 

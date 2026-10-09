@@ -30,19 +30,18 @@
         <p-button label="Quitar" icon="pi pi-times" severity="secondary" [text]="true" (onClick)="reset()" />
       </div>
     </div>
+    <div class="doc-footer">
+      <p-message severity="secondary" variant="simple" icon="pi pi-info-circle">
+        Al firmar, la versión firmada será la v2 y quedará como vigente; el original se conserva.
+      </p-message>
+      <p-button
+        id="sign-open"
+        [label]="widgetOpen() ? 'Módulo de firma abierto' : 'Abrir módulo de firma'"
+        icon="pi pi-pen-to-square"
+        [disabled]="widgetOpen()"
+        (onClick)="openWidget()" />
+    </div>
   </p-card>
-  <p-message severity="secondary" variant="simple" icon="pi pi-info-circle">
-    Al firmar, la versión firmada será la v2 y quedará como vigente; el original se conserva.
-  </p-message>
-  <div class="sign-widget">
-    <iframe
-      #frame
-      [src]="r.url"
-      title="Firma de documento (Firmadoc)"
-      allow="local-network-access; local-network; loopback-network"
-      sandbox="allow-scripts allow-same-origin allow-downloads"
-      referrerpolicy="no-referrer"></iframe>
-  </div>
   @if (result(); as res) {
     <p-message [severity]="res.severity" role="status" id="sign-result">{{ res.text }}</p-message>
   }
@@ -63,26 +62,15 @@
         invalidFileSizeMessageSummary="{0}:"
         invalidFileSizeMessageDetail="supera el tamaño máximo de {0}."
         (uploadHandler)="upload($event.files)">
-        <ng-template #header let-files let-chooseCallback="chooseCallback" let-clearCallback="clearCallback" let-uploadCallback="uploadCallback">
+        <ng-template #header let-files let-chooseCallback="chooseCallback">
           <div class="upload-header">
-            <div class="upload-buttons">
-              <p-button label="Seleccionar archivos" icon="pi pi-plus" [outlined]="true" [disabled]="uploading()" (onClick)="chooseCallback()" />
-              <p-button
-                [label]="uploadLabel(files.length)"
-                icon="pi pi-pen-to-square"
-                [disabled]="!files.length || uploading()"
-                [loading]="uploading()"
-                (onClick)="uploadCallback()" />
-              @if (files.length) {
-                <p-button label="Quitar todos" icon="pi pi-times" severity="secondary" [text]="true" [disabled]="uploading()" (onClick)="clearCallback()" />
-              }
-            </div>
+            <p-button label="Seleccionar archivos" icon="pi pi-plus" [outlined]="true" [disabled]="uploading()" (onClick)="chooseCallback()" />
             @if (files.length) {
               <p-tag [value]="summary(files)" severity="secondary" icon="pi pi-file-pdf" [rounded]="true" />
             }
           </div>
         </ng-template>
-        <ng-template #content let-files let-messages="messages" let-removeFileCallback="removeFileCallback">
+        <ng-template #content let-files let-messages="messages" let-removeFileCallback="removeFileCallback" let-clearCallback="clearCallback">
           @for (m of messages; track $index) {
             <p-message severity="error" icon="pi pi-exclamation-triangle">{{ m.text }}</p-message>
           }
@@ -100,9 +88,20 @@
                 </li>
               }
             </ul>
-            <p class="muted upload-hint">
-              {{ files.length > 1 ? 'Se firman en lote: un solo PIN para todos.' : 'Podés agregar más PDF para firmarlos en lote con un solo PIN.' }}
-            </p>
+            <div class="upload-footer">
+              <p class="muted upload-hint">
+                {{ files.length > 1 ? 'Se firman en lote: un solo PIN para todos.' : 'Podés agregar más PDF para firmarlos en lote con un solo PIN.' }}
+              </p>
+              <div class="upload-buttons">
+                <p-button label="Quitar todos" icon="pi pi-times" severity="secondary" [text]="true" [disabled]="uploading()" (onClick)="clearCallback()" />
+                <p-button
+                  [label]="uploadLabel(files.length)"
+                  icon="pi pi-pen-to-square"
+                  [disabled]="uploading()"
+                  [loading]="uploading()"
+                  (onClick)="uploader.upload()" />
+              </div>
+            </div>
           }
         </ng-template>
         <ng-template #empty>

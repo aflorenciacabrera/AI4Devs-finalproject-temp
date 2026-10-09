@@ -1,11 +1,10 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { DomSanitizer } from '@angular/platform-browser';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import { API } from '../core/admin-api';
-import { Sign } from './sign';
+import { CLOSED_WITHOUT_SIGNING, Sign } from './sign';
 
 const SIGNING_URL = 'http://firmadoc.test:8000/sign/0f3c7f5e-1111-2222-3333-444444444444#t=abc';
 
@@ -22,6 +21,8 @@ async function expectRequest(http: HttpTestingController, url: string) {
   }
   throw new Error('no se envió ' + url);
 }
+
+const dialogIframe = () => document.querySelector('.widget-dialog iframe') as HTMLIFrameElement | null;
 
 describe('Sign', () => {
   let fixture: ComponentFixture<Sign>;
@@ -41,11 +42,15 @@ describe('Sign', () => {
     await fixture.whenStable();
   });
 
-  afterEach(() => http.verify());
+  afterEach(async () => {
+    component.closeWidget();
+    await fixture.whenStable();
+    http.verify();
+  });
 
   it('arranca en la carga, sin widget', () => {
     expect(fixture.nativeElement.querySelector('p-fileupload')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('iframe')).toBeNull();
+    expect(dialogIframe()).toBeNull();
   });
 
   it('rechaza en el navegador un archivo que no es PDF sin enviar nada', async () => {
@@ -56,7 +61,7 @@ describe('Sign', () => {
     http.expectNone(`${API}/signing-batch-uploads`);
   });
 
-  it('un PDF se carga como individual y muestra la tarjeta y el iframe del widget', async () => {
+  it('un PDF se carga como individual, muestra la tarjeta y abre el widget en un diálogo', async () => {
     const pending = component.upload([pdf('Resolucion.pdf')]);
     const request = await expectRequest(http, `${API}/signing-uploads`);
     expect(request.request.body).toEqual({ filename: 'Resolucion.pdf', document_base64: expect.any(String) });
@@ -74,11 +79,11 @@ describe('Sign', () => {
     const root: HTMLElement = fixture.nativeElement;
     expect(root.querySelector('#sign-name')?.textContent).toBe('Resolucion.pdf');
     expect(root.textContent).toContain('2 páginas · 2 KB');
-    const iframe = root.querySelector('iframe')!;
-    expect(iframe.getAttribute('src')).toBe(SIGNING_URL);
-    expect(iframe.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin allow-downloads');
-    expect(iframe.getAttribute('referrerpolicy')).toBe('no-referrer');
-    expect(component.ready()?.origin).toBe('http://firmadoc.test:8000');
+    expect(component.widgetOpen()).toBe(true);
+    const iframe = dialogIframe();
+    expect(iframe?.getAttribute('src')).toBe(SIGNING_URL);
+    expect(iframe?.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin allow-downloads');
+    expect(document.querySelector('.widget-dialog .p-dialog-title')?.textContent).toContain('Resolucion.pdf');
   });
 
   it('varios PDF se cargan como lote', async () => {
@@ -97,47 +102,44 @@ describe('Sign', () => {
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelector('#sign-name')?.textContent).toBe('2 documentos');
     expect(fixture.nativeElement.querySelectorAll('#sign-docs li')).toHaveLength(2);
+    expect(dialogIframe()).not.toBeNull();
   });
 
-  describe('mensajes del widget', () => {
-    let source: Window;
-
+  describe('con un documento cargado', () => {
     beforeEach(async () => {
-      const url = TestBed.inject(DomSanitizer).bypassSecurityTrustResourceUrl(SIGNING_URL);
-      component.ready.set({ name: 'x', meta: '', url, origin: 'http://firmadoc.test:8000', documents: null });
+      component.ready.set({ name: 'x.pdf', meta: '1 página · 1 KB', signingUrl: SIGNING_URL, documents: null });
+      component.openWidget();
       await fixture.whenStable();
-      source = (fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement).contentWindow!;
     });
 
-    const message = (data: unknown, origin = 'http://firmadoc.test:8000', from: Window | null = source) =>
-      component.onMessage(new MessageEvent('message', { data, origin, source: from }));
+    it('cerrar el diálogo sin firmar deja el aviso y permite reabrirlo', async () => {
+      expect(dialogIframe()).not.toBeNull();
+      component.closeWidget();
+      await fixture.whenStable();
+      expect(component.widgetOpen()).toBe(false);
+      expect(component.result()).toEqual(CLOSED_WITHOUT_SIGNING);
+      expect(fixture.nativeElement.querySelector('#sign-open')).not.toBeNull();
+    });
 
-    it('acepta firmadoc:signed desde la ventana del iframe y su origen', () => {
-      message({ source: 'firmadoc', type: 'firmadoc:signed', requestId: 'r1' });
+    it('el resultado del widget se refleja en la tarjeta sin cerrar el diálogo', async () => {
+      const iframe = dialogIframe()!;
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: { source: 'firmadoc', type: 'firmadoc:signed', requestId: 'r1' },
+          origin: 'http://firmadoc.test:8000',
+          source: iframe.contentWindow,
+        }),
+      );
+      await fixture.whenStable();
       expect(component.result()?.severity).toBe('success');
+      expect(component.widgetOpen()).toBe(true);
+      expect(fixture.nativeElement.querySelector('#sign-result')?.textContent).toContain('Documento firmado');
     });
 
-    it('ignora otro origen, otra ventana y otro emisor', () => {
-      message({ source: 'firmadoc', type: 'firmadoc:signed' }, 'http://malicioso.test');
-      message({ source: 'firmadoc', type: 'firmadoc:signed' }, 'http://firmadoc.test:8000', window);
-      message({ source: 'otro', type: 'firmadoc:signed' });
-      message('texto suelto');
-      expect(component.result()).toBeNull();
-    });
-
-    it('informa lotes parciales, fallos y cancelaciones', () => {
-      message({ source: 'firmadoc', type: 'firmadoc:batch-completed', signed: 2, total: 3 });
-      expect(component.result()).toEqual({ severity: 'error', text: expect.stringContaining('2 de 3 documentos firmados') });
-      message({ source: 'firmadoc', type: 'firmadoc:failed', code: 'agent_missing' });
-      expect(component.result()?.text).toBe('La firma falló (agent_missing).');
-      message({ source: 'firmadoc', type: 'firmadoc:cancelled' });
-      expect(component.result()?.severity).toBe('error');
-    });
-
-    it('«Quitar» vuelve a la carga sin widget', async () => {
+    it('«Quitar» vuelve a la carga y cierra el widget', async () => {
       component.reset();
       await fixture.whenStable();
-      expect(fixture.nativeElement.querySelector('iframe')).toBeNull();
+      expect(component.widgetOpen()).toBe(false);
       expect(fixture.nativeElement.querySelector('p-fileupload')).not.toBeNull();
     });
   });

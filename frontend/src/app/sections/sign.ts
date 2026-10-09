@@ -1,7 +1,7 @@
-import { Component, ElementRef, HostListener, Injector, afterNextRender, inject, signal, viewChild } from '@angular/core';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { Component, DestroyRef, Injector, afterNextRender, inject, signal, viewChild } from '@angular/core';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
+import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { FileUpload } from 'primeng/fileupload';
 import { Message } from 'primeng/message';
 import { Tag } from 'primeng/tag';
@@ -9,19 +9,14 @@ import { Timeline } from 'primeng/timeline';
 import { AdminApi } from '../core/admin-api';
 import { BatchDocument, SigningBatchUpload, SigningUpload } from '../core/api-types';
 import { MAX_PDF_BYTES, SizePipe, formatSize, isPdf, pagesLabel } from '../core/format';
+import { SignResult } from '../core/widget-messages';
+import { WidgetDialog, WidgetDialogData } from './widget-dialog';
 
 export interface Ready {
   name: string;
   meta: string;
-  url: SafeResourceUrl;
-  /** Origen de la `signing_url`: el único del que se aceptan mensajes del widget. */
-  origin: string;
+  signingUrl: string;
   documents: BatchDocument[] | null;
-}
-
-export interface SignResult {
-  text: string;
-  severity: 'success' | 'error';
 }
 
 export interface Step {
@@ -45,13 +40,10 @@ export const STEPS: Step[] = [
   },
 ];
 
-interface WidgetMessage {
-  source?: unknown;
-  type?: unknown;
-  signed?: unknown;
-  total?: unknown;
-  code?: unknown;
-}
+export const CLOSED_WITHOUT_SIGNING: SignResult = {
+  severity: 'error',
+  text: 'Cerraste el módulo de firma sin firmar. El documento quedó guardado sin firmar: podés abrirlo de nuevo.',
+};
 
 function readBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -62,31 +54,33 @@ function readBase64(file: File): Promise<string> {
   });
 }
 
-/**
- * Carga de uno o varios PDF (p-fileupload con plantillas propias) y widget de firma embebido. Es el ejemplo de
- * referencia de cómo una aplicación Angular integra el widget: iframe con `sandbox`/`allow`/`referrerpolicy` y
- * mensajes validados por ventana y origen.
- */
+/** Carga de uno o varios PDF (p-fileupload con plantillas propias) y widget de firma en un diálogo dinámico. */
 @Component({
   selector: 'app-sign',
   imports: [FileUpload, Button, Card, Tag, Timeline, Message, SizePipe],
+  providers: [DialogService],
   templateUrl: './sign.html',
 })
 export class Sign {
   private readonly api = inject(AdminApi);
-  private readonly sanitizer = inject(DomSanitizer);
+  private readonly dialog = inject(DialogService);
   private readonly injector = inject(Injector);
+  private dialogRef: DynamicDialogRef | null = null;
 
   readonly uploader = viewChild<FileUpload>('uploader');
-  readonly frame = viewChild<ElementRef<HTMLIFrameElement>>('frame');
 
   readonly maxBytes = MAX_PDF_BYTES;
   readonly steps = STEPS;
   readonly uploading = signal(false);
   readonly ready = signal<Ready | null>(null);
   readonly result = signal<SignResult | null>(null);
+  readonly widgetOpen = signal(false);
 
   pages = pagesLabel;
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => this.closeWidget());
+  }
 
   uploadLabel(count: number): string {
     return count > 1 ? `Cargar y firmar ${count} documentos` : 'Cargar y firmar documento';
@@ -97,7 +91,7 @@ export class Sign {
     return `${files.length} ${files.length === 1 ? 'archivo' : 'archivos'} · ${formatSize(total)}`;
   }
 
-  /** Valida en el navegador y envía uno (carga individual) o varios (lote) PDF. */
+  /** Valida en el navegador y envía uno (carga individual) o varios (lote) PDF; después abre el widget. */
   async upload(files: File[]): Promise<void> {
     if (files.length === 0 || this.uploading()) return;
     const bad = files.find((f) => !isPdf(f));
@@ -129,7 +123,52 @@ export class Sign {
     }
   }
 
+  /** Abre el widget en un diálogo dinámico de PrimeNG; los resultados se reflejan en la tarjeta. */
+  openWidget(): void {
+    const ready = this.ready();
+    if (!ready || this.dialogRef) return;
+    let reported = false;
+    const data: WidgetDialogData = {
+      signingUrl: ready.signingUrl,
+      onResult: (result) => {
+        reported = true;
+        this.result.set(result);
+      },
+    };
+    this.widgetOpen.set(true);
+    const ref = this.dialog.open(WidgetDialog, {
+      header: ready.name,
+      data,
+      modal: true,
+      closable: true,
+      dismissableMask: false,
+      closeOnEscape: false,
+      focusOnShow: false,
+      styleClass: 'widget-dialog',
+      width: '560px',
+      style: { 'max-width': '96vw' },
+      contentStyle: { padding: '0' },
+    });
+    if (!ref) {
+      this.widgetOpen.set(false);
+      return;
+    }
+    this.dialogRef = ref;
+    ref.onClose.subscribe(() => {
+      if (this.dialogRef === ref) this.dialogRef = null;
+      this.widgetOpen.set(false);
+      if (!reported) this.result.set(CLOSED_WITHOUT_SIGNING);
+    });
+  }
+
+  closeWidget(): void {
+    this.dialogRef?.close();
+    this.dialogRef = null;
+    this.widgetOpen.set(false);
+  }
+
   reset(): void {
+    this.closeWidget();
     this.ready.set(null);
     this.result.set(null);
   }
@@ -139,49 +178,10 @@ export class Sign {
     afterNextRender(() => this.uploader()?.choose(), { injector: this.injector });
   }
 
-  /** Solo se atienden mensajes de la ventana del iframe y del origen de la `signing_url`. */
-  @HostListener('window:message', ['$event'])
-  onMessage(event: MessageEvent): void {
-    const frame = this.frame()?.nativeElement;
-    const ready = this.ready();
-    if (!frame || !ready || event.source !== frame.contentWindow || event.origin !== ready.origin) return;
-    const data = event.data as WidgetMessage | null;
-    if (!data || typeof data !== 'object' || data.source !== 'firmadoc') return;
-    switch (data.type) {
-      case 'firmadoc:signed':
-        this.result.set({
-          severity: 'success',
-          text: 'Documento firmado: quedó como nueva versión vigente. Descargalo desde el módulo de firma.',
-        });
-        break;
-      case 'firmadoc:batch-completed': {
-        const signed = Number(data.signed) || 0;
-        const total = Number(data.total) || 0;
-        const all = signed === total;
-        this.result.set({
-          severity: all ? 'success' : 'error',
-          text: `${signed} de ${total} documentos firmados.` + (all ? '' : ' Podés reintentar los fallidos desde el módulo de firma.'),
-        });
-        break;
-      }
-      case 'firmadoc:failed':
-        this.result.set({ severity: 'error', text: `La firma falló${data.code ? ` (${String(data.code)})` : ''}.` });
-        break;
-      case 'firmadoc:cancelled':
-        this.result.set({ severity: 'error', text: 'Firma cancelada. El documento quedó guardado sin firmar.' });
-        break;
-    }
-  }
-
   private show(name: string, meta: string, signingUrl: string, documents: BatchDocument[] | null): void {
+    this.closeWidget();
     this.result.set(null);
-    this.ready.set({
-      name,
-      meta,
-      // Seguro: la signing_url la entrega el propio backend de Firmadoc, no la persona.
-      url: this.sanitizer.bypassSecurityTrustResourceUrl(signingUrl),
-      origin: new URL(signingUrl, location.href).origin,
-      documents,
-    });
+    this.ready.set({ name, meta, signingUrl, documents });
+    this.openWidget();
   }
 }
