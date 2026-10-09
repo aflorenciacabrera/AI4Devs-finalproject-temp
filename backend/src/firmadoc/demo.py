@@ -1,15 +1,17 @@
 """Modo demostración: prepara y arranca Firmadoc para probarlo sin token USB.
 
-Uso: `python -m firmadoc.demo [--port 8000] [--host 127.0.0.1] [--reset]`
+Uso: `python -m firmadoc.demo [--port 8000] [--host 127.0.0.1] [--reset] [--cuil ... --nombre ... [--email ...]]`
 
 Crea (o reutiliza) un entorno aislado en `data/demo/` con su base SQLite, sus documentos y su certificado de
 demostración, aplica las migraciones, carga el seed y arranca el servidor. El método de firma sin token es
-«Firma propia» (proveedor `local`). No es el modo real: ver `docs/real-mode.md`.
+«Firma propia» (proveedor `local`). Con `--cuil` y `--nombre`, el panel firma como el titular de un token
+físico (su CUIL debe ser el del certificado). No es el modo real: ver `docs/real-mode.md`.
 """
 
 import argparse
 import json
 import os
+import re
 import secrets
 import shutil
 import sys
@@ -21,10 +23,41 @@ from . import demo_pki
 ROOT = Path(__file__).resolve().parents[3]  # raíz del repositorio (backend/src/firmadoc/demo.py)
 DEMO_DIR_NAME = "demo"
 SECRETS_FILE = "demo.json"
+AGENT_CONFIG_SHOWN = r"%APPDATA%\FirmadocAgent\config.json"  # sin expandir: el comando sirve en cualquier PC
 
 
 class DemoError(Exception):
     """El entorno de demostración no se puede preparar (mensaje listo para mostrar)."""
+
+
+@dataclass(frozen=True)
+class PanelSigner:
+    """Firmante de los PDF que se cargan desde el panel."""
+
+    name: str
+    cuil: str
+    email: str
+    real: bool  # True: titular de un token físico; False: el token de prueba
+
+    @classmethod
+    def demo(cls) -> "PanelSigner":
+        return cls(demo_pki.DEMO_SIGNER_NAME, demo_pki.DEMO_SIGNER_CUIL, demo_pki.DEMO_SIGNER_EMAIL, real=False)
+
+    @classmethod
+    def from_args(cls, nombre: str | None, cuil: str | None, email: str | None) -> "PanelSigner | None":
+        """`None` si no se pidió un firmante real; `DemoError` si los parámetros están incompletos o mal."""
+        if nombre is None and cuil is None:
+            if email is not None:
+                raise DemoError("--email solo tiene sentido junto con --cuil y --nombre")
+            return None
+        if cuil is None:
+            raise DemoError("falta --cuil: el CUIL del titular del token (11 dígitos, el que muestra `diagnose`)")
+        if nombre is None or not nombre.strip():
+            raise DemoError("falta --nombre: el nombre del titular del token tal como figura en el certificado")
+        digits = re.sub(r"[-\s]", "", cuil)
+        if not re.fullmatch(r"\d{11}", digits):
+            raise DemoError(f"--cuil inválido ({cuil!r}): deben ser 11 dígitos, con o sin guiones")
+        return cls(nombre.strip(), digits, (email or f"{digits}@invalid").strip(), real=True)
 
 
 @dataclass(frozen=True)
@@ -39,10 +72,20 @@ class DemoEnv:
     widget_built: bool
     frontend_built: bool = False  # panel Angular compilado (frontend/dist)
     token_dir: Path | None = None  # PKI de prueba para firmar con el agente (token de software)
+    signer: PanelSigner | None = None  # firmante del panel (None = el del token de prueba)
+
+    @property
+    def panel_signer(self) -> PanelSigner:
+        return self.signer or PanelSigner.demo()
 
     @property
     def admin_url(self) -> str:
         return f"{self.public_base_url}/admin"
+
+    @property
+    def pkcs11_agent_command(self) -> str:
+        """Cómo arrancar Firmadoc Agent con el módulo PKCS#11 de su config.json (token físico)."""
+        return f'python -m firmadoc_agent --config "{AGENT_CONFIG_SHOWN}" run --origin {self.public_base_url}'
 
     @property
     def agent_command(self) -> str:
@@ -98,9 +141,13 @@ def check_not_real_mode() -> None:
         )
 
 
-def prepare(directory: Path, port: int = 8000) -> DemoEnv:
-    """Deja el entorno listo (carpetas, secretos, variables, migraciones y seed). No arranca el servidor."""
+def prepare(directory: Path, port: int = 8000, signer: PanelSigner | None = None) -> DemoEnv:
+    """Deja el entorno listo (carpetas, secretos, variables, migraciones y seed). No arranca el servidor.
+
+    `signer`: titular de un token físico para que el panel firme con su CUIL; sin él, el token de prueba.
+    """
     check_not_real_mode()
+    panel_signer = signer or PanelSigner.demo()
     if not (ROOT / "alembic.ini").is_file():
         raise DemoError(f"no se encontró el proyecto en {ROOT}: ejecutá el comando desde una copia del repositorio")
 
@@ -133,9 +180,9 @@ def prepare(directory: Path, port: int = 8000) -> DemoEnv:
             "FIRMADOC_WIDGET_DIST": str(widget_dist()),
             "FIRMADOC_FRONTEND_DIST": str(frontend_dist()),
             "FIRMADOC_TRUST_DIR": str(trust_dir),
-            "FIRMADOC_PANEL_SIGNER_NAME": demo_pki.DEMO_SIGNER_NAME,
-            "FIRMADOC_PANEL_SIGNER_IDENTIFIER": demo_pki.DEMO_SIGNER_CUIL,
-            "FIRMADOC_PANEL_SIGNER_EMAIL": demo_pki.DEMO_SIGNER_EMAIL,
+            "FIRMADOC_PANEL_SIGNER_NAME": panel_signer.name,
+            "FIRMADOC_PANEL_SIGNER_IDENTIFIER": panel_signer.cuil,
+            "FIRMADOC_PANEL_SIGNER_EMAIL": panel_signer.email,
             "FIRMADOC_REAL_MODE": "false",
         }
     )
@@ -163,21 +210,25 @@ def prepare(directory: Path, port: int = 8000) -> DemoEnv:
         widget_built=(widget_dist() / "index.html").is_file(),
         frontend_built=(frontend_dist() / "index.html").is_file(),
         token_dir=pki.directory,
+        signer=signer,
     )
 
 
 def guide(env: DemoEnv) -> str:
     from .seed import DEMO_API_KEY
 
+    who = env.panel_signer
+    kind = "token físico" if who.real else "token de prueba"
     lines = [
         "",
-        "Firmadoc en modo demostración (sin token USB)",
+        "Firmadoc en modo demostración",
         "=" * 46,
         f"  Panel:           {env.panel_url}" + ("" if env.frontend_built else "  (sin compilar: ver abajo)"),
         f"  Panel estático:  {env.admin_url}",
         f"  Token de acceso: {env.admin_token}",
         f"  API key demo:    {DEMO_API_KEY} (cabecera X-API-Key, para la API de integradores)",
         f"  Datos en:        {env.directory}",
+        f"  Firmante del panel: {who.name} (CUIL {who.cuil}) — {kind}",
         "",
         "Para firmar sin token: en el panel, «Firmar documento» → cargá un PDF → elegí «Firma propia».",
         "Es firma electrónica de demostración (sin presunción legal); no usa el token USB ni el agente.",
@@ -188,6 +239,11 @@ def guide(env: DemoEnv) -> str:
         f"  PIN del token de prueba: {demo_pki.DEMO_PIN}   "
         + f"(titular: {demo_pki.DEMO_SIGNER_NAME}, CUIL {demo_pki.DEMO_SIGNER_CUIL})",
         "Después, en el panel elegí «Firma con token»: el PIN se ingresa en la ventana del agente.",
+        "",
+        "Para firmar con un token físico (middleware del fabricante instalado y config.json del agente):",
+        f"  {env.pkcs11_agent_command}",
+        "  El PIN es el del token. El CUIL del firmante del panel debe ser el del certificado",
+        "  (lo muestra `python -m firmadoc_agent --config ... diagnose`): arrancá la demo con --cuil y --nombre.",
     ]
     if not env.widget_built:
         lines += [
@@ -211,6 +267,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--reset", action="store_true", help="borra data/demo y empieza de cero")
     parser.add_argument("--prepare-only", action="store_true", help="prepara el entorno y no arranca el servidor")
+    parser.add_argument("--cuil", help="CUIL del titular de un token físico (11 dígitos): el panel firma con él")
+    parser.add_argument("--nombre", help="nombre del titular del token físico, como figura en el certificado")
+    parser.add_argument("--email", help="correo del titular (por defecto <cuil>@invalid)")
     args = parser.parse_args(argv)
 
     # La consola de Windows (cp1252) no codifica todo (flechas, emoji en la ruta): se reemplaza en vez de fallar.
@@ -220,10 +279,11 @@ def main(argv: list[str] | None = None) -> int:
 
     directory = default_directory()
     try:
+        signer = PanelSigner.from_args(args.nombre, args.cuil, args.email)  # antes de tocar el disco
         check_not_real_mode()  # antes de borrar nada
         if args.reset:
             reset(directory)
-        env = prepare(directory, args.port)
+        env = prepare(directory, args.port, signer)
     except DemoError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1

@@ -1,12 +1,14 @@
-# Modo demostración (sin token USB)
+# Modo demostración
 
-Un solo comando prepara y arranca Firmadoc para probarlo sin token USB ni configuración manual:
+Un solo comando prepara y arranca Firmadoc para probarlo sin token USB ni configuración manual (y, si tenés un
+token físico con su middleware, también para firmar con él: ver más abajo):
 
 ```
 python -m firmadoc.demo            # desde la raíz del repositorio, con el entorno virtual activo
 python -m firmadoc.demo --port 8001
 python -m firmadoc.demo --reset    # borra data/demo y empieza de cero
 python -m firmadoc.demo --prepare-only   # prepara el entorno y no arranca el servidor
+python -m firmadoc.demo --cuil 20123456789 --nombre "Titular del Token"   # el panel firma como el titular de un token físico
 ```
 
 Al arrancar muestra la URL del panel, el token de acceso y la API key de demostración. Para firmar:
@@ -78,6 +80,50 @@ el PIN nunca pasa por el navegador. Chrome/Edge pueden pedir una vez permiso de 
 Todo esto es demostración: la clave privada vive en un archivo sin cifrar dentro de `data/demo/` y la AC no tiene
 valor legal. El `.exe` instalado por política de dominio sigue usando un módulo PKCS#11 real.
 
+## Firma con el token físico desde la demo
+
+La demo también sirve para firmar con un token criptográfico USB real. El servidor valida el certificado contra
+`backend/trust/`, que ya trae las anclas de la **AC Raíz de la República Argentina** y de la **AC de Firma Digital
+(ONTI)** (ver `backend/trust/README.md`); si tu certificado lo emitió otra AC, copiá su raíz e intermedia ahí
+antes de arrancar. Pasos, en la PC donde está el token:
+
+1. **Middleware del fabricante**, de 64 bits (el Python del agente es de 64 bits). Después de instalarlo, ubicá su
+   biblioteca PKCS#11 (una `.dll` en `C:\Windows\System32`; su nombre depende del fabricante).
+2. **Configuración del agente** en `%APPDATA%\FirmadocAgent\config.json`, con el origen exacto de la demo:
+   ```json
+   {
+     "port": 47123,
+     "allowed_origins": ["http://localhost:8000"],
+     "pkcs11_module": "C:\\Windows\\System32\\<biblioteca-del-fabricante>.dll",
+     "log_level": "INFO"
+   }
+   ```
+3. **Diagnóstico sin PIN** (solo lectura): lista el certificado del token y, en `serialNumber del sujeto`, el CUIL
+   que hay que pasarle a la demo:
+   ```
+   python -m firmadoc_agent --config "%APPDATA%\FirmadocAgent\config.json" diagnose
+   ```
+4. **Demo con el titular del token** como firmante del panel (el CUIL debe ser exactamente el del certificado; si
+   no coincide, la firma se rechaza con `cuil_mismatch`):
+   ```
+   python -m firmadoc.demo --cuil <CUIL del diagnose> --nombre "<Titular como figura en el certificado>"
+   ```
+   `--email` es opcional (por defecto `<cuil>@invalid`). El token de prueba se genera igual, así que el camino
+   anterior sigue disponible.
+5. **Agente con el módulo PKCS#11**, en otra terminal (la demo imprime el comando con su puerto):
+   ```
+   python -m firmadoc_agent --config "%APPDATA%\FirmadocAgent\config.json" run --origin http://localhost:8000
+   ```
+   No uses `--software-token`: con esa opción el agente firma con el certificado de prueba, no con el token.
+6. En el panel: cargá un PDF → **Firma con token** → elegí el certificado → el agente muestra el documento y pide
+   el **PIN del token** en su propia ventana (un intento; un PIN incorrecto cuenta contra el límite del token).
+   Chrome/Edge 142+ piden una vez permiso de «acceso a la red local» para llegar al agente en `127.0.0.1`.
+
+La validación de revocación corre en `soft-fail`: el servidor intenta descargar la CRL de la AC y, si la red no lo
+permite, sigue adelante marcando la revocación como no verificada. Si la descarga demora, arrancá la demo con
+`FIRMADOC_REVOCATION_FETCH=false` en el entorno.
+
 ## Fuera de la demo
 
-La firma con token real o simulada (agente con certificado de software) no forma parte de este comando.
+El modo real (`FIRMADOC_REAL_MODE=true`: PostgreSQL, revocación en `hard-fail`, sin datos de prueba) no forma parte
+de este comando: ver `docs/real-mode.md`.

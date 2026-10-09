@@ -152,6 +152,74 @@ def test_la_guia_muestra_el_comando_del_agente_y_el_pin(demo_dir):
     assert "firmadoc-agent run --software-token" in text
     assert "firmante.pem --origin http://localhost:8200" in text
     assert "PIN del token de prueba: 1234" in text
+    assert "Firmante del panel: Firmante de Prueba (CUIL 20000000001)" in text and "token de prueba" in text
+
+
+def test_la_guia_muestra_el_comando_del_agente_con_pkcs11_para_el_token_fisico(demo_dir):
+    env = demo.prepare(demo_dir, 8200)
+    text = demo.guide(env)
+    assert (
+        'python -m firmadoc_agent --config "%APPDATA%\\FirmadocAgent\\config.json" run --origin http://localhost:8200'
+        in text
+    )
+    assert "El PIN es el del token" in text and "--cuil y --nombre" in text
+
+
+def test_firmante_real_para_el_token_fisico(demo_dir):
+    signer = demo.PanelSigner.from_args("Titular del Token", "20-12345678-9", None)
+    env = demo.prepare(demo_dir, 8200, signer)
+    assert env.panel_signer == demo.PanelSigner("Titular del Token", "20123456789", "20123456789@invalid", real=True)
+    assert os.environ["FIRMADOC_PANEL_SIGNER_NAME"] == "Titular del Token"
+    assert os.environ["FIRMADOC_PANEL_SIGNER_IDENTIFIER"] == "20123456789"
+    assert os.environ["FIRMADOC_PANEL_SIGNER_EMAIL"] == "20123456789@invalid"
+    text = demo.guide(env)
+    assert "Firmante del panel: Titular del Token (CUIL 20123456789) — token físico" in text
+    # el token de prueba y su AC se generan igual: el camino con token de software no cambia
+    assert (demo_dir / "token" / "firmante.pem").is_file() and (demo_dir / "trust" / "demo-ca.crt").is_file()
+    assert "firmadoc-agent run --software-token" in text
+
+
+def test_firmante_real_con_correo_propio():
+    signer = demo.PanelSigner.from_args("Titular", "20123456789", "titular@example.org")
+    assert signer == demo.PanelSigner("Titular", "20123456789", "titular@example.org", real=True)
+
+
+def test_sin_parametros_el_firmante_es_el_del_token_de_prueba(demo_dir):
+    assert demo.PanelSigner.from_args(None, None, None) is None
+    env = demo.prepare(demo_dir, 8200)
+    assert env.signer is None and env.panel_signer.real is False
+    assert os.environ["FIRMADOC_PANEL_SIGNER_IDENTIFIER"] == "20000000001"
+
+
+@pytest.mark.parametrize(
+    ("nombre", "cuil", "email", "falta"),
+    [
+        ("Titular", None, None, "--cuil"),
+        (None, "20123456789", None, "--nombre"),
+        ("  ", "20123456789", None, "--nombre"),
+        ("Titular", "2012345678", None, "11 dígitos"),
+        ("Titular", "20-12345678-9X", None, "11 dígitos"),
+        (None, None, "x@example.org", "--email"),
+    ],
+)
+def test_parametros_del_firmante_incompletos_o_invalidos(nombre, cuil, email, falta):
+    with pytest.raises(demo.DemoError, match=falta):
+        demo.PanelSigner.from_args(nombre, cuil, email)
+
+
+def test_main_rechaza_un_firmante_invalido_sin_crear_nada(demo_dir, monkeypatch, capsys):
+    monkeypatch.setattr(demo, "default_directory", lambda: demo_dir)
+    assert demo.main(["--prepare-only", "--cuil", "123"]) == 1
+    err = capsys.readouterr().err
+    assert "--nombre" in err or "11 dígitos" in err
+    assert not demo_dir.exists()
+
+
+def test_main_con_cuil_y_nombre_configura_el_firmante_real(demo_dir, monkeypatch, capsys):
+    monkeypatch.setattr(demo, "default_directory", lambda: demo_dir)
+    assert demo.main(["--prepare-only", "--port", "8322", "--cuil", "20123456789", "--nombre", "Titular"]) == 0
+    assert "Firmante del panel: Titular (CUIL 20123456789)" in capsys.readouterr().out
+    assert os.environ["FIRMADOC_PANEL_SIGNER_IDENTIFIER"] == "20123456789"
 
 
 def test_la_guia_muestra_el_panel_angular(demo_dir, monkeypatch, tmp_path):

@@ -71,8 +71,10 @@ Cada valor numerado (`1`, `2`, …) es una URL, por ejemplo `https://firmadoc.ex
 ## Diagnóstico
 
 ```powershell
-firmadoc-agent.exe diagnose          # o: python agent\diagnostico.py
+firmadoc-agent.exe diagnose          # o: python -m firmadoc_agent --config "$env:APPDATA\FirmadocAgent\config.json" diagnose
 ```
+
+`--config` (y `--version`) van **antes** del subcomando (`run` / `diagnose`); `--origin` y `--port` van después.
 
 Verifica que la biblioteca PKCS#11 cargue, lista los slots, los tokens y los certificados (sujeto, emisor, serie, vigencia, uso de clave y el atributo `serialNumber` del sujeto, que es donde el servidor espera el CUIL). **No pide el PIN ni abre sesión.** Códigos de salida: `0` correcto, `1` la biblioteca no carga, `2` no hay token.
 
@@ -106,13 +108,16 @@ el navegador ni en el widget.
 
 ## Prueba manual con un token físico
 
-Pendiente de ejecutar con el dispositivo (el proyecto prevé un token criptográfico USB de referencia). Procedimiento:
+Estado (octubre de 2026, token criptográfico USB de referencia): los pasos 1 y 2 están **ejecutados**: la
+biblioteca del fabricante (64 bits) carga, `diagnose` lista el certificado de usuario emitido por la AC de Firma
+Digital de la ONTI y el `serialNumber` trae el CUIL como `CUIL nnnnnnnnnnn`, el formato que espera el servidor. Las
+anclas de esa AC ya están en `backend/trust/`. Los pasos 3 a 6 requieren el PIN del titular y quedan pendientes.
 
 1. Instalar el middleware del fabricante y ubicar su DLL PKCS#11.
-2. `firmadoc-agent.exe --config <config.json> diagnose`: debe cargar la biblioteca y listar el certificado de usuario. **Anotar el valor de `serialNumber`**: confirma si el CUIL tiene el formato `CUIL 20123456789` que espera el servidor (pregunta abierta del diseño) y qué AC emitió el certificado (para cargar las anclas en `backend/trust/`).
+2. `firmadoc-agent.exe --config <config.json> diagnose` (o `python -m firmadoc_agent --config <config.json> diagnose`): debe cargar la biblioteca y listar el certificado de usuario. **Anotar el valor de `serialNumber`**: confirma si el CUIL tiene el formato `CUIL 20123456789` que espera el servidor y qué AC emitió el certificado (para cargar las anclas en `backend/trust/` si no están).
 3. `python agent\scripts\manual_token_test.py --module <DLL>`: pide el PIN **una sola vez**, firma un lote de 3 hashes con un único login y verifica cada firma con la clave pública del certificado. Un PIN erróneo cuenta como un intento contra el límite del token; el script no reintenta.
 4. Resultado esperado: `RESULTADO: CORRECTO`. Si el token no acepta `CKM_RSA_PKCS` con el `DigestInfo` de SHA-256, hay que revisar el contrato (`docs/agent-contract.md`) antes de seguir.
-5. Prueba de punta a punta: con el servidor configurado (anclas de la AC del token cargadas) y el agente instalado, firmar un documento desde el widget y verificar el PDF resultante.
+5. Prueba de punta a punta: con el servidor configurado (anclas de la AC del token cargadas) y el agente instalado, firmar un documento desde el widget y verificar el PDF resultante. El camino más corto es la demo con el titular del token como firmante (`docs/demo.md`, «Firma con el token físico desde la demo»).
 6. Probar el diálogo con `python agent\scripts\try_dialog.py` (nombres largos, varios documentos, `--ultimo-intento`).
 
 ## Desarrollo

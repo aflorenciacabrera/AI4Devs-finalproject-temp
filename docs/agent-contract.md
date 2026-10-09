@@ -131,4 +131,4 @@ Si queda un único intento antes del bloqueo, el diálogo lo advierte antes de p
 - Escuchar solo en `127.0.0.1` y aceptar únicamente pedidos de los orígenes permitidos (**cumplido**, `agent-local-api`).
 - Un único ingreso de PIN por lote, sin reintentos automáticos (**cumplido**, `agent-token-signing`).
 - Confirmar con el usuario, mostrando el nombre del documento, antes de pedir el PIN (**cumplido**).
-- Probado con SoftHSM (código PKCS#11) y de punta a punta contra el servidor con una PKI de prueba. **Pendiente:** confirmar con un token físico que acepta `CKM_RSA_PKCS` con `DigestInfo` (procedimiento en `agent/README.md`).
+- Probado con SoftHSM (código PKCS#11) y de punta a punta contra el servidor con una PKI de prueba. Con el token físico de referencia (octubre de 2026): la biblioteca del fabricante carga y `diagnose` lista el certificado de la AC ONTI con el CUIL en el formato esperado. **Pendiente:** confirmar con ese token, con el PIN del titular, que acepta `CKM_RSA_PKCS` con `DigestInfo` (procedimiento en `agent/README.md`).
