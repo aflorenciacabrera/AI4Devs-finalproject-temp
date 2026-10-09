@@ -14,7 +14,7 @@ Este documento fija lo que el **agente local** (`agent/`, FIRDOC-21) y el **serv
 1. El widget pide al agente `GET /certificates` y el usuario elige un certificado.
 2. El widget envía el certificado elegido al servidor: `POST /api/v1/signature-requests/{id}/prepare` con `{"certificate_pem": "<PEM>"}`.
 3. El servidor valida el certificado (cadena, vigencia, revocación, CUIL) y, si es válido, responde con los desafíos: `challenge_id`, `document_name`, `hash_algorithm: "SHA-256"` y `hash_to_sign` (base64 de 32 bytes). Si no es válido responde `403`/`422` con `code` **antes de que se pida el PIN**.
-4. El widget envía al agente `POST /sign` con los hashes y los nombres de los documentos. El agente muestra el diálogo de confirmación con el nombre del documento, pide el PIN **una vez** y firma.
+4. El widget envía al agente `POST /sign` con los hashes y los nombres de los documentos. El agente muestra el diálogo de PIN con el nombre del titular del certificado (los nombres de los documentos quedan en su registro de actividad), pide el PIN **una vez** y firma.
 5. El widget reenvía las firmas al servidor: `POST /api/v1/signature-requests/{id}/complete` con `{"signatures": [{"challenge_id", "signature_base64"}]}`.
 
 ## Formato de la firma
@@ -130,5 +130,5 @@ Si queda un único intento antes del bloqueo, el diálogo lo advierte antes de p
 
 - Escuchar solo en `127.0.0.1` y aceptar únicamente pedidos de los orígenes permitidos (**cumplido**, `agent-local-api`).
 - Un único ingreso de PIN por lote, sin reintentos automáticos (**cumplido**, `agent-token-signing`).
-- Confirmar con el usuario, mostrando el nombre del documento, antes de pedir el PIN (**cumplido**).
+- Confirmar con el usuario antes de pedir el PIN, en una ventana que muestra solo el nombre del titular y el campo de PIN; los documentos se ven en el widget y quedan en el registro del agente (**cumplido**, FIRDOC-51).
 - Probado con SoftHSM (código PKCS#11) y de punta a punta contra el servidor con una PKI de prueba. Con el token físico de referencia (octubre de 2026): la biblioteca del fabricante carga y `diagnose` lista el certificado de la AC ONTI con el CUIL en el formato esperado. **Pendiente:** confirmar con ese token, con el PIN del titular, que acepta `CKM_RSA_PKCS` con `DigestInfo` (procedimiento en `agent/README.md`).

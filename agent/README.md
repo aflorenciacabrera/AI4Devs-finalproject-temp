@@ -102,9 +102,10 @@ existe. El modo demostración del servidor (`python -m firmadoc.demo`) genera es
 (`docs/demo.md`). El registro de actividad marca el arranque como «TOKEN DE SOFTWARE»; `install.ps1` no usa esta
 opción y el ejecutable instalado sigue exigiendo PKCS#11.
 
-La ventana de confirmación muestra el titular del certificado, el CUIL, el o los documentos y el campo de PIN;
-aparece centrada y por encima de las demás ventanas (incluido el navegador). El PIN se ingresa solo ahí: nunca en
-el navegador ni en el widget.
+La ventana de confirmación muestra solo el nombre del titular del certificado y el campo de PIN (más la
+advertencia de último intento cuando corresponde); aparece centrada y por encima de las demás ventanas (incluido
+el navegador). Los documentos a firmar se ven en el widget antes de llamar al agente y sus nombres quedan en el
+registro de actividad del agente. El PIN se ingresa solo ahí: nunca en el navegador ni en el widget.
 
 ## Prueba manual con un token físico
 

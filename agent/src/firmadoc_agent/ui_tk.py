@@ -42,7 +42,7 @@ def center_on_screen(window: tk.Toplevel) -> None:
 
 
 class PinDialog:
-    """Ventana mínima: titular del certificado, documento(s) a firmar y PIN; centrada y al frente."""
+    """Ventana mínima: nombre del titular del certificado y PIN; centrada y al frente."""
 
     def __init__(self, root: tk.Tk, prompt: SignPrompt, timeout: float, visible: bool = True):
         self.result: str | None = None
@@ -55,23 +55,12 @@ class PinDialog:
 
         frame = ttk.Frame(top, padding=(28, 22, 28, 20))
         frame.grid()
-        owner, cuil = subject_parts(prompt.certificate_subject)
+        # Solo el nombre del firmante y el PIN (FIRDOC-51): el CUIL, el sujeto completo y los documentos
+        # no se muestran; los nombres de los documentos quedan en el registro de actividad del agente.
+        owner, _cuil = subject_parts(prompt.certificate_subject)
         self.owner = owner
         ttk.Label(frame, text="Firmar con el certificado de", foreground="#5b6573").grid(sticky="w")
         ttk.Label(frame, text=owner, font=("Segoe UI", 15, "bold"), wraplength=420).grid(sticky="w", pady=(2, 0))
-        if cuil:
-            ttk.Label(frame, text=f"CUIL {cuil}", foreground="#5b6573").grid(sticky="w")
-        ttk.Label(frame, text=prompt.certificate_subject, foreground="#8a94a3", font=("Segoe UI", 8), wraplength=420).grid(
-            sticky="w", pady=(2, 0)
-        )
-
-        count = len(prompt.document_names)
-        title = "Va a firmar 1 documento" if count == 1 else f"Va a firmar {count} documentos"
-        ttk.Label(frame, text=title, font=("Segoe UI", 10, "bold")).grid(sticky="w", pady=(14, 2))
-        names = tk.Listbox(frame, height=min(max(count, 1), 4), width=52, activestyle="none", relief="flat")
-        for name in prompt.document_names:
-            names.insert("end", f"{BULLET} {name}")
-        names.grid(sticky="we")
 
         if prompt.last_try_warning:
             ttk.Label(

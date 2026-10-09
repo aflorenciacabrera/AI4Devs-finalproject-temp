@@ -37,24 +37,32 @@ def labels(dialog):
     return "\n".join(out)
 
 
-def test_muestra_nombres_y_certificado(root):
+def test_solo_muestra_el_nombre_del_firmante_y_el_pin(root):
+    """FIRDOC-51: ni documentos, ni cantidad, ni CUIL, ni sujeto completo."""
     d = PinDialog(root, PROMPT, timeout=5, visible=False)
     text = labels(d)
-    assert "a.pdf" in text and "b.pdf" in text
-    assert "Va a firmar 2 documentos" in text
-    assert "CN=Juan Perez" in text
+    assert "Juan Perez" in text and "PIN del token" in text
+    assert "a.pdf" not in text and "b.pdf" not in text
+    assert "Va a firmar" not in text and "documento" not in text.lower()
+    assert "CN=Juan Perez" not in text
     assert "último intento" not in text.lower()
     d.cancel()
 
 
-def test_titular_y_cuil_destacados(root):
+def test_titular_destacado_sin_cuil_ni_sujeto(root):
     prompt = SignPrompt(["a.pdf"], "CN=Juan Perez,serialNumber=CUIL 20111111112,C=AR")
     d = PinDialog(root, prompt, timeout=5, visible=False)
     text = labels(d)
     assert d.owner == "Juan Perez"
-    assert "Juan Perez" in text and "CUIL 20-11111111-2" in text
-    assert "Va a firmar 1 documento" in text
+    assert "Juan Perez" in text
+    assert "CUIL" not in text and "serialNumber" not in text and "C=AR" not in text
     assert d.top.title() == "Firmadoc"
+    d.cancel()
+
+
+def test_sin_cn_muestra_el_sujeto_como_nombre(root):
+    d = PinDialog(root, SignPrompt(["a.pdf"], "O=Sin nombre"), timeout=5, visible=False)
+    assert "O=Sin nombre" in labels(d)
     d.cancel()
 
 

@@ -622,7 +622,7 @@ Criterios de aceptación:
 
 Criterios de aceptación:
 - **Dado** un firmante con el agente instalado y su token conectado, **cuando** abre la `signing_url` y elige su certificado, **entonces** Firmadoc valida la cadena de confianza, la vigencia, la revocación y que el CUIL del certificado coincida con el del firmante, y si algo falla lo informa **antes** de pedir el PIN.
-- **Dado** un certificado válido, **cuando** el firmante confirma en el diálogo del agente (que muestra el nombre del documento) e ingresa el PIN, **entonces** el agente firma solo el hash recibido y el servidor incrusta la firma PAdES; el PDF nunca viaja a la PC ni la clave sale del token.
+- **Dado** un certificado válido, **cuando** el firmante confirma en el diálogo del agente (que muestra el nombre del titular del certificado; los documentos se ven en el widget) e ingresa el PIN, **entonces** el agente firma solo el hash recibido y el servidor incrusta la firma PAdES; el PDF nunca viaja a la PC ni la clave sale del token.
 - **Dado** un hash firmado que no corresponde a un desafío vigente (vencido, ya usado o de otra sesión), **cuando** se intenta completar la firma, **entonces** se rechaza con `409`.
 - **Dado** una firma completada, **cuando** el servidor la valida, **entonces** se crea una nueva `DocumentVersion` (`origin: signed`) marcada como vigente, la versión anterior **no se modifica ni se elimina**, y el documento queda descargable inmediatamente (`download_url` o `signed_document_base64`).
 - **Dado** un PDF que ya tiene la firma de otra persona, **cuando** un segundo funcionario lo firma, **entonces** su firma se agrega como actualización incremental y la anterior sigue siendo válida.
