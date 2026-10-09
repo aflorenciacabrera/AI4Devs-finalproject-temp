@@ -1,6 +1,5 @@
 """Casos de uso del widget para lotes: contexto, elección de método, descarga de los firmados y reintento."""
 
-import re
 import tempfile
 import uuid
 from datetime import UTC, datetime
@@ -9,6 +8,7 @@ from typing import IO
 from sqlalchemy import select
 
 from ..errors import Conflict, Unprocessable
+from ..filenames import unique_name
 from ..models import (
     AuditEvent,
     Document,
@@ -108,10 +108,6 @@ def select_provider(ctx: Ctx, batch: SignatureBatch, provider: Provider) -> None
     ctx.db.commit()
 
 
-def _safe_name(name: str) -> str:
-    return re.sub(r"[^A-Za-z0-9._-]", "_", name) or "documento"
-
-
 def signed_zip(ctx: Ctx, batch: SignatureBatch) -> tuple[IO[bytes], int]:
     """ZIP con el PDF vigente de cada documento firmado del lote. Devuelve el archivo (posicionado al inicio) y su tamaño."""
     import zipfile
@@ -129,13 +125,8 @@ def signed_zip(ctx: Ctx, batch: SignatureBatch) -> tuple[IO[bytes], int]:
     with zipfile.ZipFile(spool, "w", zipfile.ZIP_STORED) as archive:
         for request, version in signed:
             document = ctx.db.get(Document, request.document_id)
-            base = _safe_name(flow.document_name(document).removesuffix(".pdf"))
-            name = f"{base}-v{version.version_number}.pdf"
-            n = 2
-            while name in used:
-                name = f"{base}-v{version.version_number}-{n}.pdf"
-                n += 1
-            used.add(name)
+            # Cada PDF con su nombre original; si dos se llaman igual, el segundo lleva «-2», «-3»…
+            name = unique_name(flow.document_name(document), used)
             archive.writestr(name, ctx.storage.read(version.storage_ref))
     size = spool.tell()
     spool.seek(0)

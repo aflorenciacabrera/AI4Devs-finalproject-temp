@@ -2,9 +2,27 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { MessageService } from 'primeng/api';
-import { API, AdminApi, DENIED, UNAUTHORIZED, isUnauthorized } from './admin-api';
+import { API, AdminApi, DENIED, UNAUTHORIZED, filenameFrom, isUnauthorized } from './admin-api';
 
 const TOKEN = 't0ken-de-administracion-' + 'x'.repeat(20);
+
+describe('filenameFrom', () => {
+  it('prefiere el nombre exacto de filename* (UTF-8) al fallback ASCII', () => {
+    const header = `attachment; filename="Resolucion 450 (nueva).pdf"; filename*=UTF-8''Resoluci%C3%B3n%20450%20%28nueva%29.pdf`;
+    expect(filenameFrom(header)).toBe('Resolución 450 (nueva).pdf');
+  });
+
+  it('usa filename cuando no hay filename*', () => {
+    expect(filenameFrom('attachment; filename="acta.pdf"')).toBe('acta.pdf');
+    expect(filenameFrom('attachment; filename=acta.pdf')).toBe('acta.pdf');
+  });
+
+  it('cae al fallback si filename* está mal codificado y devuelve null sin cabecera', () => {
+    expect(filenameFrom(`attachment; filename="acta.pdf"; filename*=UTF-8''%E0%A4%A`)).toBe('acta.pdf');
+    expect(filenameFrom(null)).toBeNull();
+    expect(filenameFrom('inline')).toBeNull();
+  });
+});
 
 describe('AdminApi', () => {
   let api: AdminApi;

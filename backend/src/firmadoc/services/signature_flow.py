@@ -93,9 +93,10 @@ def _blob_ref(document_id: uuid.UUID, number: int, version_id: uuid.UUID) -> str
 
 
 def document_name(document: Document) -> str:
-    base = document.external_document_id or str(document.id)
-    safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in base)
-    return f"{safe}.pdf"
+    """El nombre original del archivo (con `.pdf`): se muestra en el widget y es el de la descarga."""
+    from ..filenames import download_name
+
+    return download_name(document.external_document_id, document.id)
 
 
 def document_stats(ctx: Ctx, document: Document) -> tuple[int | None, int | None]:

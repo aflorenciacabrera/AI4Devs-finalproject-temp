@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 from .. import signing_token
 from ..config import Settings
 from ..errors import NotFound
-from ..models import IntegratingSystem, SignatureRequest
+from ..filenames import attachment_headers
+from ..models import Document, IntegratingSystem, SignatureRequest
 from ..services import signature_flow as flow
 from ..services import widget as widget_service
 from ..services.signature_flow import Ctx
@@ -93,12 +94,10 @@ def complete(
 
 @router.get("/requests/{request_id}/download")
 def download(request_id: uuid.UUID, auth: WidgetAuth = Depends(widget_auth)):
-    data, number = widget_service.signed_pdf(auth.ctx, auth.request)
+    data, _number = widget_service.signed_pdf(auth.ctx, auth.request)
+    document = auth.ctx.db.get(Document, auth.request.document_id)
     return Response(
         content=data,
         media_type="application/pdf",
-        headers={
-            "Content-Disposition": f'attachment; filename="documento-firmado-v{number}.pdf"',
-            "Cache-Control": "no-store",
-        },
+        headers=attachment_headers(flow.document_name(document)),  # el nombre original del archivo
     )

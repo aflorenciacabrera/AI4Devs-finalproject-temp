@@ -398,9 +398,10 @@ def version_download(db: Session, storage, document_id: uuid.UUID, number: int) 
     )
     if document is None or version is None:
         raise NotFound("versión inexistente")
-    base = document.external_document_id or str(document.id)
-    safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in base)
-    return storage.read(version.storage_ref), f"{safe}-v{number}.pdf"
+    from ..filenames import download_name
+
+    # Todas las versiones se descargan con el nombre original del archivo (FIRDOC-53).
+    return storage.read(version.storage_ref), download_name(document.external_document_id, document.id)
 
 
 # --- webhooks ---------------------------------------------------------------------------------------

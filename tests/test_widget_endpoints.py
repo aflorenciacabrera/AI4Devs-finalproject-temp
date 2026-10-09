@@ -155,6 +155,21 @@ def test_certificado_revocado_mismo_codigo_que_la_api_de_integracion(client, ano
     assert (r.status_code, r.json()["code"]) == (422, "certificate_revoked")
 
 
+def test_la_descarga_del_widget_lleva_el_nombre_original_del_archivo(client, anon):
+    """FIRDOC-53: el PDF se descarga como se cargó (acentos, espacios y paréntesis incluidos), sin sufijo."""
+    rid, token = new_request(client, external_document_id="Resolución 450 (nueva)")
+    h = {**bearer(token), "X-Session-Ref": "s1"}
+    assert anon.get(f"{WIDGET}/{rid}", headers=h).json()["document_name"] == "Resolución 450 (nueva).pdf"
+    assert anon.post(f"{WIDGET}/{rid}/prepare", json={}, headers=h).status_code == 200
+    assert anon.post(f"{WIDGET}/{rid}/complete", json={"signatures": []}, headers=h).status_code == 200
+    d = anon.get(f"{WIDGET}/{rid}/download", headers=bearer(token))
+    assert d.status_code == 200
+    disposition = d.headers["content-disposition"]
+    assert 'filename="Resolucion 450 (nueva).pdf"' in disposition  # fallback ASCII
+    assert "filename*=UTF-8''Resoluci%C3%B3n%20450%20%28nueva%29.pdf" in disposition  # el nombre exacto
+    assert "-v2" not in disposition and "documento-firmado" not in disposition
+
+
 def test_cuil_distinto_firma_por_defecto(client, anon, token_env, pki):
     """Sin FIRMADOC_REQUIRE_CUIL_MATCH basta un certificado válido: el PIN del token es el único factor."""
     rid, token = new_request(client, provider="token")

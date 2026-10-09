@@ -216,7 +216,22 @@ def test_flujo_local_completo_y_zip(client, anon):
     assert r.status_code == 200 and r.headers["content-type"] == "application/zip"
     assert r.headers["cache-control"] == "no-store"
     names = zipfile.ZipFile(io.BytesIO(r.content)).namelist()
-    assert len(names) == 3 and len(set(names)) == 3 and all(n.endswith("-v2.pdf") for n in names)
+    assert len(names) == 3 and len(set(names)) == 3 and all(n.endswith(".pdf") for n in names)
+    assert not any("-v2" in n for n in names)  # nombres originales, sin sufijo de version
+
+
+def test_el_zip_usa_los_nombres_originales_y_numera_los_repetidos(client, anon):
+    """FIRDOC-53: cada PDF con el nombre con que se cargo; dos iguales se distinguen con -2."""
+    documents = [
+        {"document_base64": b64(make_pdf()), "external_document_id": "acta"},
+        {"document_base64": b64(make_pdf()), "external_document_id": "acta"},
+        {"document_base64": b64(make_pdf()), "external_document_id": "anexo.pdf"},
+    ]
+    body, token = new_batch(client, documents=documents)
+    sign_local_batch(anon, body, token)
+    r = anon.get(f"{WIDGET}/{body['id']}/download", headers=bearer(token))
+    assert r.status_code == 200
+    assert sorted(zipfile.ZipFile(io.BytesIO(r.content)).namelist()) == ["acta-2.pdf", "acta.pdf", "anexo.pdf"]
 
 
 def test_descarga_sin_firmados(client, anon):

@@ -2,6 +2,8 @@ import uuid
 
 from fastapi import APIRouter, Depends, Response
 
+from ..filenames import attachment_headers
+from ..models import Document
 from ..services import documents as docs
 from ..services import signature_batch as batches
 from ..services import signature_flow as flow
@@ -68,11 +70,12 @@ def get_signature_request(request_id: uuid.UUID, ctx: Ctx = Depends(get_ctx)):
 
 @router.get("/documents/{document_id}/versions/{number}/download")
 def download_version(document_id: uuid.UUID, number: int, ctx: Ctx = Depends(get_ctx)):
-    data = flow.get_version_bytes(ctx, document_id, number)
+    data = flow.get_version_bytes(ctx, document_id, number)  # verifica que el documento sea del integrador
+    document = ctx.db.get(Document, document_id)
     return Response(
         content=data,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="documento-v{number}.pdf"'},
+        headers=attachment_headers(flow.document_name(document)),  # el nombre original del archivo
     )
 
 

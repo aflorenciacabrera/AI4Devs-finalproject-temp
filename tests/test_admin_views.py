@@ -224,7 +224,9 @@ def test_descargar_la_v1_original_y_la_v2_firmada(client, admin):
     assert v1.content == pdf
     assert len(PdfFileReader(io.BytesIO(v1.content)).embedded_signatures) == 0
     assert len(PdfFileReader(io.BytesIO(v2.content)).embedded_signatures) == 1
-    assert "-v1.pdf" in v1.headers["content-disposition"] and "-v2.pdf" in v2.headers["content-disposition"]
+    # todas las versiones se descargan con el nombre original del archivo (FIRDOC-53)
+    assert v1.headers["content-disposition"] == v2.headers["content-disposition"]
+    assert "-v1" not in v1.headers["content-disposition"] and "-v2" not in v2.headers["content-disposition"]
 
 
 def test_descarga_inexistente_o_sin_credenciales(client, admin):

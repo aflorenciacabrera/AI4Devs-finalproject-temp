@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..config import Settings
+from ..filenames import attachment_headers
 from ..models import DeliveryStatus, Provider, RequestStatus
 from ..services import admin, integrator_admin, panel_upload
 from ..storage import DocumentStorage
@@ -74,11 +75,7 @@ def download_version(
     storage: DocumentStorage = Depends(get_storage),
 ):
     data, filename = admin.version_download(db, storage, document_id, number)
-    return Response(
-        data,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"', "Cache-Control": "no-store"},
-    )
+    return Response(data, media_type="application/pdf", headers=attachment_headers(filename))
 
 
 @router.get("/webhook-deliveries")

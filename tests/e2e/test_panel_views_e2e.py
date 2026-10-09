@@ -128,7 +128,7 @@ def test_el_detalle_muestra_la_historia_las_versiones_y_descarga_la_v1(live, pag
     path = tmp_path / "v1.pdf"
     download.value.save_as(path)
     assert path.read_bytes().startswith(b"%PDF-") and b"/ByteRange" not in path.read_bytes()
-    assert "-v1.pdf" in download.value.suggested_filename
+    assert download.value.suggested_filename.endswith(".pdf") and "-v1" not in download.value.suggested_filename
 
     page.get_by_role("button", name="← Volver a Documentos").click()
     page.wait_for_selector("#requests-table table")

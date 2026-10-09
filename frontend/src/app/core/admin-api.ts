@@ -21,6 +21,24 @@ export function isUnauthorized(error: unknown): boolean {
   return error instanceof ApiError && error.status === 401;
 }
 
+/**
+ * Nombre de archivo de una cabecera `Content-Disposition`: primero `filename*` (UTF-8, el nombre exacto,
+ * con acentos), si no `filename` (el fallback ASCII). `null` si no hay cabecera o no se puede leer.
+ */
+export function filenameFrom(disposition: string | null): string | null {
+  if (!disposition) return null;
+  const exact = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+  if (exact) {
+    try {
+      return decodeURIComponent(exact[1].trim());
+    } catch {
+      /* mal codificado: se usa el fallback */
+    }
+  }
+  const plain = /filename="?([^";]+)"?/i.exec(disposition);
+  return plain ? plain[1] : null;
+}
+
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -93,14 +111,13 @@ export class AdminApi {
     }
   }
 
-  /** Descarga un archivo (PDF de una versión) con el token en la cabecera. */
+  /** Descarga un archivo (PDF de una versión) con el token en la cabecera; conserva el nombre original. */
   async download(path: string): Promise<{ blob: Blob; filename: string | null }> {
     try {
       const response = await firstValueFrom(
         this.http.get(API + path, { headers: this.headers(), observe: 'response', responseType: 'blob' }),
       );
-      const match = /filename="?([^";]+)"?/i.exec(response.headers.get('content-disposition') ?? '');
-      return { blob: response.body ?? new Blob(), filename: match ? match[1] : null };
+      return { blob: response.body ?? new Blob(), filename: filenameFrom(response.headers.get('content-disposition')) };
     } catch (error) {
       throw this.translate(error);
     }

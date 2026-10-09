@@ -105,7 +105,7 @@ def test_exito_parcial_zip_y_reintento(live, page, pki, tmp_path):
     path = tmp_path / "firmados.zip"
     download.value.save_as(path)
     names = zipfile.ZipFile(io.BytesIO(path.read_bytes())).namelist()
-    assert len(names) == 2 and all(n.endswith("-v2.pdf") for n in names)
+    assert len(names) == 2 and all(n.endswith(".pdf") and "-v2" not in n for n in names)
 
     # reintentar: el widget pasa a otro lote que solo tiene el documento fallido
     agent.backend.sign = type(agent.backend).sign.__get__(agent.backend)  # firma bien esta vez
