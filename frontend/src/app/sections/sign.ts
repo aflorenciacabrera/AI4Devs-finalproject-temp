@@ -1,9 +1,11 @@
-import { Component, ElementRef, HostListener, Injector, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, Injector, afterNextRender, inject, signal, viewChild } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Button } from 'primeng/button';
+import { Card } from 'primeng/card';
 import { FileUpload } from 'primeng/fileupload';
 import { Message } from 'primeng/message';
-import { FileSelectEvent } from 'primeng/types/fileupload';
+import { Tag } from 'primeng/tag';
+import { Timeline } from 'primeng/timeline';
 import { AdminApi } from '../core/admin-api';
 import { BatchDocument, SigningBatchUpload, SigningUpload } from '../core/api-types';
 import { MAX_PDF_BYTES, SizePipe, formatSize, isPdf, pagesLabel } from '../core/format';
@@ -21,6 +23,27 @@ export interface SignResult {
   text: string;
   severity: 'success' | 'error';
 }
+
+export interface Step {
+  icon: string;
+  title: string;
+  text: string;
+}
+
+export const STEPS: Step[] = [
+  { icon: 'pi pi-upload', title: 'Cargá el PDF', text: 'Queda guardado como versión original (v1).' },
+  { icon: 'pi pi-sliders-h', title: 'Elegí el método de firma', text: 'Con token, remota o propia (demostración).' },
+  {
+    icon: 'pi pi-key',
+    title: 'Elegí el certificado y confirmá con el PIN',
+    text: 'El PIN se ingresa en tu PC, en Firmadoc Agent.',
+  },
+  {
+    icon: 'pi pi-download',
+    title: 'Descargá el documento firmado',
+    text: 'Queda como nueva versión vigente; el original se conserva.',
+  },
+];
 
 interface WidgetMessage {
   source?: unknown;
@@ -40,12 +63,13 @@ function readBase64(file: File): Promise<string> {
 }
 
 /**
- * Carga de uno o varios PDF y widget de firma embebido. Es el ejemplo de referencia de cómo una aplicación
- * Angular integra el widget: iframe con `sandbox`/`allow`/`referrerpolicy` y mensajes validados por ventana y origen.
+ * Carga de uno o varios PDF (p-fileupload con plantillas propias) y widget de firma embebido. Es el ejemplo de
+ * referencia de cómo una aplicación Angular integra el widget: iframe con `sandbox`/`allow`/`referrerpolicy` y
+ * mensajes validados por ventana y origen.
  */
 @Component({
   selector: 'app-sign',
-  imports: [FileUpload, Button, Message, SizePipe],
+  imports: [FileUpload, Button, Card, Tag, Timeline, Message, SizePipe],
   templateUrl: './sign.html',
 })
 export class Sign {
@@ -57,26 +81,20 @@ export class Sign {
   readonly frame = viewChild<ElementRef<HTMLIFrameElement>>('frame');
 
   readonly maxBytes = MAX_PDF_BYTES;
-  readonly count = signal(0);
+  readonly steps = STEPS;
   readonly uploading = signal(false);
   readonly ready = signal<Ready | null>(null);
   readonly result = signal<SignResult | null>(null);
-  readonly uploadLabel = computed(() =>
-    this.count() > 1 ? `Cargar y firmar ${this.count()} documentos` : 'Cargar y firmar documento',
-  );
 
   pages = pagesLabel;
 
-  onSelect(event: FileSelectEvent): void {
-    this.count.set(event.currentFiles.length);
+  uploadLabel(count: number): string {
+    return count > 1 ? `Cargar y firmar ${count} documentos` : 'Cargar y firmar documento';
   }
 
-  onRemove(): void {
-    this.count.update((n) => Math.max(0, n - 1));
-  }
-
-  onClear(): void {
-    this.count.set(0);
+  summary(files: File[]): string {
+    const total = files.reduce((sum, f) => sum + f.size, 0);
+    return `${files.length} ${files.length === 1 ? 'archivo' : 'archivos'} · ${formatSize(total)}`;
   }
 
   /** Valida en el navegador y envía uno (carga individual) o varios (lote) PDF. */
@@ -104,7 +122,6 @@ export class Sign {
         this.show(`${data.documents.length} documentos`, 'Firma en lote: un solo PIN para todos', data.signing_url, data.documents);
       }
       this.uploader()?.clear();
-      this.count.set(0);
     } catch (error) {
       this.api.fail(error, 'No se pudo cargar');
     } finally {

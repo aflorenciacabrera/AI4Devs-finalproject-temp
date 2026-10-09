@@ -213,68 +213,184 @@ textarea.pem {
     grid-template-columns: 1fr;
   }
 }
-.sign-help {
-  background: var(--p-content-background);
-  border: 1px solid var(--p-content-border-color);
-  border-radius: 10px;
-  padding: 4px 18px 8px;
+/* Pasos «Cómo se firma» (p-card + p-timeline) */
+.sign-help .p-card-title {
+  font-size: 15px;
 }
-.sign-help h3 {
-  margin: 14px 0 0;
+.sign-help .p-card-body {
+  padding-bottom: 4px;
 }
-.steps {
-  padding-left: 20px;
-  margin: 12px 0;
+.steps-timeline .p-timeline-event-opposite {
+  display: none;
 }
-.steps li {
-  margin-bottom: 8px;
+.steps-timeline .p-timeline-event-content {
+  padding-bottom: 14px;
 }
-.steps strong {
+.step-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+  font-size: 0.9rem;
+  box-shadow: 0 0 0 4px var(--p-content-background);
+}
+.step-text {
+  margin: 2px 0 0;
+}
+
+/* Carga de documentos (p-fileupload con plantillas propias) */
+.upload.p-fileupload {
+  border-radius: 12px;
+}
+.upload .p-fileupload-header {
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.upload-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.upload-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.upload .p-fileupload-content {
+  margin: 0 16px 16px;
+  padding: 0;
+  border: 2px dashed var(--p-content-border-color);
+  border-radius: 12px;
+  min-height: 220px;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+.upload .p-fileupload-content.p-fileupload-highlight {
+  border-color: var(--p-primary-color);
+  background: var(--p-highlight-background);
+}
+.upload .p-fileupload-content > p-message,
+.upload .p-fileupload-content > .p-message {
   display: block;
+  margin: 12px 12px 0;
 }
 .dropzone-hint {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
   text-align: center;
-  padding: 28px 12px;
-  color: var(--p-text-muted-color);
+  padding: 36px 16px 28px;
 }
 .dropzone-hint strong {
-  color: var(--p-text-color);
+  font-size: 16px;
 }
-.doc-card {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+.dropzone-icon {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--p-highlight-background);
+  color: var(--p-primary-color);
+  font-size: 30px;
+  margin-bottom: 4px;
 }
-.doc-card strong {
-  word-break: break-all;
+.dropzone-note {
+  font-size: 12px;
 }
-.staged-list {
+.upload-list {
   list-style: none;
-  margin: 8px 0;
+  margin: 12px;
   padding: 0;
-  border: 1px solid var(--p-content-border-color);
-  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.staged-list li {
+.upload-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 10px;
+  background: var(--p-content-background);
+}
+.upload-item > .pi-file-pdf {
+  font-size: 1.5rem;
+  color: var(--p-red-500);
+}
+.upload-item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.upload-item .file-name {
+  font-weight: 600;
+  word-break: break-all;
+}
+.upload-hint {
+  margin: 0 12px 12px;
+}
+
+/* Tarjeta del documento cargado */
+.doc-card {
+  margin: 8px 0 12px;
+}
+.doc-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: 14px;
+  align-items: flex-start;
+}
+.doc-icon {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--p-content-border-color);
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--p-highlight-background);
+  color: var(--p-red-500);
+  font-size: 26px;
+  flex: none;
 }
-.staged-list li:last-child {
-  border-bottom: 0;
+.doc-info {
+  flex: 1;
+  min-width: 0;
 }
-.staged-list .file-name {
+.doc-info > strong {
+  display: block;
+  font-size: 16px;
   word-break: break-all;
+}
+.doc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.doc-info .upload-list {
+  margin: 12px 0 0;
+}
+.doc-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.sign-widget {
+  margin-top: 12px;
 }
 .sign-widget iframe {
   width: 100%;
