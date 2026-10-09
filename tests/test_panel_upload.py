@@ -93,6 +93,20 @@ def test_firmante_por_defecto_y_firmante_propio(client, admin, session):
     assert signer_name(session, r.json()["request_id"]) == "Ana Pérez"
 
 
+def test_firmante_del_panel_configurado(client, admin, session, settings):
+    settings.panel_signer_name = "Firmante de Prueba"
+    settings.panel_signer_identifier = "20000000001"
+    settings.panel_signer_email = "demo@example.org"
+    body = upload(client, admin).json()
+    assert signer_name(session, body["request_id"]) == "Firmante de Prueba"
+    session.expire_all()
+    request = session.get(SignatureRequest, uuid.UUID(body["request_id"]))
+    assert session.get(Signer, request.signer_id).identifier == "20000000001"
+    # un `signer` explícito sigue teniendo prioridad
+    body = upload(client, admin, signer={"full_name": "Otra Persona", "identifier": "20111111112", "email": "o@example.org"}).json()
+    assert signer_name(session, body["request_id"]) == "Otra Persona"
+
+
 def test_metodos_habilitados(client, admin, session):
     r = upload(client, admin)
     session.expire_all()

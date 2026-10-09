@@ -22,6 +22,11 @@ from .signature_flow import Ctx
 
 PANEL_SYSTEM_NAME = "Firmadoc (panel)"
 DEFAULT_SIGNER = ("Operador del panel", "panel", "panel@invalid")
+
+
+def default_signer(settings: Settings) -> tuple[str, str, str]:
+    """Firmante de los PDF cargados sin `signer`: el configurado (la demo pone al del token de prueba)."""
+    return (settings.panel_signer_name, settings.panel_signer_identifier, settings.panel_signer_email)
 PROVIDER_ORDER = (Provider.TOKEN, Provider.FIRMAR, Provider.LOCAL)
 
 
@@ -99,7 +104,7 @@ def upload(
         raise Unprocessable("no hay ningún método de firma habilitado")
     system = get_panel_system(db, settings)
     panel_ctx = Ctx(db=db, storage=storage, settings=settings, system=system)
-    name, identifier, email = signer or DEFAULT_SIGNER
+    name, identifier, email = signer or default_signer(settings)
     request = flow.create_request(
         panel_ctx,
         document_base64=document_base64,
@@ -163,7 +168,7 @@ def upload_batch(
         raise Unprocessable("no hay ningún método de firma habilitado para lotes")
     system = get_panel_system(db, settings)
     panel_ctx = Ctx(db=db, storage=storage, settings=settings, system=system)
-    name, identifier, email = signer or DEFAULT_SIGNER
+    name, identifier, email = signer or default_signer(settings)
     created = batches.create_batch(
         panel_ctx,
         documents=[

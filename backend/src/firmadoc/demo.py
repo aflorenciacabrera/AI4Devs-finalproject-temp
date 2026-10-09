@@ -16,6 +16,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import demo_pki
+
 ROOT = Path(__file__).resolve().parents[3]  # raíz del repositorio (backend/src/firmadoc/demo.py)
 DEMO_DIR_NAME = "demo"
 SECRETS_FILE = "demo.json"
@@ -36,10 +38,21 @@ class DemoEnv:
     created: bool  # True si el seed se cargó en esta ejecución
     widget_built: bool
     frontend_built: bool = False  # panel Angular compilado (frontend/dist)
+    token_dir: Path | None = None  # PKI de prueba para firmar con el agente (token de software)
 
     @property
     def admin_url(self) -> str:
         return f"{self.public_base_url}/admin"
+
+    @property
+    def agent_command(self) -> str:
+        """Cómo arrancar Firmadoc Agent con el token de prueba (ruta relativa a la raíz si se puede)."""
+        pem = (self.token_dir or self.directory / "token") / demo_pki.SIGNER_FILE
+        try:
+            shown = pem.relative_to(Path.cwd()).as_posix()
+        except ValueError:
+            shown = str(pem)
+        return f"firmadoc-agent run --software-token {shown} --origin {self.public_base_url}"
 
     @property
     def panel_url(self) -> str:
@@ -105,6 +118,9 @@ def prepare(directory: Path, port: int = 8000) -> DemoEnv:
 
     database_url = f"sqlite:///{(directory / 'firmadoc-demo.db').as_posix()}"
     public_base_url = f"http://localhost:{port}"
+    # Token de prueba: AC y certificado con CUIL para firmar con el agente en modo token de software.
+    pki = demo_pki.ensure_demo_pki(directory / "token")
+    trust_dir = demo_pki.ensure_trust_dir(directory / "trust", ROOT / "backend" / "trust", pki)
     os.environ.update(
         {
             "FIRMADOC_DATABASE_URL": database_url,
@@ -116,6 +132,10 @@ def prepare(directory: Path, port: int = 8000) -> DemoEnv:
             "FIRMADOC_SIGNING_SECRET": keys["signing_secret"],
             "FIRMADOC_WIDGET_DIST": str(widget_dist()),
             "FIRMADOC_FRONTEND_DIST": str(frontend_dist()),
+            "FIRMADOC_TRUST_DIR": str(trust_dir),
+            "FIRMADOC_PANEL_SIGNER_NAME": demo_pki.DEMO_SIGNER_NAME,
+            "FIRMADOC_PANEL_SIGNER_IDENTIFIER": demo_pki.DEMO_SIGNER_CUIL,
+            "FIRMADOC_PANEL_SIGNER_EMAIL": demo_pki.DEMO_SIGNER_EMAIL,
             "FIRMADOC_REAL_MODE": "false",
         }
     )
@@ -142,6 +162,7 @@ def prepare(directory: Path, port: int = 8000) -> DemoEnv:
         created=created,
         widget_built=(widget_dist() / "index.html").is_file(),
         frontend_built=(frontend_dist() / "index.html").is_file(),
+        token_dir=pki.directory,
     )
 
 
@@ -161,6 +182,12 @@ def guide(env: DemoEnv) -> str:
         "Para firmar sin token: en el panel, «Firmar documento» → cargá un PDF → elegí «Firma propia».",
         "Es firma electrónica de demostración (sin presunción legal); no usa el token USB ni el agente.",
         "Abrí el panel con la dirección de arriba (localhost): el widget solo se embebe desde ese origen.",
+        "",
+        "Para probar la firma CON token sin hardware (token de software, solo demostración), en otra terminal:",
+        f"  {env.agent_command}",
+        f"  PIN del token de prueba: {demo_pki.DEMO_PIN}   "
+        + f"(titular: {demo_pki.DEMO_SIGNER_NAME}, CUIL {demo_pki.DEMO_SIGNER_CUIL})",
+        "Después, en el panel elegí «Firma con token»: el PIN se ingresa en la ventana del agente.",
     ]
     if not env.widget_built:
         lines += [

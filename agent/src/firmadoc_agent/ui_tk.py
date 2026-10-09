@@ -5,6 +5,7 @@ así que sus pedidos llegan por una cola y el hilo principal (`run`) los atiende
 """
 
 import queue
+import re
 import tkinter as tk
 from concurrent.futures import Future
 from tkinter import ttk
@@ -13,53 +14,89 @@ from .ui import SignPrompt
 
 DEFAULT_TIMEOUT = 120.0
 BULLET = "•"
+_CUIL_RE = re.compile(r"CUIL\s*(\d{11})", re.IGNORECASE)
+
+
+def subject_parts(subject: str) -> tuple[str, str | None]:
+    """Titular (CN) y CUIL de un sujeto como "CN=Juan Perez,serialNumber=CUIL 20111111112"."""
+    owner = None
+    for part in subject.split(","):
+        key, _, value = part.strip().partition("=")
+        if key.strip().upper() == "CN" and value.strip():
+            owner = value.strip()
+            break
+    match = _CUIL_RE.search(subject)
+    cuil = match.group(1) if match else None
+    if cuil:
+        cuil = f"{cuil[:2]}-{cuil[2:10]}-{cuil[10:]}"
+    return owner or subject, cuil
+
+
+def center_on_screen(window: tk.Toplevel) -> None:
+    """Centra la ventana en la pantalla principal una vez que conoce su tamaño."""
+    window.update_idletasks()
+    width, height = window.winfo_reqwidth(), window.winfo_reqheight()
+    x = max((window.winfo_screenwidth() - width) // 2, 0)
+    y = max((window.winfo_screenheight() - height) // 2 - 40, 0)
+    window.geometry(f"+{x}+{y}")
 
 
 class PinDialog:
+    """Ventana mínima: titular del certificado, documento(s) a firmar y PIN; centrada y al frente."""
+
     def __init__(self, root: tk.Tk, prompt: SignPrompt, timeout: float, visible: bool = True):
         self.result: str | None = None
         self.timeout = timeout
         top = self.top = tk.Toplevel(root)
-        top.title("Firmadoc: confirmar firma")
+        top.title("Firmadoc")
         top.resizable(False, False)
         top.attributes("-topmost", True)
         top.protocol("WM_DELETE_WINDOW", self.cancel)
 
-        frame = ttk.Frame(top, padding=16)
+        frame = ttk.Frame(top, padding=(28, 22, 28, 20))
         frame.grid()
+        owner, cuil = subject_parts(prompt.certificate_subject)
+        self.owner = owner
+        ttk.Label(frame, text="Firmar con el certificado de", foreground="#5b6573").grid(sticky="w")
+        ttk.Label(frame, text=owner, font=("Segoe UI", 15, "bold"), wraplength=420).grid(sticky="w", pady=(2, 0))
+        if cuil:
+            ttk.Label(frame, text=f"CUIL {cuil}", foreground="#5b6573").grid(sticky="w")
+        ttk.Label(frame, text=prompt.certificate_subject, foreground="#8a94a3", font=("Segoe UI", 8), wraplength=420).grid(
+            sticky="w", pady=(2, 0)
+        )
+
         count = len(prompt.document_names)
         title = "Va a firmar 1 documento" if count == 1 else f"Va a firmar {count} documentos"
-        ttk.Label(frame, text=title, font=("Segoe UI", 11, "bold")).grid(sticky="w")
-
-        names = tk.Listbox(frame, height=min(max(count, 1), 8), width=60, activestyle="none")
+        ttk.Label(frame, text=title, font=("Segoe UI", 10, "bold")).grid(sticky="w", pady=(14, 2))
+        names = tk.Listbox(frame, height=min(max(count, 1), 4), width=52, activestyle="none", relief="flat")
         for name in prompt.document_names:
             names.insert("end", f"{BULLET} {name}")
-        names.grid(sticky="we", pady=(6, 10))
-
-        ttk.Label(frame, text="Certificado:").grid(sticky="w")
-        ttk.Label(frame, text=prompt.certificate_subject, wraplength=440).grid(sticky="w")
+        names.grid(sticky="we")
 
         if prompt.last_try_warning:
             ttk.Label(
                 frame,
                 text="ATENCIÓN: queda un único intento antes de que el token se bloquee.",
                 foreground="#b00020",
-                wraplength=440,
+                wraplength=420,
             ).grid(sticky="w", pady=(10, 0))
 
-        ttk.Label(frame, text="PIN del token:").grid(sticky="w", pady=(12, 2))
+        ttk.Label(frame, text="PIN del token").grid(sticky="w", pady=(14, 2))
         self.pin_var = tk.StringVar()
-        self.entry = ttk.Entry(frame, textvariable=self.pin_var, show=BULLET, width=30)
-        self.entry.grid(sticky="w")
+        self.entry = ttk.Entry(frame, textvariable=self.pin_var, show=BULLET, width=24, font=("Segoe UI", 13))
+        self.entry.grid(sticky="we")
 
         buttons = ttk.Frame(frame)
-        buttons.grid(sticky="e", pady=(16, 0))
+        buttons.grid(sticky="e", pady=(18, 0))
         ttk.Button(buttons, text="Cancelar", command=self.cancel).grid(row=0, column=0, padx=6)
-        ttk.Button(buttons, text="Firmar", command=self.ok).grid(row=0, column=1)
+        ttk.Button(buttons, text="Firmar", command=self.ok, default="active").grid(row=0, column=1)
 
         top.bind("<Return>", lambda _e: self.ok())
         top.bind("<Escape>", lambda _e: self.cancel())
-        if not visible:
+        if visible:
+            center_on_screen(top)
+            top.lift()
+        else:
             top.withdraw()
 
     def ok(self) -> None:

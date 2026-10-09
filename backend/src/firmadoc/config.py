@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     # Panel Angular (frontend/): build compilado y orígenes extra desde los que puede embeber el widget
     frontend_dist: str = "frontend/dist/firmadoc-panel/browser"
     panel_origins: str = ""  # separados por coma, p. ej. http://localhost:4200 (servidor de desarrollo)
+    # Firmante de los PDF cargados desde el panel sin `signer` (con token, el CUIL debe ser el del certificado)
+    panel_signer_name: str = "Operador del panel"
+    panel_signer_identifier: str = "panel"
+    panel_signer_email: str = "panel@invalid"
     # Firma remota (`firmar`): habilitada solo con firmar_base_url
     firmar_base_url: str | None = None
     firmar_client_id: str = "firmadoc"

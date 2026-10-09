@@ -85,6 +85,25 @@ Problemas frecuentes:
 | el widget no detecta el agente | agente detenido, puerto distinto, o el origen del widget no está en `allowed_origins` (`origin_not_allowed`) |
 | `pin_locked` | token bloqueado: se desbloquea con el PUK / el administrador del token, no con Firmadoc |
 
+## Token de software (solo demostración)
+
+Para recorrer la firma con token sin hardware, el agente puede usar como único certificado el de un archivo PEM
+(clave privada sin cifrar + certificado), aceptando el PIN `1234`:
+
+```
+firmadoc-agent run --software-token data/demo/token/firmante.pem --origin http://localhost:8000 [--port 47123]
+firmadoc-agent diagnose --software-token data/demo/token/firmante.pem
+```
+
+No hace falta `config.json` ni módulo PKCS#11; `--origin` (repetible) y `--port` reemplazan a los del archivo si
+existe. El modo demostración del servidor (`python -m firmadoc.demo`) genera ese PEM y confía en su AC de prueba
+(`docs/demo.md`). El registro de actividad marca el arranque como «TOKEN DE SOFTWARE»; `install.ps1` no usa esta
+opción y el ejecutable instalado sigue exigiendo PKCS#11.
+
+La ventana de confirmación muestra el titular del certificado, el CUIL, el o los documentos y el campo de PIN;
+aparece centrada y por encima de las demás ventanas (incluido el navegador). El PIN se ingresa solo ahí: nunca en
+el navegador ni en el widget.
+
 ## Prueba manual con un token físico
 
 Pendiente de ejecutar con el dispositivo (el proyecto prevé un token criptográfico USB de referencia). Procedimiento:

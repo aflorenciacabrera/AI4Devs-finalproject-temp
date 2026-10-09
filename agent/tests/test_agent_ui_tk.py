@@ -47,6 +47,25 @@ def test_muestra_nombres_y_certificado(root):
     d.cancel()
 
 
+def test_titular_y_cuil_destacados(root):
+    prompt = SignPrompt(["a.pdf"], "CN=Juan Perez,serialNumber=CUIL 20111111112,C=AR")
+    d = PinDialog(root, prompt, timeout=5, visible=False)
+    text = labels(d)
+    assert d.owner == "Juan Perez"
+    assert "Juan Perez" in text and "CUIL 20-11111111-2" in text
+    assert "Va a firmar 1 documento" in text
+    assert d.top.title() == "Firmadoc"
+    d.cancel()
+
+
+def test_subject_parts():
+    from firmadoc_agent.ui_tk import subject_parts
+
+    assert subject_parts("CN=Juan Perez,serialNumber=CUIL 20111111112") == ("Juan Perez", "20-11111111-2")
+    assert subject_parts("serialNumber=CUIL 20111111112, CN=Ana") == ("Ana", "20-11111111-2")
+    assert subject_parts("O=Sin nombre") == ("O=Sin nombre", None)
+
+
 def test_advertencia_de_ultimo_intento(root):
     prompt = SignPrompt(["a.pdf"], "CN=X", last_try_warning=True)
     d = PinDialog(root, prompt, timeout=5, visible=False)

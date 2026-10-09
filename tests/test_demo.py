@@ -115,6 +115,45 @@ def test_la_guia_muestra_el_panel_el_token_y_firma_propia(demo_dir):
     assert "Firma propia" in text and "firmadoc-demo-key" in text
 
 
+def test_token_de_prueba_y_directorio_de_confianza(demo_dir):
+    from cryptography.hazmat.primitives import hashes, serialization
+
+    from firmadoc import demo_pki
+    from firmadoc.certificate_validation import CertificateChecker
+    from firmadoc.trust import load_trust_store
+
+    env = demo.prepare(demo_dir, 8200)
+    token_dir = demo_dir / "token"
+    assert (token_dir / "ca.crt").is_file() and (token_dir / "firmante.pem").is_file()
+    assert env.token_dir == token_dir
+    pki = demo_pki.ensure_demo_pki(token_dir)
+    assert "CUIL 20000000001" in pki.signer.subject.rfc4514_string()
+    assert pki.signer.issuer == pki.ca.subject
+    # confianza propia de la demo, sin tocar backend/trust
+    trust_dir = demo_dir / "trust"
+    assert os.environ["FIRMADOC_TRUST_DIR"] == str(trust_dir)
+    assert (trust_dir / "demo-ca.crt").is_file()
+    assert not (demo.ROOT / "backend" / "trust" / "demo-ca.crt").exists()
+    checker = CertificateChecker(load_trust_store(trust_dir), revocation_mode="soft-fail", allow_fetching=False)
+    validated = checker.validate(pki.signer.public_bytes(serialization.Encoding.DER), "20000000001")
+    assert validated.cuil == "20000000001"
+    # el firmante del panel es el del token de prueba
+    assert os.environ["FIRMADOC_PANEL_SIGNER_IDENTIFIER"] == "20000000001"
+    assert os.environ["FIRMADOC_PANEL_SIGNER_NAME"] == "Firmante de Prueba"
+    # se reutiliza en el siguiente arranque
+    fingerprint = pki.signer.fingerprint(hashes.SHA256())
+    demo.prepare(demo_dir, 8200)
+    assert demo_pki.ensure_demo_pki(token_dir).signer.fingerprint(hashes.SHA256()) == fingerprint
+
+
+def test_la_guia_muestra_el_comando_del_agente_y_el_pin(demo_dir):
+    env = demo.prepare(demo_dir, 8200)
+    text = demo.guide(env)
+    assert "firmadoc-agent run --software-token" in text
+    assert "firmante.pem --origin http://localhost:8200" in text
+    assert "PIN del token de prueba: 1234" in text
+
+
 def test_la_guia_muestra_el_panel_angular(demo_dir, monkeypatch, tmp_path):
     built = tmp_path / "browser"
     built.mkdir()

@@ -1,13 +1,21 @@
-"""Punto de entrada: `firmadoc-agent [run|diagnose] [--config RUTA] [--version]`."""
+"""Punto de entrada: `firmadoc-agent [run|diagnose] [--config RUTA] [--software-token PEM] [--version]`."""
 
 import argparse
 import os
 import sys
 import threading
+from dataclasses import replace
 from pathlib import Path
 
 from . import __version__
-from .config import AgentConfig, ConfigError, data_dir, default_config_path, load_config
+from .config import (
+    AgentConfig,
+    ConfigError,
+    data_dir,
+    default_config_path,
+    load_config,
+    validate_origin,
+)
 from .diagnose import run_diagnose
 from .logs import setup_logging
 from .pkcs11_backend import Pkcs11Backend
@@ -35,12 +43,40 @@ def _say(message: str) -> None:
 
 
 def _load(args) -> AgentConfig | None:
+    """Configuración del archivo (si existe) más las opciones de línea de comandos (`--origin`, `--port`)."""
     path = Path(args.config) if args.config else default_config_path()
     try:
-        return load_config(path)
+        config = load_config(path)
+        origins = getattr(args, "origin", None)
+        if origins:
+            config = replace(config, allowed_origins=tuple(validate_origin(o) for o in origins))
+        port = getattr(args, "port", None)
+        if port is not None:
+            if not 1024 <= port <= 65535:
+                raise ConfigError(f"port inválido: {port!r} (debe estar entre 1024 y 65535)")
+            config = replace(config, port=port)
+        return config
     except ConfigError as e:
         _say(f"Configuración inválida: {e}")
         return None
+
+
+def _backend(args, config: AgentConfig, log=None):
+    """El token: PKCS#11 (normal) o un archivo PEM como token de software (demostración)."""
+    if getattr(args, "software_token", None):
+        from .software_token import SoftwareTokenError, software_backend
+
+        try:
+            backend = software_backend(Path(args.software_token))
+        except SoftwareTokenError as e:
+            _say(f"Token de software inválido: {e}")
+            return None
+        if log is not None:
+            log.warning("TOKEN DE SOFTWARE (solo demostración): %s", args.software_token)
+        return backend
+    if log is not None and not config.pkcs11_module:
+        log.warning("'pkcs11_module' no está configurado: no se podrá acceder al token")
+    return Pkcs11Backend(config.pkcs11_module)
 
 
 def cmd_run(args, *, ui=None, backend=None) -> int:
@@ -50,10 +86,10 @@ def cmd_run(args, *, ui=None, backend=None) -> int:
     log = setup_logging(config.log_level, data_dir() / "agent.log")
     if not config.allowed_origins:
         log.warning("la lista de orígenes permitidos está vacía: se rechazará todo pedido")
-    if not config.pkcs11_module:
-        log.warning("'pkcs11_module' no está configurado: no se podrá acceder al token")
 
-    backend = backend or Pkcs11Backend(config.pkcs11_module)
+    backend = backend or _backend(args, config, log)
+    if backend is None:
+        return 2
     service = AgentService(backend, ui)  # la interfaz se asigna después de reservar el puerto
     try:
         server = create_server(service, config.allowed_origins, config.port)
@@ -95,7 +131,25 @@ def cmd_diagnose(args, *, backend=None) -> int:
     config = _load(args)
     if config is None:
         return 2
-    return run_diagnose(config, backend or Pkcs11Backend(config.pkcs11_module))
+    backend = backend or _backend(args, config)
+    if backend is None:
+        return 2
+    return run_diagnose(config, backend)
+
+
+def _add_common(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--software-token",
+        metavar="PEM",
+        help="DEMOSTRACIÓN: usar como único certificado el de este archivo PEM (clave + certificado), PIN 1234",
+    )
+    parser.add_argument(
+        "--origin",
+        action="append",
+        metavar="ORIGEN",
+        help="origen permitido (repetible); reemplaza a los del archivo de configuración",
+    )
+    parser.add_argument("--port", type=int, help="puerto en 127.0.0.1 (reemplaza al del archivo de configuración)")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -104,8 +158,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--version", action="version", version=f"firmadoc-agent {__version__}")
     parser.add_argument("--config", help="ruta del config.json (por defecto %%APPDATA%%\\FirmadocAgent)")
     sub = parser.add_subparsers(dest="command")
-    sub.add_parser("run", help="inicia el agente (predeterminado)")
-    sub.add_parser("diagnose", help="lista los certificados del token sin pedir el PIN")
+    _add_common(sub.add_parser("run", help="inicia el agente (predeterminado)"))
+    _add_common(sub.add_parser("diagnose", help="lista los certificados del token sin pedir el PIN"))
     args = parser.parse_args(argv)
     if args.command == "diagnose":
         return cmd_diagnose(args)

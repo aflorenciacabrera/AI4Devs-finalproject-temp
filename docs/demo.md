@@ -59,6 +59,25 @@ npm run build
 Para desarrollarlo con `npm start` (recarga en caliente en `http://localhost:4200/panel/`) contra la demo, arrancá
 la demo con `FIRMADOC_PANEL_ORIGINS=http://localhost:4200` en el entorno para que el widget acepte ese origen.
 
+## Firma con token de prueba (sin hardware)
+
+La demo genera una vez, en `data/demo/token/`, una **AC de prueba** (`ca.crt`) y un **certificado de firmante con
+clave privada** (`firmante.pem`, titular «Firmante de Prueba», CUIL `20000000001`), confía en esa AC desde su propio
+directorio de confianza (`data/demo/trust/`, sin tocar `backend/trust`) y configura al firmante del panel con ese
+CUIL. Para recorrer la firma con token, en otra terminal (con el entorno virtual activo) arrancá Firmadoc Agent con
+ese certificado como **token de software**:
+
+```
+firmadoc-agent run --software-token data/demo/token/firmante.pem --origin http://localhost:8000
+```
+
+(el comando exacto lo imprime la demo). Después, en el panel: cargá un PDF → **Firma con token** → elegí el
+certificado → en la ventana del agente ingresá el PIN `1234`. La firma es PAdES verificable contra la AC de prueba;
+el PIN nunca pasa por el navegador. Chrome/Edge pueden pedir una vez permiso de «acceso a la red local».
+
+Todo esto es demostración: la clave privada vive en un archivo sin cifrar dentro de `data/demo/` y la AC no tiene
+valor legal. El `.exe` instalado por política de dominio sigue usando un módulo PKCS#11 real.
+
 ## Fuera de la demo
 
 La firma con token real o simulada (agente con certificado de software) no forma parte de este comando.
