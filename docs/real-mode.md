@@ -41,7 +41,10 @@ Sin esa variable todo funciona como en desarrollo.
   con `cuil_match_disabled` mientras esté apagado). Si otra AC trae el CUIL distinto, hay que ajustar esa función:
   es un único lugar y tiene pruebas.
 - **Revocación**: el modo real exige `hard-fail`. Hace falta que el servidor pueda consultar la CRL/OCSP de la AC
-  (`FIRMADOC_REVOCATION_FETCH=true`) o tener CRL locales en `FIRMADOC_CRL_DIR`.
+  (`FIRMADOC_REVOCATION_FETCH=true`) o tener CRL locales en `FIRMADOC_CRL_DIR`. Las CRL descargadas se
+  conservan en memoria del proceso hasta su `next_update` (la de firmantes de la AC ONTI pesa unos 9 MB: se
+  descarga una vez por proceso y por período de vigencia, no en cada firma). Con varios workers, cada proceso
+  descarga la suya; para compartirla por disco, dejarla en `FIRMADOC_CRL_DIR`.
 
 ## 3. Servidor
 

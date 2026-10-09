@@ -2,7 +2,7 @@ import datetime
 
 import pytest
 
-from firmadoc.certificate_validation import CertificateChecker, extract_cuil
+from firmadoc.certificate_validation import CRL_CACHE, CertificateChecker, CrlCache, extract_cuil
 from firmadoc.errors import Forbidden, Unprocessable
 from firmadoc.models import RevocationStatus
 from firmadoc.trust import load_trust_store, main
@@ -11,12 +11,21 @@ DAY = datetime.timedelta(days=1)
 CUIL = "20111111112"
 
 
-def checker(pki, anchors, mode="hard-fail", crls=True):
+@pytest.fixture(autouse=True)
+def _cache_limpia():
+    """La caché de CRL es global al proceso: ninguna prueba debe heredar la de otra."""
+    CRL_CACHE.clear()
+    yield
+    CRL_CACHE.clear()
+
+
+def checker(pki, anchors, mode="hard-fail", crls=True, fetching=False, cache=None):
     return CertificateChecker(
         load_trust_store(anchors),
         mode,
-        allow_fetching=False,
+        allow_fetching=fetching,
         crls=[pki.ca.crl()] if crls else [],
+        crl_cache=cache,
     )
 
 
@@ -121,6 +130,87 @@ def test_soft_fail_igual_rechaza_si_esta_revocado(pki, anchors):
     ident = pki.ca.issue("Ana", CUIL)
     pki.ca.revoke(ident)
     reject(checker(pki, anchors, mode="soft-fail"), ident, "certificate_revoked")
+
+
+# --- caché de CRL (FIRDOC-52) ----------------------------------------------------------------
+
+
+def _crl_vencida(pki) -> bytes:
+    """Una CRL de la AC de prueba cuyo next_update ya pasó."""
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+
+    now = datetime.datetime.now(datetime.UTC)
+    builder = (
+        x509.CertificateRevocationListBuilder()
+        .issuer_name(pki.ca.cert.subject)
+        .last_update(now - 10 * DAY)
+        .next_update(now - DAY)
+    )
+    return builder.sign(pki.ca.key, hashes.SHA256()).public_bytes(serialization.Encoding.DER)
+
+
+def test_una_validacion_con_red_alimenta_la_cache_y_la_siguiente_la_usa_sin_red(pki, anchors):
+    """Sin red ni CRL propia, el segundo checker solo puede saber de la revocación por la caché."""
+    cache = CrlCache()
+    ident = pki.ca.issue("Ana", CUIL)
+    pki.ca.revoke(ident)
+    sin_cache = checker(pki, anchors, mode="hard-fail", crls=False, cache=CrlCache())
+    reject(sin_cache, ident, "certificate_invalid")  # no hay forma de saberlo
+
+    con_red = checker(pki, anchors, mode="hard-fail", crls=True, fetching=True, cache=cache)
+    reject(con_red, ident, "certificate_revoked")
+    assert len(cache) == 1
+
+    solo_cache = checker(pki, anchors, mode="hard-fail", crls=False, fetching=False, cache=cache)
+    reject(solo_cache, ident, "certificate_revoked")
+    valido = pki.ca.issue("Bea", CUIL)
+    assert solo_cache.validate(valido.der, CUIL).revocation_status == RevocationStatus.GOOD
+
+
+def test_la_cache_se_alimenta_aunque_la_validacion_falle(pki, anchors):
+    cache = CrlCache()
+    ajeno = pki.other_ca.issue("Ana", CUIL)
+    reject(checker(pki, anchors, crls=True, fetching=True, cache=cache), ajeno, "certificate_untrusted")
+    assert len(cache) == 1
+
+
+def test_sin_consulta_por_red_no_se_alimenta_la_cache(pki, anchors):
+    cache = CrlCache()
+    ident = pki.ca.issue("Ana", CUIL)
+    checker(pki, anchors, crls=True, fetching=False, cache=cache).validate(ident.der, CUIL)
+    assert len(cache) == 0
+
+
+def test_crl_vencida_no_se_entrega_y_se_purga(pki, anchors):
+    cache = CrlCache()
+    cache.add([_crl_vencida(pki)])
+    assert len(cache) == 1
+    assert cache.fresh(datetime.datetime.now(datetime.UTC)) == []
+    assert len(cache) == 0
+    ident = pki.ca.issue("Ana", CUIL)
+    err = reject(checker(pki, anchors, crls=False, cache=cache), ident, "certificate_invalid")
+    assert "revocación" in err.detail
+
+
+def test_la_cache_no_guarda_duplicados(pki):
+    cache = CrlCache()
+    crl = pki.ca.crl()
+    assert cache.add([crl, crl]) == 1
+    assert cache.add([crl]) == 0
+    assert len(cache) == 1
+
+
+def test_las_crl_locales_siguen_aplicandose_junto_con_la_cache(pki, anchors):
+    ident = pki.ca.issue("Ana", CUIL)
+    pki.ca.revoke(ident)
+    reject(checker(pki, anchors, crls=True, cache=CrlCache()), ident, "certificate_revoked")
+
+
+def test_el_checker_usa_la_cache_global_por_defecto(pki, anchors):
+    c = checker(pki, anchors, crls=True, fetching=True)
+    c.validate(pki.ca.issue("Ana", CUIL).der, CUIL)
+    assert c.crl_cache is CRL_CACHE and len(CRL_CACHE) == 1
 
 
 def test_modo_off_no_consulta_revocacion(pki, anchors):

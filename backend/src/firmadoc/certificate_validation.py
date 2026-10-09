@@ -6,11 +6,16 @@ siquiera es confiable.
 """
 
 import asyncio
+import hashlib
+import logging
 import re
+import threading
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from asn1crypto import crl as acrl
 from asn1crypto import x509 as ax509
 from cryptography import x509
 from pyhanko_certvalidator import CertificateValidator, ValidationContext, errors
@@ -18,6 +23,8 @@ from pyhanko_certvalidator import CertificateValidator, ValidationContext, error
 from .errors import Forbidden, Unprocessable
 from .models import RevocationStatus
 from .trust import TrustStore
+
+log = logging.getLogger("firmadoc.certificate_validation")
 
 MIN_RSA_BITS = 2048
 CUIL_RE = re.compile(r"CUIL\s*(\d{11})", re.IGNORECASE)
@@ -68,6 +75,65 @@ def load_crls(crl_dir: str | None) -> list[bytes]:
     return [p.read_bytes() for p in sorted(Path(crl_dir).iterdir()) if p.suffix in {".crl", ".der"}]
 
 
+class CrlCache:
+    """CRL obtenidas por red, compartidas por todo el proceso mientras estén vigentes.
+
+    Una CRL real de firmantes puede pesar varios MB: sin esto, cada `prepare`, cada `complete` y cada
+    documento de un lote la descargaban de nuevo. Se guarda una copia por huella (dos puntos de
+    distribución entregan la misma lista) y se purgan las vencidas por `next_update`.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._crls: dict[str, acrl.CertificateList] = {}
+
+    @staticmethod
+    def _parse(item: bytes | acrl.CertificateList) -> acrl.CertificateList:
+        return item if isinstance(item, acrl.CertificateList) else acrl.CertificateList.load(item)
+
+    @staticmethod
+    def _next_update(crl: acrl.CertificateList) -> datetime | None:
+        value = crl["tbs_cert_list"]["next_update"]
+        return value.native if value is not None and value.native is not None else None
+
+    def add(self, crls: Iterable[bytes | acrl.CertificateList]) -> int:
+        """Incorpora las CRL nuevas (ignora repetidas). Devuelve cuántas se agregaron."""
+        added = 0
+        with self._lock:
+            for item in crls:
+                crl = self._parse(item)
+                key = hashlib.sha256(crl.dump()).hexdigest()
+                if key in self._crls:
+                    continue
+                self._crls[key] = crl
+                added += 1
+                issuer = crl["tbs_cert_list"]["issuer"].native.get("common_name", "?")
+                log.info(
+                    "CRL incorporada a la caché: emisor=%s next_update=%s bytes=%d",
+                    issuer, self._next_update(crl), len(crl.dump()),
+                )
+        return added
+
+    def fresh(self, now: datetime) -> list[acrl.CertificateList]:
+        """CRL vigentes en `now`; las vencidas se eliminan."""
+        with self._lock:
+            expired = [k for k, c in self._crls.items() if (nu := self._next_update(c)) and nu <= now]
+            for key in expired:
+                del self._crls[key]
+            return list(self._crls.values())
+
+    def clear(self) -> None:
+        with self._lock:
+            self._crls.clear()
+
+    def __len__(self) -> int:
+        with self._lock:
+            return len(self._crls)
+
+
+CRL_CACHE = CrlCache()
+
+
 class CertificateChecker:
     def __init__(
         self,
@@ -75,14 +141,16 @@ class CertificateChecker:
         revocation_mode: str = "soft-fail",
         *,
         allow_fetching: bool = True,
-        crls: list[bytes] | None = None,
+        crls: list[bytes | acrl.CertificateList] | None = None,
+        crl_cache: CrlCache | None = None,
     ):
         if revocation_mode not in {"hard-fail", "soft-fail", "off"}:
             raise ValueError(f"modo de revocación desconocido: {revocation_mode}")
         self.trust = trust
         self.revocation_mode = revocation_mode
         self.allow_fetching = allow_fetching and revocation_mode != "off"
-        self.crls = crls or []
+        self.crls = list(crls or [])  # CRL locales (FIRMADOC_CRL_DIR): siempre se aplican
+        self.crl_cache = CRL_CACHE if crl_cache is None else crl_cache
 
     # -- API pública -----------------------------------------------------------------------
 
@@ -147,13 +215,19 @@ class CertificateChecker:
             other_certs=self.trust.intermediates,
             moment=now,
             allow_fetching=fetching,
-            crls=None if mode == "off" else self.crls,
+            crls=None if mode == "off" else [*self.crls, *self.crl_cache.fresh(now)],
             revocation_mode="soft-fail" if mode == "off" else mode,
         )
 
     def _run(self, cert: ax509.Certificate, now: datetime, mode: str) -> None:
-        validator = CertificateValidator(cert, validation_context=self._context(cert, now, mode))
-        asyncio.run(validator.async_validate_usage(set()))
+        context = self._context(cert, now, mode)
+        validator = CertificateValidator(cert, validation_context=context)
+        try:
+            asyncio.run(validator.async_validate_usage(set()))
+        finally:
+            # Lo descargado sirve para las próximas validaciones, aun si esta falló.
+            if self.allow_fetching and mode != "off":
+                self.crl_cache.add(context.crls)
 
     def _check_chain(self, cert: ax509.Certificate, now: datetime) -> RevocationStatus:
         if self.revocation_mode == "off":

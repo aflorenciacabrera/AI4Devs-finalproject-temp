@@ -119,7 +119,10 @@ antes de arrancar. Pasos, en la PC donde está el token:
    Chrome/Edge 142+ piden una vez permiso de «acceso a la red local» para llegar al agente en `127.0.0.1`.
 
 La validación de revocación corre en `soft-fail`: el servidor intenta descargar la CRL de la AC y, si la red no lo
-permite, sigue adelante marcando la revocación como no verificada. Si la descarga demora, arrancá la demo con
+permite, sigue adelante marcando la revocación como no verificada. La **primera** validación de un certificado de
+una AC descarga su CRL (la de firmantes de la AC ONTI pesa unos 9 MB: puede tardar desde unos segundos hasta
+medio minuto según la red); las siguientes la reutilizan desde memoria hasta su `next_update` (en el registro del
+servidor aparece «CRL incorporada a la caché» una sola vez). Si aun así la descarga molesta, arrancá la demo con
 `FIRMADOC_REVOCATION_FETCH=false` en el entorno.
 
 ## Fuera de la demo
