@@ -51,7 +51,7 @@
 
 ## 5. Token de referencia (según la conversación)
 
-Modelo: mToken CryptoID (Century Longmai), FIPS 140-3 nivel 3. Biblioteca PKCS#11: `CryptoIDA_pkcs11.dll`, instalada por el software del fabricante. La DLL debe coincidir en arquitectura (32/64 bits) con el Python del agente. PIN de 8 a 32 caracteres y bloqueo a los 15 intentos fallidos, salvo otra configuración de quien lo entregó. La política de la AC exige dispositivos FIPS 140-2 nivel 2 o superior.
+Modelo: token criptográfico USB de referencia, FIPS 140-3 nivel 3. Biblioteca PKCS#11: una `.dll` instalada por el software del fabricante. La DLL debe coincidir en arquitectura (32/64 bits) con el Python del agente. PIN de 8 a 32 caracteres y bloqueo a los 15 intentos fallidos, salvo otra configuración de quien lo entregó. La política de la AC exige dispositivos FIPS 140-2 nivel 2 o superior.
 
 ## 6. Cómo se ejecutaría (comandos citados en la conversación)
 

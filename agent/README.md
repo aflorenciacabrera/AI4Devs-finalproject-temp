@@ -26,7 +26,7 @@ powershell -ExecutionPolicy Bypass -File agent\packaging\build.ps1     # genera 
 ```powershell
 agent\packaging\install.ps1 `
   -Origin https://firmadoc.example.org `
-  -Pkcs11Module "C:\Windows\System32\eTPKCS11.dll"
+  -Pkcs11Module "C:\Windows\System32\<biblioteca-pkcs11-del-fabricante>.dll"
 ```
 
 `-Origin` es el origen **exacto** desde el que se sirve el widget (esquema, host y puerto; sin comodines ni rutas). Puede repetirse. El script:
@@ -87,9 +87,9 @@ Problemas frecuentes:
 
 ## Prueba manual con un token físico
 
-Pendiente de ejecutar con el dispositivo (el proyecto prevé un mToken CryptoID como token de referencia). Procedimiento:
+Pendiente de ejecutar con el dispositivo (el proyecto prevé un token criptográfico USB de referencia). Procedimiento:
 
-1. Instalar el middleware del fabricante y ubicar su DLL (`eTPKCS11.dll`, `eps2003csp11.dll`, …).
+1. Instalar el middleware del fabricante y ubicar su DLL PKCS#11.
 2. `firmadoc-agent.exe --config <config.json> diagnose`: debe cargar la biblioteca y listar el certificado de usuario. **Anotar el valor de `serialNumber`**: confirma si el CUIL tiene el formato `CUIL 20123456789` que espera el servidor (pregunta abierta del diseño) y qué AC emitió el certificado (para cargar las anclas en `backend/trust/`).
 3. `python agent\scripts\manual_token_test.py --module <DLL>`: pide el PIN **una sola vez**, firma un lote de 3 hashes con un único login y verifica cada firma con la clave pública del certificado. Un PIN erróneo cuenta como un intento contra el límite del token; el script no reintenta.
 4. Resultado esperado: `RESULTADO: CORRECTO`. Si el token no acepta `CKM_RSA_PKCS` con el `DigestInfo` de SHA-256, hay que revisar el contrato (`docs/agent-contract.md`) antes de seguir.

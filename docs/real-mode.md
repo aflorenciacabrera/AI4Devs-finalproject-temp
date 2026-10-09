@@ -6,15 +6,15 @@ Sin esa variable todo funciona como en desarrollo.
 
 ## 1. Preparar la PC del firmante (agente + token)
 
-1. Instalar el software del fabricante del token. Para el **mToken CryptoID** (Longmai), de **64 bits** (el Python
+1. Instalar el software del fabricante del token. Para el token de referencia, de **64 bits** (el Python
    del agente es de 64 bits). Después de instalar, buscar su biblioteca PKCS#11 (una `.dll` en
-   `C:\Windows\System32`, con un nombre del estilo `mToken_CryptoID_x64.dll`; el nombre exacto depende de la versión).
+   `C:\Windows\System32`, su nombre depende del fabricante y de la versión).
 2. Crear la configuración del agente, `%APPDATA%\FirmadocAgent\config.json`:
    ```json
    {
      "port": 47123,
      "allowed_origins": ["https://firmadoc.su-organismo.example"],
-     "pkcs11_module": "C:\\Windows\\System32\\mToken_CryptoID_x64.dll",
+     "pkcs11_module": "C:\\Windows\\System32\\<biblioteca-pkcs11-del-fabricante>.dll",
      "log_level": "INFO"
    }
    ```
@@ -72,7 +72,7 @@ firmadoc.seed` se niega (los integradores reales se crean con `firmadoc.integrat
 
 ## Lo que todavía no está probado con hardware
 
-- La carga de la biblioteca del **mToken CryptoID** y la firma con su clave: hasta ahora solo se probó con SoftHSM
+- La carga de la biblioteca del **token físico de referencia** y la firma con su clave: hasta ahora solo se probó con SoftHSM
   y un token de software.
 - El **formato del CUIL** del certificado real y la **consulta de revocación** de la AC.
 - El **instalador** del agente no está firmado y no se desplegó por política de dominio.

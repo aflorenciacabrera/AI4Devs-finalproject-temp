@@ -6,7 +6,7 @@
   %APPDATA%\FirmadocAgent\config.json, registra el arranque con la sesion del usuario
   (HKCU\...\Run) y lo inicia.
 .EXAMPLE
-  .\install.ps1 -Origin https://firmadoc.example.org -Pkcs11Module "C:\Windows\System32\eTPKCS11.dll"
+  .\install.ps1 -Origin https://firmadoc.example.org -Pkcs11Module "C:\Windows\System32\<biblioteca-pkcs11-del-fabricante>.dll"
 .NOTES
   Para desplegar por politica de dominio: ejecutar este script como inicio de sesion (GPO) con
   los mismos parametros. Una reinstalacion actualiza el ejecutable y conserva la configuracion

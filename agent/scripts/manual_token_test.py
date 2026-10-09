@@ -1,7 +1,7 @@
 """Prueba manual con un token físico: lista el certificado, firma un lote con UN solo PIN y verifica.
 
 Uso (PowerShell):
-    python agent/scripts/manual_token_test.py --module "C:\\Windows\\System32\\eTPKCS11.dll"
+    python agent/scripts/manual_token_test.py --module "C:\\Windows\\System32\\<biblioteca-pkcs11-del-fabricante>.dll"
 
 El PIN se pide por consola sin mostrarlo (o se toma de FIRMADOC_TEST_PIN en pruebas automáticas).
 ATENCIÓN: un PIN incorrecto cuenta contra el límite de intentos del token. El script hace UN único
