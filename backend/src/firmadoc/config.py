@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     revocation_mode: str = "soft-fail"  # hard-fail | soft-fail | off
     revocation_fetch: bool = True  # consultar CRL/OCSP por red
     crl_dir: str | None = None  # CRLs locales (.crl/.der), útil sin salida a internet
+    # Cotejar el CUIL del certificado con el del firmante de la solicitud (403 cuil_mismatch). Por defecto no:
+    # firma quien tiene el token y su PIN; la firma registra el certificado que firmó.
+    require_cuil_match: bool = False
     # Widget de firma
     signing_secret: str | None = None  # secreto HMAC de los tokens del widget (>= 32 caracteres)
     signing_token_ttl_seconds: int = 3600
@@ -28,7 +31,7 @@ class Settings(BaseSettings):
     # Panel Angular (frontend/): build compilado y orígenes extra desde los que puede embeber el widget
     frontend_dist: str = "frontend/dist/firmadoc-panel/browser"
     panel_origins: str = ""  # separados por coma, p. ej. http://localhost:4200 (servidor de desarrollo)
-    # Firmante de los PDF cargados desde el panel sin `signer` (con token, el CUIL debe ser el del certificado)
+    # Firmante de los PDF cargados desde el panel sin `signer` (con require_cuil_match, el CUIL del certificado)
     panel_signer_name: str = "Operador del panel"
     panel_signer_identifier: str = "panel"
     panel_signer_email: str = "panel@invalid"

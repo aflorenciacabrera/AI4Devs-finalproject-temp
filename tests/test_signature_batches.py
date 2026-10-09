@@ -296,7 +296,19 @@ def test_desafio_repetido_en_el_mismo_lote_se_rechaza(client, token_env, pki):
     assert r.status_code == 422
 
 
+def test_certificado_de_otra_persona_prepara_el_lote_por_defecto(client, session, token_env, pki):
+    """Sin FIRMADOC_REQUIRE_CUIL_MATCH el lote se prepara con cualquier certificado válido."""
+    batch_id = create_batch(client, 3, provider="token").json()["id"]
+    stranger = AgentSimulator(pki.ca.issue("Otra Persona", "27999999990"))  # CUIL que no es del firmante
+    r = client.post(
+        f"/api/v1/signature-batches/{batch_id}/prepare", json={"certificate_pem": stranger.certificate_pem}
+    )
+    assert r.status_code == 200, r.text
+    assert len(r.json()["challenges"]) == 3
+
+
 def test_certificado_rechazado_no_prepara_ninguno(client, session, token_env, pki):
+    token_env.require_cuil_match = True
     batch_id = create_batch(client, 3, provider="token").json()["id"]
     stranger = AgentSimulator(pki.ca.issue("Otra Persona", "27999999990"))  # CUIL que no es del firmante
     r = client.post(

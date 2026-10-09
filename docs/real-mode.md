@@ -33,10 +33,13 @@ Sin esa variable todo funciona como en desarrollo.
   su **raíz e intermedia** de la fuente oficial y copiarlas en `backend/trust/` (`.crt`/`.pem`), o agregarlas desde
   el panel `/admin`. Confirmar siempre la **huella SHA-256 por otro canal**: una raíz de origen dudoso invalida toda
   la validación.
-- **CUIL**: el servidor lo busca en el `serialNumber` del sujeto con formato `CUIL 20123456789`
-  (`extract_cuil` en `certificate_validation.py`). Los certificados de la AC ONTI del token de referencia lo traen
-  exactamente así (confirmado con `diagnose`). Si otra AC lo trae distinto, hay que ajustar esa función: es un único
-  lugar y tiene pruebas.
+- **CUIL**: el servidor lo extrae del `serialNumber` del sujeto con formato `CUIL 20123456789`
+  (`extract_cuil` en `certificate_validation.py`) y lo registra con la firma. Los certificados de la AC ONTI del
+  token de referencia lo traen exactamente así (confirmado con `diagnose`). **Por defecto no se coteja** con el
+  CUIL del firmante de la solicitud: firma quien tiene el token y su PIN. Si el organismo necesita garantizar que
+  firme exactamente la persona indicada en la solicitud, `FIRMADOC_REQUIRE_CUIL_MATCH=true` (el preflight avisa
+  con `cuil_match_disabled` mientras esté apagado). Si otra AC trae el CUIL distinto, hay que ajustar esa función:
+  es un único lugar y tiene pruebas.
 - **Revocación**: el modo real exige `hard-fail`. Hace falta que el servidor pueda consultar la CRL/OCSP de la AC
   (`FIRMADOC_REVOCATION_FETCH=true`) o tener CRL locales en `FIRMADOC_CRL_DIR`.
 

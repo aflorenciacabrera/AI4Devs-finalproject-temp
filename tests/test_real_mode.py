@@ -53,6 +53,24 @@ def test_advertencias_no_impiden(good):
     assert preflight.errors(preflight.check(good)) == []
 
 
+def test_sin_cotejo_de_cuil_es_advertencia_y_no_error(good):
+    assert good.require_cuil_match is False
+    assert "cuil_match_disabled" in codes(good, "warning")
+    assert "cuil_match_enabled" not in codes(good)
+    assert preflight.errors(preflight.check(good)) == []
+
+
+def test_sin_cotejo_de_cuil_tambien_avisa_fuera_del_modo_real(good):
+    good.real_mode = False
+    assert "cuil_match_disabled" in codes(good, "warning")
+
+
+def test_con_cotejo_de_cuil_es_informativo(good):
+    good.require_cuil_match = True
+    assert "cuil_match_enabled" in codes(good, "info")
+    assert "cuil_match_disabled" not in codes(good)
+
+
 @pytest.mark.parametrize(
     ("change", "code"),
     [

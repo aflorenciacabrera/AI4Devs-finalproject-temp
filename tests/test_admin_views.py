@@ -138,6 +138,7 @@ def test_la_historia_de_una_firma_con_token(client, admin, token_env, pki):
 
 
 def test_el_certificado_rechazado_aparece_en_la_historia(client, admin, token_env, pki):
+    token_env.require_cuil_match = True  # el rechazo por CUIL ajeno solo existe con el cotejo activado
     rid = create(client, provider="token").json()["id"]
     ajeno = pki.ca.issue("Otra Persona", "20999999995")
     assert prepare(client, rid, ajeno.pem).status_code == 403

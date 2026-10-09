@@ -169,13 +169,22 @@ REJECTIONS = [
     ("otra_ac", lambda p: p.other_ca.issue("Juan", CUIL), 422, "certificate_untrusted"),
     ("vencido", _expired, 422, "certificate_expired"),
     ("revocado", _revoked, 422, "certificate_revoked"),
+]
+
+# Solo con FIRMADOC_REQUIRE_CUIL_MATCH=true: por defecto el PIN del token es el único factor.
+CUIL_REJECTIONS = [
     ("cuil_ajeno", lambda p: p.ca.issue("Otra Persona", "20999999995"), 403, "cuil_mismatch"),
     ("sin_cuil", lambda p: p.ca.issue("Juan", None), 403, "cuil_mismatch"),
 ]
 
 
-@pytest.mark.parametrize(("name", "make", "status", "code"), REJECTIONS, ids=[r[0] for r in REJECTIONS])
+@pytest.mark.parametrize(
+    ("name", "make", "status", "code"),
+    REJECTIONS + CUIL_REJECTIONS,
+    ids=[r[0] for r in REJECTIONS + CUIL_REJECTIONS],
+)
 def test_prepare_rechaza_certificados(client, session, token_env, pki, name, make, status, code):
+    token_env.require_cuil_match = True
     ident = make(pki)
     pki.write_crls(Path(token_env.crl_dir))  # CRL con el certificado revocado, si corresponde
     rid = new_request(client)
@@ -194,6 +203,41 @@ def test_prepare_rechaza_certificados(client, session, token_env, pki, name, mak
     ).all()
     rejected = [e for e in events if e.event_type == "rejected"]
     assert len(rejected) == 1 and rejected[0].payload["code"] == code
+
+
+@pytest.mark.parametrize(
+    ("name", "make", "expected_cuil"),
+    [
+        ("cuil_ajeno", lambda p: p.ca.issue("Otra Persona", "20999999995"), "20999999995"),
+        ("sin_cuil", lambda p: p.ca.issue("Juan", None), None),
+    ],
+    ids=["cuil_ajeno", "sin_cuil"],
+)
+def test_sin_cotejo_de_cuil_firma_cualquier_certificado_valido(
+    client, session, token_env, pki, name, make, expected_cuil
+):
+    """Por defecto no se coteja el CUIL: firma quien tiene el token y su PIN, y queda registrado quién fue."""
+    assert token_env.require_cuil_match is False
+    ident = make(pki)
+    rid = new_request(client)
+    r = prepare(client, rid, ident.pem)
+    assert r.status_code == 200, r.text
+    assert len(r.json()["challenges"]) == 1
+
+    request = session.get(SignatureRequest, uuid.UUID(rid))
+    session.refresh(request)
+    assert request.status == RequestStatus.SIGNING
+    record = session.scalars(
+        select(Certificate).where(Certificate.serial_number == str(ident.cert.serial_number))
+    ).one()
+    assert record.cuil == expected_cuil
+
+    # y la firma completa de punta a punta con ese certificado
+    agent = AgentSimulator(ident)
+    ch = r.json()["challenges"][0]
+    done = complete(client, rid, ch["challenge_id"], agent.sign(ch["hash_to_sign"]))
+    assert done.status_code == 200, done.text
+    assert done.json()["status"] == "signed"
 
 
 def test_prepare_sin_certificado(client, token_env):

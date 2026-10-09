@@ -64,6 +64,14 @@ def check(settings: Settings) -> list[Finding]:
         warn("admin_disabled", "la administración está deshabilitada (falta FIRMADOC_ADMIN_TOKEN)")
     if settings.storage_backend == "files":
         warn("storage_files", "los PDF se guardan en disco: para que queden en la base, FIRMADOC_STORAGE_BACKEND=database")
+    if settings.require_cuil_match:
+        out.append(Finding(INFO, "cuil_match_enabled", "el CUIL del certificado debe coincidir con el del firmante"))
+    else:
+        warn(
+            "cuil_match_disabled",
+            "no se coteja el CUIL del certificado con el del firmante: quien tenga el enlace de firma y un "
+            "certificado válido con su PIN puede firmar (para exigirlo, FIRMADOC_REQUIRE_CUIL_MATCH=true)",
+        )
     if real:
         out.append(Finding(INFO, "local_disabled", "modo real: el proveedor 'local' (demostración) no está habilitado"))
     return out

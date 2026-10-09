@@ -26,7 +26,7 @@ def _token(settings: Settings) -> TokenAgentProvider:
         allow_fetching=settings.revocation_fetch,
         crls=load_crls(settings.crl_dir),
     )
-    return TokenAgentProvider(checker, trust)
+    return TokenAgentProvider(checker, trust, require_cuil_match=settings.require_cuil_match)
 
 
 def get_provider(provider: Provider, settings: Settings) -> SignatureProvider:

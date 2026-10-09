@@ -155,7 +155,17 @@ def test_certificado_revocado_mismo_codigo_que_la_api_de_integracion(client, ano
     assert (r.status_code, r.json()["code"]) == (422, "certificate_revoked")
 
 
-def test_cuil_distinto_mismo_codigo(client, anon, token_env, pki):
+def test_cuil_distinto_firma_por_defecto(client, anon, token_env, pki):
+    """Sin FIRMADOC_REQUIRE_CUIL_MATCH basta un certificado válido: el PIN del token es el único factor."""
+    rid, token = new_request(client, provider="token")
+    ajeno = pki.ca.issue("Otra Persona", "20999999995")
+    r = anon.post(f"{WIDGET}/{rid}/prepare", json={"certificate_pem": ajeno.pem}, headers=bearer(token))
+    assert r.status_code == 200, r.text
+    assert "hash_to_sign" in r.json()["challenges"][0]
+
+
+def test_cuil_distinto_mismo_codigo_con_cotejo(client, anon, token_env, pki):
+    token_env.require_cuil_match = True
     rid, token = new_request(client, provider="token")
     ajeno = pki.ca.issue("Otra Persona", "20999999995")
     r = anon.post(f"{WIDGET}/{rid}/prepare", json={"certificate_pem": ajeno.pem}, headers=bearer(token))

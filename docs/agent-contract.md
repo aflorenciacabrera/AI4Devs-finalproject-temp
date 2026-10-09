@@ -29,13 +29,13 @@ Este documento fija lo que el **agente local** (`agent/`, FIRDOC-21) y el **serv
 ## Certificado enviado a `prepare`
 
 - PEM del certificado del firmante (no la cadena, no la clave). La cadena se completa en el servidor con las anclas de `backend/trust/`.
-- El CUIL debe estar en el `serialNumber` del sujeto con formato `CUIL 20123456789` y coincidir con el del firmante de la solicitud.
+- El CUIL se extrae del `serialNumber` del sujeto con formato `CUIL 20123456789` y se registra con la firma. Solo con `FIRMADOC_REQUIRE_CUIL_MATCH=true` debe coincidir con el del firmante de la solicitud; por defecto el único factor que se exige es el PIN del token.
 
 ## Errores que el servidor devuelve
 
 | HTTP | `code` | Cuándo |
 |---|---|---|
-| 403 | `cuil_mismatch` | el CUIL del certificado no es el del firmante, o no tiene CUIL |
+| 403 | `cuil_mismatch` | solo con `FIRMADOC_REQUIRE_CUIL_MATCH=true`: el CUIL del certificado no es el del firmante, o no tiene CUIL |
 | 422 | `certificate_untrusted` | la cadena no llega a un ancla conocida |
 | 422 | `certificate_expired` | certificado vencido |
 | 422 | `certificate_revoked` | certificado revocado |

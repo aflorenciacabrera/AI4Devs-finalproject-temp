@@ -98,18 +98,17 @@ antes de arrancar. Pasos, en la PC donde está el token:
      "log_level": "INFO"
    }
    ```
-3. **Diagnóstico sin PIN** (solo lectura): lista el certificado del token y, en `serialNumber del sujeto`, el CUIL
-   que hay que pasarle a la demo:
+3. **Diagnóstico sin PIN** (solo lectura): comprueba que la biblioteca carga y lista el certificado del token,
+   con su emisor (para saber qué anclas hacen falta) y el CUIL del `serialNumber`:
    ```
    python -m firmadoc_agent --config "%APPDATA%\FirmadocAgent\config.json" diagnose
    ```
-4. **Demo con el titular del token** como firmante del panel (el CUIL debe ser exactamente el del certificado; si
-   no coincide, la firma se rechaza con `cuil_mismatch`):
-   ```
-   python -m firmadoc.demo --cuil <CUIL del diagnose> --nombre "<Titular como figura en el certificado>"
-   ```
-   `--email` es opcional (por defecto `<cuil>@invalid`). El token de prueba se genera igual, así que el camino
-   anterior sigue disponible.
+4. **Demo.** Alcanza con `python -m firmadoc.demo`: para firmar con token no se coteja el CUIL del certificado
+   con el del firmante de la solicitud (lo único que se exige es el PIN del token), y la firma queda registrada
+   con el titular real del certificado. Si querés que el panel muestre al titular del token como firmante de
+   los PDF que cargue, arrancala con `--cuil <CUIL del diagnose> --nombre "<Titular>"` (`--email` opcional).
+   Con `FIRMADOC_REQUIRE_CUIL_MATCH=true` en el entorno el servidor vuelve a exigir que el CUIL coincida
+   (`403 cuil_mismatch`), y entonces `--cuil` sí tiene que ser el del certificado.
 5. **Agente con el módulo PKCS#11**, en otra terminal (la demo imprime el comando con su puerto):
    ```
    python -m firmadoc_agent --config "%APPDATA%\FirmadocAgent\config.json" run --origin http://localhost:8000

@@ -25,9 +25,14 @@ def _pem_to_der(certificate_pem: str) -> bytes:
 class TokenAgentProvider:
     provider = Provider.TOKEN
 
-    def __init__(self, checker: CertificateChecker, trust: TrustStore):
+    def __init__(self, checker: CertificateChecker, trust: TrustStore, require_cuil_match: bool = False):
         self.checker = checker
         self.trust = trust
+        self.require_cuil_match = require_cuil_match
+
+    def _expected_cuil(self, signer: Signer) -> str | None:
+        """Solo con `FIRMADOC_REQUIRE_CUIL_MATCH`: por defecto firma quien tiene el token y su PIN."""
+        return signer.identifier if self.require_cuil_match else None
 
     def resolve_certificate(
         self, db: Session, certificate_pem: str | None, signer: Signer
@@ -35,7 +40,7 @@ class TokenAgentProvider:
         if not certificate_pem:
             raise invalid("falta 'certificate_pem': el proveedor token necesita el certificado")
         der = _pem_to_der(certificate_pem)
-        validated = self.checker.validate(der, signer.identifier)
+        validated = self.checker.validate(der, self._expected_cuil(signer))
 
         record = db.scalar(
             select(Certificate).where(Certificate.serial_number == validated.serial_number)
@@ -61,7 +66,7 @@ class TokenAgentProvider:
         return ResolvedCertificate(record, der)
 
     def revalidate_certificate(self, cert_der: bytes, signer: Signer) -> None:
-        self.checker.validate(cert_der, signer.identifier)
+        self.checker.validate(cert_der, self._expected_cuil(signer))
 
     def verify_result(self, pdf: bytes, cert_der: bytes) -> bool:
         return verify_last_signature(pdf, self.trust.roots, self.trust.intermediates)
