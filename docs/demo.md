@@ -28,8 +28,8 @@ Todo queda en `data/demo/` (ignorado por git), sin tocar tu base ni tu `.env`:
 
 | Archivo | Contenido |
 |---|---|
-| `firmadoc-demo.db` | base SQLite con el esquema completo y el seed de demostración |
-| `storage/` | PDF de los documentos |
+| `firmadoc-demo.db` | base SQLite con el esquema completo, el seed de demostración **y los PDF** (tabla `stored_blob`, almacén `database`, como en una instalación real; ver `database.md`) |
+| `storage/` | solo en entornos creados antes de que la demo guardara los PDF en la base: al arrancar, esos PDF se copian a la base (la guía dice cuántos) y los archivos quedan como copia, se pueden borrar. Si alguno falta o está corrupto, la demo no arranca y lo indica (`--reset` empieza de cero) |
 | `local-cert/` | certificado de demostración de «Firma propia» |
 | `demo.json` | token de administración y secreto de los enlaces del widget (se generan una vez y se conservan) |
 

@@ -46,11 +46,14 @@ def test_primer_arranque_crea_esquema_seed_y_archivos(demo_dir):
     assert env.created is True
     assert {"integrating_system", "document", "signature_request", "admin_event"} <= tables(demo_dir)
     assert count(demo_dir, "integrating_system") == 1
-    assert any((demo_dir / "storage").rglob("*.pdf"))  # el seed guarda sus PDF
+    assert count(demo_dir, "stored_blob") == 2  # los PDF del seed (v1 y v2) viven en la base
+    assert not (demo_dir / "storage").exists()  # ningún PDF en disco
     assert (demo_dir / "local-cert").is_dir()
     assert env.public_base_url == "http://localhost:8123"
+    assert env.migrated == 0
     assert os.environ["FIRMADOC_PUBLIC_BASE_URL"] == "http://localhost:8123"
     assert os.environ["FIRMADOC_DATABASE_URL"].endswith("firmadoc-demo.db")
+    assert os.environ["FIRMADOC_STORAGE_BACKEND"] == "database"
     assert os.environ["FIRMADOC_REAL_MODE"] == "false"
 
 
@@ -267,9 +270,15 @@ def test_la_guia_se_imprime_en_una_consola_cp1252_con_emoji_en_la_ruta(tmp_path,
     assert "Firma propia" in raw.getvalue().decode("cp1252")
 
 
-def test_el_entorno_preparado_permite_entrar_al_panel_y_firmar_con_firma_propia(demo_dir):
-    env = demo.prepare(demo_dir)
-    app.dependency_overrides[settings_dep] = lambda: Settings()  # lee las variables que fijó `prepare`
+def sign_from_panel(env, storage_backend: str | None = None) -> dict:
+    """Carga un PDF desde el panel y lo firma con «Firma propia» en el entorno que fijó `prepare`.
+
+    Con `storage_backend="files"` simula un entorno anterior, cuando la demo guardaba los PDF en disco.
+    """
+    settings = Settings()  # lee las variables que fijó `prepare`
+    if storage_backend:
+        settings = settings.model_copy(update={"storage_backend": storage_backend})
+    app.dependency_overrides[settings_dep] = lambda: settings
     try:
         client = TestClient(app)
         assert client.get("/health").status_code == 200
@@ -290,5 +299,62 @@ def test_el_entorno_preparado_permite_entrar_al_panel_y_firmar_con_firma_propia(
         done = client.post(f"{base}/complete", json={"signatures": []}, headers=h)
         assert done.status_code == 200, done.text
         assert done.json()["status"] == "signed" and done.json()["document"]["version_number"] == 2
+        signed = client.get(f"{base}/download", headers=h)
+        assert signed.status_code == 200 and signed.content.startswith(b"%PDF-")
+        return {"document_id": r.json()["document_id"], "signed": signed.content}
     finally:
         app.dependency_overrides.clear()
+
+
+def download_versions(env, document_id: str) -> list[bytes]:
+    app.dependency_overrides[settings_dep] = lambda: Settings()
+    try:
+        client = TestClient(app)
+        admin = {"Authorization": f"Bearer {env.admin_token}"}
+        out = []
+        for n in (1, 2):
+            r = client.get(f"/api/v1/admin/documents/{document_id}/versions/{n}/download", headers=admin)
+            assert r.status_code == 200, r.text
+            out.append(r.content)
+        return out
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_el_entorno_preparado_permite_entrar_al_panel_y_firmar_con_firma_propia(demo_dir):
+    env = demo.prepare(demo_dir)
+    sign_from_panel(env)
+    assert count(demo_dir, "stored_blob") == 4  # seed (2) + original y firmado del PDF cargado
+    assert not (demo_dir / "storage").exists()  # nada en disco: ni versiones ni estado intermedio
+
+
+def test_los_pdf_de_un_entorno_anterior_pasan_a_la_base(demo_dir):
+    env = demo.prepare(demo_dir)
+    legacy = sign_from_panel(env, storage_backend="files")  # entorno anterior: PDF en data/demo/storage
+    files = sorted((demo_dir / "storage").rglob("*.pdf"))
+    assert len(files) == 2 and count(demo_dir, "stored_blob") == 2
+
+    again = demo.prepare(demo_dir)
+    assert again.migrated == 2
+    assert count(demo_dir, "stored_blob") == 4
+    assert sorted((demo_dir / "storage").rglob("*.pdf")) == files  # no se borra nada
+    assert "Se copiaron 2 PDF" in demo.guide(again)
+    v1, v2 = download_versions(again, legacy["document_id"])
+    assert v2 == legacy["signed"] and v1.startswith(b"%PDF-")
+
+    third = demo.prepare(demo_dir)
+    assert third.migrated == 0 and count(demo_dir, "stored_blob") == 4
+    assert "Se copiaron" not in demo.guide(third)
+
+
+def test_un_pdf_anterior_ausente_o_corrupto_impide_arrancar(demo_dir):
+    env = demo.prepare(demo_dir)
+    sign_from_panel(env, storage_backend="files")
+    files = sorted((demo_dir / "storage").rglob("*.pdf"))
+    files[0].write_bytes(files[0].read_bytes() + b"corrupcion")
+    files[1].unlink()
+    with pytest.raises(demo.DemoError) as e:
+        demo.prepare(demo_dir)
+    message = str(e.value)
+    assert "2 PDF" in message and "--reset" in message
+    assert "hash" in message and "no se pudo leer" in message

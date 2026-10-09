@@ -258,6 +258,18 @@ def test_conflicto_si_el_destino_ya_tiene_otro_contenido(client, settings, sessi
     assert any("conflicto" in p for p in report.problems)
 
 
+def test_version_creada_en_el_destino_no_es_problema(client, settings, session):
+    """Un entorno que ya guarda en la base (p. ej. la demo) convive con versiones anteriores en disco."""
+    signed_with_files(client, settings, n=1)
+    settings.storage_backend = "database"
+    sign_fully(client)  # esta versión nace en la base: no tiene archivo
+    settings.storage_backend = "files"
+    report = migrate(session, "files-to-database", settings.storage_dir)
+    assert report.copied == 2 and report.skipped == 2 and only_demo(report)
+    again = migrate(session, "files-to-database", settings.storage_dir)
+    assert again.copied == 0 and again.skipped == 4 and only_demo(again)
+
+
 def test_base_a_archivos(client, settings, session, tmp_path):
     documents = signed_with_files(client, settings, n=1)
     migrate(session, "files-to-database", settings.storage_dir)

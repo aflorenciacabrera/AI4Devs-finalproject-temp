@@ -27,27 +27,31 @@ class Report:
         return f"copiados: {self.copied} · omitidos (ya estaban): {self.skipped} · problemas: {len(self.problems)}"
 
 
+def _read_or_none(storage, ref: str) -> bytes | None:
+    try:
+        return storage.read(ref)
+    except StorageError:
+        return None
+
+
 def _copy(db: Session, source, target, direction: str) -> Report:
     report = Report()
     for version in db.scalars(select(DocumentVersion).order_by(DocumentVersion.created_at)):
         ref = version.storage_ref
-        try:
-            data = source.read(ref)
-        except StorageError as e:
-            report.problems.append(f"{ref}: no se pudo leer del origen ({e})")
-            continue
-        if sha256_hex(data) != version.document_hash:
-            report.problems.append(f"{ref}: no coincide con el hash registrado de la versión")
-            continue
-        try:
-            existing = target.read(ref)
-        except StorageError:
-            existing = None
+        existing = _read_or_none(target, ref)
+        data = _read_or_none(source, ref)
         if existing is not None:
-            if existing == data:
+            # Ya está en el destino: una versión creada directamente ahí (sin origen) o ya copiada se omite.
+            if data is None or existing == data:
                 report.skipped += 1
             else:
                 report.problems.append(f"{ref}: ya existe en el destino con contenido distinto (conflicto)")
+            continue
+        if data is None:
+            report.problems.append(f"{ref}: no se pudo leer del origen (binario inexistente o ilegible)")
+            continue
+        if sha256_hex(data) != version.document_hash:
+            report.problems.append(f"{ref}: no coincide con el hash registrado de la versión")
             continue
         target.save(ref, data)
         report.copied += 1

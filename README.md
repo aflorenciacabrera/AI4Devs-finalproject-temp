@@ -121,7 +121,7 @@ pip install -e ".[dev]"
 python -m firmadoc.demo                                   # prepara data/demo/ y arranca en http://localhost:8000
 ```
 
-El comando crea una base y carpetas propias en `data/demo/` (no toca tu configuración), aplica las migraciones, carga el seed, muestra la URL del panel (`/admin`), el token de acceso y la API key de demostración. Opciones: `--port`, `--reset`, `--prepare-only`. Detalle en `docs/demo.md`.
+El comando crea una base y carpetas propias en `data/demo/` (no toca tu configuración), aplica las migraciones, carga el seed, muestra la URL del panel (`/admin`), el token de acceso y la API key de demostración. Los PDF quedan dentro de la base de la demo (tabla `stored_blob`), como en una instalación real. Opciones: `--port`, `--reset`, `--prepare-only`. Detalle en `docs/demo.md`.
 
 **Instalación manual (desarrollo).**
 

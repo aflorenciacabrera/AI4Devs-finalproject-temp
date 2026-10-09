@@ -73,6 +73,7 @@ class DemoEnv:
     frontend_built: bool = False  # panel Angular compilado (frontend/dist)
     token_dir: Path | None = None  # PKI de prueba para firmar con el agente (token de software)
     signer: PanelSigner | None = None  # firmante del panel (None = el del token de prueba)
+    migrated: int = 0  # PDF copiados de data/demo/storage a la base en este arranque (entornos anteriores)
 
     @property
     def panel_signer(self) -> PanelSigner:
@@ -156,11 +157,12 @@ def prepare(directory: Path, port: int = 8000, signer: PanelSigner | None = None
 
     from .db import make_engine, make_session_factory
     from .seed import seed_demo
-    from .storage import LocalFileStorage
+    from .storage import DatabaseStorage
+    from .storage_migrate import migrate
 
     directory.mkdir(parents=True, exist_ok=True)
-    (directory / "storage").mkdir(exist_ok=True)
     (directory / "local-cert").mkdir(exist_ok=True)
+    storage_dir = directory / "storage"  # solo entornos anteriores: hoy los PDF van a la base
     keys = _load_or_create_secrets(directory)
 
     database_url = f"sqlite:///{(directory / 'firmadoc-demo.db').as_posix()}"
@@ -171,8 +173,8 @@ def prepare(directory: Path, port: int = 8000, signer: PanelSigner | None = None
     os.environ.update(
         {
             "FIRMADOC_DATABASE_URL": database_url,
-            "FIRMADOC_STORAGE_DIR": str(directory / "storage"),
-            "FIRMADOC_STORAGE_BACKEND": "files",
+            "FIRMADOC_STORAGE_DIR": str(storage_dir),
+            "FIRMADOC_STORAGE_BACKEND": "database",  # los PDF viven en firmadoc-demo.db (tabla stored_blob)
             "FIRMADOC_LOCAL_CERT_DIR": str(directory / "local-cert"),
             "FIRMADOC_PUBLIC_BASE_URL": public_base_url,
             "FIRMADOC_ADMIN_TOKEN": keys["admin_token"],
@@ -195,7 +197,15 @@ def prepare(directory: Path, port: int = 8000, signer: PanelSigner | None = None
     engine = make_engine(database_url)
     try:
         with make_session_factory(engine)() as session:
-            created = seed_demo(session, LocalFileStorage(str(directory / "storage")))
+            # Entornos creados cuando la demo guardaba los PDF en disco: pasan a la base (idempotente, sin borrar).
+            report = migrate(session, "files-to-database", str(storage_dir))
+            if report.problems:
+                detail = "\n".join(f"  - {p}" for p in report.problems)
+                raise DemoError(
+                    f"no se pudieron pasar a la base {len(report.problems)} PDF de {storage_dir}:\n{detail}\n"
+                    "Restaurá los archivos o empezá de cero con --reset."
+                )
+            created = seed_demo(session, DatabaseStorage(session))
     finally:
         engine.dispose()
 
@@ -211,6 +221,7 @@ def prepare(directory: Path, port: int = 8000, signer: PanelSigner | None = None
         frontend_built=(frontend_dist() / "index.html").is_file(),
         token_dir=pki.directory,
         signer=signer,
+        migrated=report.copied,
     )
 
 
@@ -228,7 +239,15 @@ def guide(env: DemoEnv) -> str:
         f"  Token de acceso: {env.admin_token}",
         f"  API key demo:    {DEMO_API_KEY} (cabecera X-API-Key, para la API de integradores)",
         f"  Datos en:        {env.directory}",
+        "  PDF:             dentro de la base (firmadoc-demo.db, tabla stored_blob)",
         f"  Firmante del panel: {who.name} (CUIL {who.cuil}) — {kind}",
+    ]
+    if env.migrated:
+        lines += [
+            f"  Se copiaron {env.migrated} PDF de {env.directory / 'storage'} a la base;",
+            "  los archivos quedan como copia y se pueden borrar.",
+        ]
+    lines += [
         "",
         "Para firmar sin token: en el panel, «Firmar documento» → cargá un PDF → elegí «Firma propia».",
         "Es firma electrónica de demostración (sin presunción legal); no usa el token USB ni el agente.",
