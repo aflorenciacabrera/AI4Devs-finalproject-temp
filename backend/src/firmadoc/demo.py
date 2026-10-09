@@ -35,10 +35,15 @@ class DemoEnv:
     database_url: str
     created: bool  # True si el seed se cargó en esta ejecución
     widget_built: bool
+    frontend_built: bool = False  # panel Angular compilado (frontend/dist)
 
     @property
     def admin_url(self) -> str:
         return f"{self.public_base_url}/admin"
+
+    @property
+    def panel_url(self) -> str:
+        return f"{self.public_base_url}/panel"
 
 
 def default_directory() -> Path:
@@ -66,6 +71,10 @@ def reset(directory: Path) -> None:
 
 def widget_dist() -> Path:
     return ROOT / "widget" / "dist"
+
+
+def frontend_dist() -> Path:
+    return ROOT / "frontend" / "dist" / "firmadoc-panel" / "browser"
 
 
 def check_not_real_mode() -> None:
@@ -106,6 +115,7 @@ def prepare(directory: Path, port: int = 8000) -> DemoEnv:
             "FIRMADOC_ADMIN_TOKEN": keys["admin_token"],
             "FIRMADOC_SIGNING_SECRET": keys["signing_secret"],
             "FIRMADOC_WIDGET_DIST": str(widget_dist()),
+            "FIRMADOC_FRONTEND_DIST": str(frontend_dist()),
             "FIRMADOC_REAL_MODE": "false",
         }
     )
@@ -131,6 +141,7 @@ def prepare(directory: Path, port: int = 8000) -> DemoEnv:
         database_url=database_url,
         created=created,
         widget_built=(widget_dist() / "index.html").is_file(),
+        frontend_built=(frontend_dist() / "index.html").is_file(),
     )
 
 
@@ -141,7 +152,8 @@ def guide(env: DemoEnv) -> str:
         "",
         "Firmadoc en modo demostración (sin token USB)",
         "=" * 46,
-        f"  Panel:           {env.admin_url}",
+        f"  Panel:           {env.panel_url}" + ("" if env.frontend_built else "  (sin compilar: ver abajo)"),
+        f"  Panel estático:  {env.admin_url}",
         f"  Token de acceso: {env.admin_token}",
         f"  API key demo:    {DEMO_API_KEY} (cabecera X-API-Key, para la API de integradores)",
         f"  Datos en:        {env.directory}",
@@ -155,6 +167,12 @@ def guide(env: DemoEnv) -> str:
             "",
             "AVISO: el widget no está compilado, así que no se verá el módulo de firma.",
             "       Compilalo con:  cd widget && npm install && npm run build",
+        ]
+    if not env.frontend_built:
+        lines += [
+            "",
+            "AVISO: el panel Angular no está compilado (/panel responde 503); mientras tanto usá el panel estático.",
+            "       Compilalo con:  cd frontend && npm install && npm run build",
         ]
     lines += ["", "Ctrl+C para detener.", ""]
     return "\n".join(lines)

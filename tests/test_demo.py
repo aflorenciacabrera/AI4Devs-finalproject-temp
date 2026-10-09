@@ -115,6 +115,24 @@ def test_la_guia_muestra_el_panel_el_token_y_firma_propia(demo_dir):
     assert "Firma propia" in text and "firmadoc-demo-key" in text
 
 
+def test_la_guia_muestra_el_panel_angular(demo_dir, monkeypatch, tmp_path):
+    built = tmp_path / "browser"
+    built.mkdir()
+    (built / "index.html").write_text("<html></html>")
+    monkeypatch.setattr(demo, "frontend_dist", lambda: built)
+    env = demo.prepare(demo_dir, 8200)
+    assert env.frontend_built is True
+    assert "http://localhost:8200/panel" in demo.guide(env)
+    assert os.environ["FIRMADOC_FRONTEND_DIST"] == str(built)
+
+
+def test_avisa_si_el_panel_angular_no_esta_compilado(demo_dir, monkeypatch, tmp_path):
+    monkeypatch.setattr(demo, "frontend_dist", lambda: tmp_path / "sin-compilar")
+    env = demo.prepare(demo_dir)
+    assert env.frontend_built is False
+    assert "cd frontend && npm install && npm run build" in demo.guide(env)
+
+
 def test_avisa_si_el_widget_no_esta_compilado(demo_dir, monkeypatch, tmp_path):
     monkeypatch.setattr(demo, "widget_dist", lambda: tmp_path / "sin-compilar")
     env = demo.prepare(demo_dir)

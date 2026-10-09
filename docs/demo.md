@@ -11,8 +11,8 @@ python -m firmadoc.demo --prepare-only   # prepara el entorno y no arranca el se
 
 Al arrancar muestra la URL del panel, el token de acceso y la API key de demostración. Para firmar:
 
-1. Abrí el panel con la dirección que imprime (`http://localhost:8000/admin`; usá `localhost`, no `127.0.0.1`:
-   el widget solo se embebe desde el origen configurado).
+1. Abrí el panel con la dirección que imprime (`http://localhost:8000/panel`, el panel Angular; también está
+   el estático en `/admin`; usá `localhost`, no `127.0.0.1`: el widget solo se embebe desde el origen configurado).
 2. Ingresá con el token de acceso.
 3. En **Firmar documento**, cargá uno o varios PDF y elegí **Firma propia**.
 
@@ -44,6 +44,20 @@ cd widget
 npm install
 npm run build
 ```
+
+## Panel Angular
+
+Lo mismo vale para el panel Angular de `/panel` (`frontend/`): si no está compilado, `/panel` responde `503` y el
+comando lo avisa; mientras tanto sirve el panel estático de `/admin`. Para compilarlo:
+
+```
+cd frontend
+npm install
+npm run build
+```
+
+Para desarrollarlo con `npm start` (recarga en caliente en `http://localhost:4200/panel/`) contra la demo, arrancá
+la demo con `FIRMADOC_PANEL_ORIGINS=http://localhost:4200` en el entorno para que el widget acepte ese origen.
 
 ## Fuera de la demo
 
