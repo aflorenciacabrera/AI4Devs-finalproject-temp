@@ -94,14 +94,15 @@ function table(columns, rows, rowActions) {
   for (const row of rows) {
     const tr = el("tr");
     for (const c of columns) {
-      const cell = el("td", c.get ? c.get(row) : fmt(row[c.key]));
-      if (c.mono) cell.className = "mono";
-      tr.appendChild(cell);
+      const td = el("td", c.node ? null : c.get ? c.get(row) : fmt(row[c.key]));
+      if (c.node) td.appendChild(c.node(row));
+      if (c.mono) td.className = "mono";
+      tr.appendChild(td);
     }
     if (rowActions) {
-      const cell = el("td");
-      for (const node of rowActions(row)) cell.appendChild(node);
-      tr.appendChild(cell);
+      const actionCell = el("td");
+      for (const node of rowActions(row)) actionCell.appendChild(node);
+      tr.appendChild(actionCell);
     }
     t.appendChild(tr);
   }
@@ -126,25 +127,52 @@ function params(form) {
 
 // --- secciones --------------------------------------------------------------------------------
 
+const STATUS_LABELS = { signed: "Firmado", pending: "Pendiente", signing: "Firmando", failed: "Fallido" };
+const PROVIDER_LABELS = { token: "Token", local: "Propio", firmar: "FirmAR" };
+
+function chip(text, kind) {
+  return el("span", text, { class: "chip " + kind });
+}
+
+function dateOnly(value) {
+  return value ? new Date(value).toLocaleDateString("es-AR") : "";
+}
+
+function timeOnly(value) {
+  return value ? new Date(value).toLocaleTimeString("es-AR") : "";
+}
+
+function cell(...nodes) {
+  const wrap = el("span");
+  for (const n of nodes) wrap.appendChild(n);
+  return wrap;
+}
+
 async function loadRequests() {
+  $("documents-list").hidden = false;
+  $("document-detail").hidden = true;
   const q = params($("requests-filters"));
   q.set("limit", PAGE);
   q.set("offset", requestsOffset);
   const data = await api("GET", "/signature-requests?" + q);
   requestsTotal = data.total;
   replace($("requests-table"), table([
-    { label: "Fecha", get: (r) => fmt(r.created_at) },
-    { label: "Integrador", get: (r) => r.integrating_system.name },
-    { label: "Documento", get: (r) => r.document.external_document_id || r.document.id },
-    { label: "Estado doc.", get: (r) => r.document.signing_status },
-    { label: "Versión", get: (r) => fmt(r.document.current_version_number) },
-    { label: "Firmante", get: (r) => r.signer.name + " (" + r.signer.identifier + ")" },
-    { label: "Proveedor", key: "provider" },
-    { label: "Estado", key: "status" },
-    { label: "Certificado", get: (r) => (r.certificate ? r.certificate.subject : "-") },
+    { label: "Documento", node: (r) => cell(el("span", r.document.external_document_id || r.document.id), el("small", "v" + fmt(r.document.current_version_number), { class: "cell-sub" })) },
+    { label: "Firmante", node: (r) => cell(el("span", r.signer.name), el("small", r.signer.identifier, { class: "cell-sub" })) },
+    { label: "Fecha", node: (r) => cell(el("span", dateOnly(r.created_at)), el("small", timeOnly(r.created_at), { class: "cell-sub" })) },
+    { label: "Proveedor", get: (r) => PROVIDER_LABELS[r.provider] || r.provider },
+    { label: "Origen", get: (r) => (r.origin.kind === "batch" ? "Lote " + r.origin.label : "Individual") },
+    {
+      label: "Estado",
+      node: (r) => {
+        const nodes = [chip(STATUS_LABELS[r.status] || r.status, r.status)];
+        if (r.status === "pending" && r.document.signature_deadline) nodes.push(el("small", "Vence " + dateOnly(r.document.signature_deadline), { class: "cell-sub" }));
+        return cell(...nodes);
+      },
+    },
   ], data.items, (r) => {
-    const open = el("button", "Ver custodia", { type: "button" });
-    open.addEventListener("click", () => { $("custody-form").elements.document_id.value = r.document.id; switchTab("custody"); $("custody-form").requestSubmit(); });
+    const open = el("button", "Ver detalle", { type: "button" });
+    open.addEventListener("click", () => loadCustody(r.document.id).catch((e) => { if (e.message !== "unauthorized") show(e.message, "bad"); }));
     return [open];
   }));
   const from = data.total ? requestsOffset + 1 : 0;
@@ -153,29 +181,109 @@ async function loadRequests() {
   $("requests-next").disabled = requestsOffset + PAGE >= data.total;
 }
 
+async function downloadVersion(documentId, number) {
+  const response = await fetch(API + "/documents/" + encodeURIComponent(documentId) + "/versions/" + number + "/download", {
+    headers: { Authorization: "Bearer " + token },
+    cache: "no-store",
+    credentials: "omit",
+  });
+  if (response.status === 401) { logout("Acceso denegado: el token de administración no es válido."); return; }
+  if (!response.ok) throw new Error("No se pudo descargar la versión (" + response.status + ").");
+  const match = /filename="?([^";]+)"?/i.exec(response.headers.get("content-disposition") || "");
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = match ? match[1] : "documento-v" + number + ".pdf";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function downloadButton(documentId, number, label) {
+  const button = el("button", label, { type: "button" });
+  button.addEventListener("click", () => downloadVersion(documentId, number).catch((e) => show(e.message, "bad")));
+  return button;
+}
+
 async function loadCustody(documentId) {
   const data = await api("GET", "/documents/" + encodeURIComponent(documentId) + "/custody");
+  const doc = data.document;
   const box = el("div");
-  const doc = el("div", null, { class: "card" });
-  doc.appendChild(el("h3", "Documento " + (data.document.external_document_id || data.document.id)));
-  doc.appendChild(el("div", "Estado de firma: " + data.document.signing_status + " · Plazo: " + fmt(data.document.signature_deadline)));
-  box.appendChild(doc);
-  box.appendChild(el("h3", "Versiones"));
-  box.appendChild(table([
-    { label: "N°", key: "version_number" }, { label: "Origen", key: "origin" },
-    { label: "Nivel", key: "signature_level" }, { label: "Vigente", get: (v) => (v.is_current ? "sí" : "no") },
-    { label: "SHA-256", key: "document_hash", mono: true }, { label: "Fecha", get: (v) => fmt(v.created_at) },
-  ], data.versions));
-  for (const r of data.signature_requests) {
-    const card = el("div", null, { class: "card" });
-    card.appendChild(el("h3", "Solicitud " + r.id + " · " + r.provider + " · " + r.status));
-    card.appendChild(el("div", "Creada: " + fmt(r.created_at) + " · Firmada: " + fmt(r.signed_at)));
-    card.appendChild(table([{ label: "Evento", key: "event_type" }, { label: "Detalle", key: "payload" }, { label: "Fecha", get: (e) => fmt(e.created_at) }], r.events));
-    card.appendChild(table([{ label: "Desafío", key: "id", mono: true }, { label: "Vence", get: (c) => fmt(c.expires_at) }, { label: "Usado", get: (c) => fmt(c.consumed_at) }], r.challenges));
-    card.appendChild(table([{ label: "Webhook", key: "event_type" }, { label: "Estado", key: "status" }, { label: "Intentos", key: "attempts" }, { label: "Último error", key: "last_error" }], r.webhook_deliveries));
-    box.appendChild(card);
+
+  const back = el("button", "← Volver a Documentos", { type: "button" });
+  back.addEventListener("click", () => { loadRequests().catch((e) => { if (e.message !== "unauthorized") show(e.message, "bad"); }); });
+  box.appendChild(back);
+
+  const head = el("div", null, { class: "detail-head" });
+  const title = el("div");
+  title.appendChild(el("h2", doc.external_document_id || doc.id));
+  title.appendChild(el("div", "ID " + doc.id + (doc.integrating_system_name ? " · " + doc.integrating_system_name : ""), { class: "muted" }));
+  head.appendChild(title);
+  const actions = el("div", null, { class: "row-actions" });
+  actions.appendChild(chip(STATUS_LABELS[doc.signing_status] || ({ draft: "Borrador", pending_signature: "Pendiente de firma", signed: "Firmado" })[doc.signing_status] || doc.signing_status, doc.signing_status === "signed" ? "signed" : "pending"));
+  const current = data.versions.find((v) => v.is_current);
+  if (current && current.signature_level) actions.appendChild(downloadButton(doc.id, current.version_number, "Descargar PDF firmado"));
+  head.appendChild(actions);
+  box.appendChild(head);
+  if (doc.signature_deadline) box.appendChild(el("p", "Vence " + dateOnly(doc.signature_deadline), { class: "muted" }));
+
+  const grid = el("div", null, { class: "detail-grid" });
+
+  const custody = el("div", null, { class: "card" });
+  custody.appendChild(el("h3", "Cadena de custodia"));
+  const timeline = el("ol", null, { class: "timeline" });
+  for (const t of data.timeline) {
+    const item = el("li", null, { class: t.kind });
+    item.appendChild(el("span", dateOnly(t.at) + " " + timeOnly(t.at) + " · " + t.actor, { class: "when" }));
+    item.appendChild(el("span", t.title, { class: "title" }));
+    if (t.detail) item.appendChild(el("span", t.detail, { class: "detail" }));
+    timeline.appendChild(item);
   }
-  replace($("custody-result"), box);
+  if (!data.timeline.length) timeline.appendChild(el("li", "Sin eventos registrados."));
+  custody.appendChild(timeline);
+  grid.appendChild(custody);
+
+  const side = el("div");
+  const versions = el("div", null, { class: "card" });
+  versions.appendChild(el("h3", "Versiones"));
+  for (const v of [...data.versions].reverse()) {
+    const row = el("div", null, { class: "version-row" });
+    const label = el("span", "v" + v.version_number + " · " + (v.signature_level ? "firmada (PAdES " + v.signature_level + ")" : "original subida") + " · " + dateOnly(v.created_at) + " " + timeOnly(v.created_at));
+    row.appendChild(label);
+    const right = el("span", null, { class: "row-actions" });
+    if (v.is_current) right.appendChild(chip("Vigente", "active"));
+    right.appendChild(downloadButton(doc.id, v.version_number, "Descargar"));
+    row.appendChild(right);
+    versions.appendChild(row);
+  }
+  side.appendChild(versions);
+
+  const tech = el("div", null, { class: "card" });
+  tech.appendChild(el("h3", "Detalle técnico"));
+  const kv = el("dl", null, { class: "kv" });
+  const t = data.technical;
+  const rows = t
+    ? [
+        ["ID de transacción", t.transaction_id],
+        ["Proveedor", PROVIDER_LABELS[t.provider] || t.provider],
+        ["Nivel de firma", t.signature_level ? "PAdES " + t.signature_level : "-"],
+        ["Certificado", t.certificate ? t.certificate.subject : "-"],
+        ["Emisor", t.certificate ? t.certificate.issuer_subject + " · serie " + t.certificate.serial_number : "-"],
+        ["Hash original (SHA-256)", t.original_hash],
+        ["Hash documento firmado", t.signed_hash],
+        ["Firmante", t.signer ? t.signer.name + " (" + t.signer.identifier + ")" : "-"],
+      ]
+    : [["Estado", "Todavía no hay una firma completada."]];
+  for (const [k, v] of rows) { kv.appendChild(el("dt", k)); kv.appendChild(el("dd", fmt(v))); }
+  tech.appendChild(kv);
+  side.appendChild(tech);
+  grid.appendChild(side);
+  box.appendChild(grid);
+
+  $("documents-list").hidden = true;
+  $("document-detail").hidden = false;
+  replace($("document-detail"), box);
 }
 
 async function loadWebhooks() {
@@ -233,6 +341,85 @@ async function loadEvents() {
   ], data.items));
 }
 
+// --- Integradores -----------------------------------------------------------------------------
+
+function originsList(text) {
+  return text.split(/[\n,]/).map((o) => o.trim()).filter(Boolean);
+}
+
+function hideCredentials() {
+  const box = $("credentials");
+  box.textContent = "";  // las credenciales no se guardan en ningún lado: solo viven en esta pantalla
+  box.hidden = true;
+}
+
+function showCredentials(title, entries) {
+  const box = $("credentials");
+  box.textContent = "";
+  box.appendChild(el("strong", title));
+  box.appendChild(el("p", "Guardalas ahora: no se vuelven a mostrar.", { class: "muted" }));
+  for (const [label, value] of entries) {
+    box.appendChild(el("div", label));
+    box.appendChild(el("code", value));
+    const copy = el("button", "Copiar " + label, { type: "button" });
+    copy.addEventListener("click", () => {
+      if (navigator.clipboard) navigator.clipboard.writeText(value).then(() => show("Copiado.", "ok"), () => show("No se pudo copiar: seleccionalo a mano.", "bad"));
+    });
+    box.appendChild(copy);
+  }
+  const close = el("button", "Ya las guardé", { type: "button", class: "primary" });
+  close.addEventListener("click", hideCredentials);
+  box.appendChild(close);
+  box.hidden = false;
+}
+
+async function loadIntegrators() {
+  const data = await api("GET", "/integrators");
+  replace($("integrators-table"), table([
+    { label: "Nombre", get: (i) => i.name + (i.internal ? " (interno)" : "") },
+    { label: "Orígenes permitidos", get: (i) => (i.allowed_origins.length ? i.allowed_origins.join(", ") : "-") },
+    { label: "Estado", node: (i) => chip(i.status === "active" ? "Activo" : "Deshabilitado", i.status) },
+  ], data, (i) => {
+    if (i.internal) return [];
+    const wrap = el("span", null, { class: "row-actions" });
+    const edit = el("button", "Editar orígenes", { type: "button" });
+    edit.addEventListener("click", () => {
+      const form = $("origins-form");
+      form.dataset.id = i.id;
+      $("origins-name").textContent = i.name;
+      form.elements.origins.value = i.allowed_origins.join("\n");
+      form.hidden = false;
+      form.elements.origins.focus();
+    });
+    const secret = el("button", "Rotar secreto de webhook", { type: "button" });
+    secret.addEventListener("click", async () => {
+      if (!confirm("¿Rotar el secreto de webhook de " + i.name + "? El sistema deberá usar el nuevo para validar las notificaciones.")) return;
+      try {
+        const r = await api("POST", "/integrators/" + i.id + "/rotate-webhook-secret");
+        showCredentials("Nuevo secreto de webhook de " + i.name, [["Secreto de webhook", r.webhook_secret]]);
+        await loadIntegrators();
+      } catch (e) { if (e.message !== "unauthorized") show(e.message, "bad"); }
+    });
+    const key = el("button", "Rotar API key", { type: "button", class: "danger" });
+    key.addEventListener("click", async () => {
+      if (!confirm("¿Rotar la API key de " + i.name + "? La anterior deja de funcionar de inmediato.")) return;
+      try {
+        const r = await api("POST", "/integrators/" + i.id + "/rotate-api-key");
+        showCredentials("Nueva API key de " + i.name, [["API key", r.api_key]]);
+        await loadIntegrators();
+      } catch (e) { if (e.message !== "unauthorized") show(e.message, "bad"); }
+    });
+    const toggle = el("button", i.status === "active" ? "Deshabilitar" : "Habilitar", { type: "button", class: i.status === "active" ? "danger" : "" });
+    toggle.addEventListener("click", async () => {
+      const disabling = i.status === "active";
+      if (disabling && !confirm("¿Deshabilitar a " + i.name + "? No podrá usar la API hasta que lo habilites de nuevo.")) return;
+      await act(() => api("POST", "/integrators/" + i.id + (disabling ? "/disable" : "/enable")), disabling ? "Integrador deshabilitado." : "Integrador habilitado.", loadIntegrators);
+    });
+    for (const b of [edit, secret, key, toggle]) wrap.appendChild(b);
+    return [wrap];
+  }));
+}
+
 // --- flujo general ----------------------------------------------------------------------------
 
 async function act(operation, okMessage, reload) {
@@ -245,11 +432,17 @@ async function act(operation, okMessage, reload) {
   }
 }
 
-const LOADERS = { sign: async () => {}, requests: loadRequests, webhooks: loadWebhooks, anchors: loadAnchors, certificate: loadCertificate, events: loadEvents, custody: async () => {} };
+const LOADERS = {
+  sign: async () => {},
+  documents: loadRequests,
+  audit: () => Promise.all([loadWebhooks(), loadEvents()]),
+  integrators: async () => { hideCredentials(); $("origins-form").hidden = true; await loadIntegrators(); },
+  trust: () => Promise.all([loadAnchors(), loadCertificate()]),
+};
 
 function switchTab(name) {
   for (const section of document.querySelectorAll("[id^='tab-']")) section.hidden = section.id !== "tab-" + name;
-  for (const b of document.querySelectorAll("nav button")) b.setAttribute("aria-current", String(b.dataset.tab === name));
+  for (const b of document.querySelectorAll(".sidebar button")) b.setAttribute("aria-current", String(b.dataset.tab === name));
   show("");
   LOADERS[name]().catch((e) => { if (e.message !== "unauthorized") show(e.message, "bad"); });
 }
@@ -438,12 +631,28 @@ $("login-form").addEventListener("submit", (event) => { event.preventDefault(); 
 $("logout").addEventListener("click", () => logout(""));
 $("theme").addEventListener("click", toggleTheme);
 applyTheme(readTheme() || systemTheme());
-for (const b of document.querySelectorAll("nav button")) b.addEventListener("click", () => switchTab(b.dataset.tab));
+for (const b of document.querySelectorAll(".sidebar button")) b.addEventListener("click", () => switchTab(b.dataset.tab));
 $("requests-filters").addEventListener("submit", (event) => { event.preventDefault(); requestsOffset = 0; loadRequests().catch((e) => show(e.message, "bad")); });
 $("requests-prev").addEventListener("click", () => { requestsOffset = Math.max(0, requestsOffset - PAGE); loadRequests(); });
 $("requests-next").addEventListener("click", () => { if (requestsOffset + PAGE < requestsTotal) { requestsOffset += PAGE; loadRequests(); } });
-$("custody-form").addEventListener("submit", (event) => { event.preventDefault(); loadCustody($("custody-form").elements.document_id.value.trim()).catch((e) => { if (e.message !== "unauthorized") show(e.message, "bad"); }); });
 $("webhooks-filters").addEventListener("submit", (event) => { event.preventDefault(); loadWebhooks(); });
+$("integrator-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = $("integrator-form");
+  try {
+    const r = await api("POST", "/integrators", { name: form.elements.name.value.trim(), allowed_origins: originsList(form.elements.origins.value) });
+    form.reset();
+    showCredentials("Integrador «" + r.name + "» creado", [["API key", r.api_key], ["Secreto de webhook", r.webhook_secret]]);
+    show("Integrador creado.", "ok");
+    await loadIntegrators();
+  } catch (e) { if (e.message !== "unauthorized") show(e.message, "bad"); }
+});
+$("origins-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = $("origins-form");
+  await act(() => api("PATCH", "/integrators/" + form.dataset.id, { allowed_origins: originsList(form.elements.origins.value) }), "Orígenes actualizados.", async () => { form.hidden = true; await loadIntegrators(); });
+});
+$("origins-cancel").addEventListener("click", () => { $("origins-form").hidden = true; });
 $("anchor-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const pem = $("anchor-pem").value;

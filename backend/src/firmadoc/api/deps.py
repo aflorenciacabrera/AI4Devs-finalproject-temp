@@ -51,8 +51,8 @@ def current_system(
         raise Unauthorized("falta la cabecera X-API-Key")
     key_hash = hashlib.sha256(x_api_key.encode()).hexdigest()
     system = db.scalar(select(IntegratingSystem).where(IntegratingSystem.api_key_hash == key_hash))
-    if system is None:
-        raise Unauthorized("API key inválida")
+    if system is None or system.disabled_at is not None:
+        raise Unauthorized("API key inválida")  # mismo mensaje: no se revela si el sistema está deshabilitado
     return system
 
 

@@ -75,3 +75,42 @@ interno del panel con los métodos `token` y `local` según estén habilitados (
 de lote embebido. Responde `201` con `batch_id`, `signing_url` y, por documento, `document_id`, `filename`, `page_count`,
 `size_bytes` y `document_hash`. Queda un evento `panel_batch_upload` en `admin_event` (sin contenido). Los documentos
 cargados desde el panel se muestran en el widget con el nombre del archivo.
+
+## Navegación y vistas del panel
+
+La barra lateral tiene cinco secciones: **Firmar documento**, **Documentos**, **Auditoría** (entregas de webhook y
+eventos de administración), **Integradores** y **Confianza** (anclas de confianza y certificado propio).
+
+### Documentos
+
+Columnas: Documento (con `vN`), Firmante, Fecha, Proveedor, **Origen** («Individual» o «Lote #xxxxxxxx», los primeros
+8 caracteres del id del lote; las filas de un lote van juntas, ordenadas por la fecha del lote), Estado (Firmado,
+Pendiente con su **vencimiento**, Firmando, Fallido) y Acciones. Filtros: búsqueda `q` por nombre o id externo del
+documento o por firmante, estado, proveedor, `origin` (`individual` | `batch`) y fechas. Equivalente por API:
+`GET /api/v1/admin/signature-requests?origin=batch&q=…` (agrega `origin` y `document.signature_deadline` a cada ítem).
+
+### Detalle del documento (cadena de custodia)
+
+`GET /api/v1/admin/documents/{id}/custody` agrega `timeline` (entradas `{at, actor, title, detail, kind}` ordenadas por
+hora, armadas con los eventos de auditoría y las entregas de webhook: solicitud creada, método elegido, desafío
+preparado, firma recibida del agente, firma incrustada, nueva versión registrada, certificado rechazado, firma fallida,
+sello de tiempo no disponible, webhook entregado o fallido) y `technical` (ID de transacción, proveedor, nivel de firma,
+certificado, emisor y serie, firmante, hash original y hash del firmado vigente). Los datos originales (`events`,
+`challenges`, `webhook_deliveries`) se conservan. **No hay «IP de origen»**: el sistema no la registra.
+
+`GET /api/v1/admin/documents/{id}/versions/{n}/download` devuelve el PDF de esa versión (v1 original sin firma, v2 firmada)
+con el token de administración y `Cache-Control: no-store`; la interfaz lo baja con `fetch` y el token en `Authorization`.
+
+### Integradores
+
+Bajo `/api/v1/admin/integrators` (token de administración): `GET` (lista), `POST` (crea), `PATCH /{id}` (orígenes
+permitidos), `POST /{id}/rotate-webhook-secret`, `POST /{id}/rotate-api-key`, `POST /{id}/disable` y `/enable`.
+
+- La **API key y el secreto de webhook en claro se devuelven solo al crear y al rotar**; de la API key solo se guarda el
+  hash. La interfaz los muestra una vez, con «Copiar», y no los guarda en el navegador.
+- Un integrador **deshabilitado** no puede usar la API (mismo `401` que una clave inválida); los enlaces del widget que ya
+  emitió siguen sirviendo hasta vencer, para que las firmas en curso terminen. Un integrador no se borra: deja historia.
+- El sistema interno «Firmadoc (panel)» figura como interno y no se modifica (`409`).
+- Cada acción queda en `admin_event` (`integrator_created`, `integrator_origins_changed`,
+  `integrator_webhook_secret_rotated`, `integrator_api_key_rotated`, `integrator_disabled`, `integrator_enabled`) sin
+  secretos. Rotar la API key deja sin acceso al integrador hasta que use la nueva.

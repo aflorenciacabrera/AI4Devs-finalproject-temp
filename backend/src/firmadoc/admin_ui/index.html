@@ -28,15 +28,15 @@
     </section>
 
     <div id="app" hidden>
-      <nav aria-label="Secciones">
+      <div class="layout">
+      <nav class="sidebar" aria-label="Secciones">
         <button type="button" data-tab="sign">Firmar documento</button>
-        <button type="button" data-tab="requests">Solicitudes</button>
-        <button type="button" data-tab="custody">Custodia</button>
-        <button type="button" data-tab="webhooks">Webhooks</button>
-        <button type="button" data-tab="anchors">Anclas de confianza</button>
-        <button type="button" data-tab="certificate">Certificado propio</button>
-        <button type="button" data-tab="events">Eventos de administración</button>
+        <button type="button" data-tab="documents">Documentos</button>
+        <button type="button" data-tab="audit">Auditoría</button>
+        <button type="button" data-tab="integrators">Integradores</button>
+        <button type="button" data-tab="trust">Confianza</button>
       </nav>
+      <div class="content">
       <p id="message" role="status" hidden></p>
 
       <section id="tab-sign" hidden>
@@ -88,45 +88,47 @@
         </div>
       </section>
 
-      <section id="tab-requests" hidden>
-        <h2>Solicitudes de firma</h2>
-        <form id="requests-filters" class="filters">
-          <label>Estado
-            <select name="status">
-              <option value="">Todos</option>
-              <option value="pending">pending</option>
-              <option value="signing">signing</option>
-              <option value="signed">signed</option>
-              <option value="failed">failed</option>
-            </select>
-          </label>
-          <label>Proveedor
-            <select name="provider">
-              <option value="">Todos</option>
-              <option value="local">local</option>
-              <option value="token">token</option>
-              <option value="firmar">firmar</option>
-            </select>
-          </label>
-          <label>Firmante (CUIL o nombre)<input name="signer" type="text"></label>
-          <label>Desde<input name="created_from" type="date"></label>
-          <label>Hasta<input name="created_to" type="date"></label>
-          <button type="submit">Filtrar</button>
-        </form>
-        <div id="requests-table"></div>
-        <div class="pager"><button type="button" id="requests-prev">Anterior</button><span id="requests-page"></span><button type="button" id="requests-next">Siguiente</button></div>
+      <section id="tab-documents" hidden>
+        <div id="documents-list">
+          <h2>Documentos firmados</h2>
+          <p class="muted">Historial de documentos procesados por el módulo de firma.</p>
+          <form id="requests-filters" class="filters">
+            <label>Buscar por documento o firmante<input name="q" type="search" autocomplete="off"></label>
+            <label>Estado
+              <select name="status">
+                <option value="">Todos</option>
+                <option value="signed">Firmado</option>
+                <option value="pending">Pendiente</option>
+                <option value="signing">Firmando</option>
+                <option value="failed">Fallido</option>
+              </select>
+            </label>
+            <label>Proveedor
+              <select name="provider">
+                <option value="">Todos</option>
+                <option value="token">Token</option>
+                <option value="local">Propio</option>
+                <option value="firmar">FirmAR</option>
+              </select>
+            </label>
+            <label>Origen
+              <select name="origin">
+                <option value="">Todos</option>
+                <option value="individual">Individual</option>
+                <option value="batch">Lote</option>
+              </select>
+            </label>
+            <label>Desde<input name="created_from" type="date"></label>
+            <label>Hasta<input name="created_to" type="date"></label>
+            <button type="submit" class="primary">Filtrar</button>
+          </form>
+          <div id="requests-table"></div>
+          <div class="pager"><button type="button" id="requests-prev">Anterior</button><span id="requests-page"></span><button type="button" id="requests-next">Siguiente</button></div>
+        </div>
+        <div id="document-detail" hidden></div>
       </section>
 
-      <section id="tab-custody" hidden>
-        <h2>Cadena de custodia</h2>
-        <form id="custody-form" class="filters">
-          <label>Id del documento<input name="document_id" type="text" required></label>
-          <button type="submit">Consultar</button>
-        </form>
-        <div id="custody-result"></div>
-      </section>
-
-      <section id="tab-webhooks" hidden>
+      <section id="tab-audit" hidden>
         <h2>Entregas de webhook</h2>
         <form id="webhooks-filters" class="filters">
           <label>Estado
@@ -140,9 +142,28 @@
           <button type="submit">Filtrar</button>
         </form>
         <div id="webhooks-table"></div>
+        <h2>Eventos de administración</h2>
+        <div id="events-table"></div>
       </section>
 
-      <section id="tab-anchors" hidden>
+      <section id="tab-integrators" hidden>
+        <h2>Integradores</h2>
+        <p class="muted">Sistemas que usan Firmadoc por API. La API key y el secreto de webhook se muestran una sola vez.</p>
+        <div id="credentials" class="credentials" role="alert" hidden></div>
+        <form id="integrator-form" class="filters">
+          <label>Nombre<input name="name" type="text" required maxlength="200"></label>
+          <label>Orígenes permitidos (uno por línea, https://host[:puerto])<textarea name="origins" rows="2"></textarea></label>
+          <button type="submit" class="primary">Crear integrador</button>
+        </form>
+        <form id="origins-form" class="filters" hidden>
+          <label>Orígenes de <strong id="origins-name"></strong> (uno por línea)<textarea name="origins" rows="3"></textarea></label>
+          <button type="submit" class="primary">Guardar orígenes</button>
+          <button type="button" id="origins-cancel">Cancelar</button>
+        </form>
+        <div id="integrators-table"></div>
+      </section>
+
+      <section id="tab-trust" hidden>
         <h2>Anclas de confianza</h2>
         <div id="anchors-table"></div>
         <form id="anchor-form">
@@ -150,18 +171,12 @@
           <textarea id="anchor-pem" name="certificate_pem" rows="6" required></textarea>
           <button type="submit">Agregar ancla</button>
         </form>
-      </section>
-
-      <section id="tab-certificate" hidden>
         <h2>Certificado propio (proveedor local)</h2>
         <div id="certificate-info"></div>
         <button type="button" id="rotate" class="danger">Rotar certificado</button>
       </section>
-
-      <section id="tab-events" hidden>
-        <h2>Eventos de administración</h2>
-        <div id="events-table"></div>
-      </section>
+      </div>
+      </div>
     </div>
   </main>
   <script src="/admin/admin.js"></script>

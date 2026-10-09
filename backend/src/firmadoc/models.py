@@ -130,6 +130,7 @@ class IntegratingSystem(Base):
     allowed_origins: Mapped[str] = mapped_column(String(2000), default="")
     webhook_secret: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = _ts(default=True)
+    disabled_at: Mapped[datetime | None] = _ts(nullable=True)  # nulo = habilitado
 
 
 class Signer(Base):

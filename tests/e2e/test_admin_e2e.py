@@ -47,7 +47,7 @@ def test_ingreso_listado_y_texto_hostil(live, page):
     live.settings.admin_token = TOKEN
     sign_local(live, HOSTILE)
     login(page, live, TOKEN)
-    page.click("nav button[data-tab=requests]")  # la sección inicial es «Firmar documento»
+    page.click(".sidebar button[data-tab=documents]")  # la sección inicial es «Firmar documento»
     page.wait_for_selector("#requests-table table tr:nth-child(2)")
     assert page.is_visible("#app")
     table = page.inner_text("#requests-table")
@@ -55,7 +55,7 @@ def test_ingreso_listado_y_texto_hostil(live, page):
     assert page.evaluate("window.__pwned") is None  # y no se ejecutó
     assert page.locator("#requests-table img").count() == 0
 
-    page.fill("#requests-filters input[name=signer]", "20999999990")
+    page.fill("#requests-filters input[name=q]", "20999999990")
     page.click("#requests-filters button[type=submit]")
     page.locator("#requests-page", has_text="1 de 1").wait_for()
 
@@ -64,18 +64,18 @@ def test_custodia_desde_el_listado(live, page):
     live.settings.admin_token = TOKEN
     document_id = sign_local(live, "Persona Normal")
     login(page, live, TOKEN)
-    page.click("nav button[data-tab=requests]")  # la sección inicial es «Firmar documento»
+    page.click(".sidebar button[data-tab=documents]")  # la sección inicial es «Firmar documento»
     page.wait_for_selector("#requests-table table tr:nth-child(2)")
-    page.locator("#requests-table button", has_text="Ver custodia").first.click()
-    page.wait_for_selector("#custody-result .card")
-    assert document_id in page.inner_text("#custody-result") or "e2e-admin/1" in page.inner_text("#custody-result")
+    page.locator("#requests-table button", has_text="Ver detalle").first.click()
+    page.wait_for_selector("#document-detail .timeline li")
+    assert document_id in page.inner_text("#document-detail") or "e2e-admin/1" in page.inner_text("#document-detail")
 
 
 def test_rotar_pide_confirmacion(live, page):
     live.settings.admin_token = TOKEN
     login(page, live, TOKEN)
     page.wait_for_selector("#app:not([hidden])")
-    page.click("nav button[data-tab=certificate]")
+    page.click(".sidebar button[data-tab=trust]")
     page.wait_for_selector("#certificate-info .card")
 
     page.once("dialog", lambda d: d.dismiss())  # se cancela: no debe rotar

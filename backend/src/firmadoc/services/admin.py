@@ -26,6 +26,7 @@ from ..models import (
     IntegratingSystem,
     Provider,
     RequestStatus,
+    SignatureBatch,
     SignatureRequest,
     Signer,
     SigningChallenge,
@@ -63,6 +64,12 @@ def _like_escape(text: str) -> str:
     return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
+def _origin(request: SignatureRequest) -> dict:
+    if request.batch_id is None:
+        return {"kind": "individual"}
+    return {"kind": "batch", "batch_id": request.batch_id, "label": "#" + str(request.batch_id)[:8]}
+
+
 # --- historial de solicitudes ----------------------------------------------------------------------
 
 
@@ -73,12 +80,16 @@ def list_requests(
     status: RequestStatus | None = None,
     provider: Provider | None = None,
     signer: str | None = None,
+    origin: str | None = None,
+    q: str | None = None,
     created_from: datetime | None = None,
     created_to: datetime | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> dict:
     limit, offset = _page(limit, offset)
+    if origin not in (None, "individual", "batch"):
+        raise Unprocessable("'origin' debe ser 'individual' o 'batch'")
     filters = []
     if integrating_system_id:
         filters.append(SignatureRequest.integrating_system_id == integrating_system_id)
@@ -90,6 +101,19 @@ def list_requests(
         pattern = f"%{_like_escape(signer.lower())}%"
         filters.append(
             or_(Signer.identifier == signer, func.lower(Signer.full_name).like(pattern, escape="\\"))
+        )
+    if origin == "batch":
+        filters.append(SignatureRequest.batch_id.is_not(None))
+    elif origin == "individual":
+        filters.append(SignatureRequest.batch_id.is_(None))
+    if q:
+        pattern = f"%{_like_escape(q.lower())}%"
+        filters.append(
+            or_(
+                func.lower(Document.external_document_id).like(pattern, escape="\\"),
+                Signer.identifier == q,
+                func.lower(Signer.full_name).like(pattern, escape="\\"),
+            )
         )
     if created_from:
         filters.append(SignatureRequest.created_at >= _aware(created_from))
@@ -104,13 +128,22 @@ def list_requests(
             .join(Signer, Signer.id == SignatureRequest.signer_id)
             .outerjoin(Certificate, Certificate.id == SignatureRequest.certificate_id)
             .outerjoin(DocumentVersion, DocumentVersion.id == Document.current_version_id)
+            .outerjoin(SignatureBatch, SignatureBatch.id == SignatureRequest.batch_id)
             .where(*filters)
         )
 
     total = db.scalar(joined(select(func.count(SignatureRequest.id))))
     rows = db.execute(
-        joined(select(SignatureRequest, Document, IntegratingSystem, Signer, Certificate, DocumentVersion))
-        .order_by(SignatureRequest.created_at.desc(), SignatureRequest.id)
+        joined(
+            select(SignatureRequest, Document, IntegratingSystem, Signer, Certificate, DocumentVersion, SignatureBatch)
+        )
+        # Las solicitudes de un lote van juntas: se agrupan por la fecha del lote.
+        .order_by(
+            func.coalesce(SignatureBatch.created_at, SignatureRequest.created_at).desc(),
+            SignatureRequest.batch_id,
+            SignatureRequest.created_at.desc(),
+            SignatureRequest.id,
+        )
         .limit(limit)
         .offset(offset)
     ).all()
@@ -130,12 +163,14 @@ def list_requests(
                     "id": d.id,
                     "external_document_id": d.external_document_id,
                     "signing_status": d.signing_status.value,
+                    "signature_deadline": d.signature_deadline,
                     "current_version_number": v.version_number if v else None,
                 },
+                "origin": _origin(r),
                 "signer": {"name": sg.full_name, "identifier": sg.identifier},
                 "certificate": {"subject": c.subject, "serial_number": c.serial_number} if c else None,
             }
-            for r, d, s, sg, c, v in rows
+            for r, d, s, sg, c, v, _batch in rows
         ],
     }
 
@@ -198,11 +233,13 @@ def custody(db: Session, document_id: uuid.UUID) -> dict:
                 "webhook_deliveries": [_delivery(d) for d in deliveries],  # sin el cuerpo
             }
         )
+    system = db.get(IntegratingSystem, document.integrating_system_id)
     return {
         "document": {
             "id": document.id,
             "external_document_id": document.external_document_id,
             "integrating_system_id": document.integrating_system_id,
+            "integrating_system_name": system.name if system else None,
             "signing_status": document.signing_status.value,
             "signature_deadline": document.signature_deadline,
             "current_version_id": document.current_version_id,
@@ -221,7 +258,149 @@ def custody(db: Session, document_id: uuid.UUID) -> dict:
             for v in versions
         ],
         "signature_requests": out_requests,
+        "timeline": _timeline(db, system, requests, out_requests),
+        "technical": _technical(db, document, versions, requests),
     }
+
+
+# --- línea de tiempo y detalle técnico --------------------------------------------------------------
+
+ENGINE = "Motor Firmadoc"
+AGENT = "Firmadoc Agent"
+PROVIDER_LABELS = {"token": "Token (firma digital)", "local": "Firma propia (demostración)", "firmar": "Firma remota"}
+
+
+def _event_entry(event: dict, request: dict, system_name: str, signer_name: str) -> list[dict]:
+    """Entradas de la línea de tiempo para un evento de auditoría (puede ser más de una)."""
+    kind, payload, at = event["event_type"], event["payload"] or {}, event["created_at"]
+
+    def entry(title: str, actor: str, detail: str, k: str = "info") -> dict:
+        return {"at": at, "actor": actor, "title": title, "detail": detail, "kind": k}
+
+    if kind == "created":
+        provider = PROVIDER_LABELS.get(payload.get("provider", ""), payload.get("provider", ""))
+        return [entry("Solicitud creada por el sistema integrador", system_name, f"Método inicial: {provider}")]
+    if kind == "provider_selected":
+        new = PROVIDER_LABELS.get(payload.get("to", ""), payload.get("to", ""))
+        return [entry("Método de firma elegido", signer_name, f"Se eligió: {new}")]
+    if kind == "prepared":
+        return [
+            entry(
+                "Desafío preparado: hash SHA-256 a firmar",
+                ENGINE,
+                "De un solo uso, vence a los pocos minutos y queda atado a la sesión",
+            )
+        ]
+    if kind == "rejected":
+        return [entry("Certificado rechazado", ENGINE, payload.get("reason") or payload.get("code") or "", "error")]
+    if kind == "signed":
+        out = []
+        if request["provider"] == "token":
+            out.append(entry("Firma recibida del agente local", AGENT, "El PIN se ingresó en la PC del firmante; no llega al servidor"))
+        level = payload.get("signature_level") or ""
+        out.append(entry("Firma PAdES incrustada en el documento", ENGINE, f"Nivel {level}".strip()))
+        out.append(
+            entry(
+                f"Nueva versión registrada: v{payload.get('version_number')}, vigente",
+                ENGINE,
+                "Las versiones anteriores se conservan sin cambios",
+                "ok",
+            )
+        )
+        return out
+    if kind == "failed":
+        return [entry("La firma falló", ENGINE, payload.get("reason") or payload.get("code") or "", "error")]
+    if kind == "timestamp_unavailable":
+        return [entry("Sello de tiempo no disponible", ENGINE, payload.get("reason") or "", "warning")]
+    return [entry(kind, ENGINE, "")]
+
+
+def _delivery_entry(d: dict, system_name: str) -> dict:
+    ok = d["status"] == "delivered"
+    failed = d["status"] == "failed"
+    title = (
+        "Webhook entregado al sistema integrador"
+        if ok
+        else "Webhook fallido" if failed else "Webhook pendiente de entrega"
+    )
+    detail = f"Intento {d['attempts']}"
+    if d.get("response_status"):
+        detail += f" · respuesta {d['response_status']}"
+    return {
+        "at": d["last_attempt_at"] or d["created_at"],
+        "actor": ENGINE,
+        "title": title,
+        "detail": detail,
+        "kind": "ok" if ok else "error" if failed else "warning",
+    }
+
+
+def _timeline(db: Session, system, requests: list[SignatureRequest], out_requests: list[dict]) -> list[dict]:
+    system_name = system.name if system else "Sistema integrador"
+    entries: list[tuple[datetime, int, dict]] = []
+    order = 0
+    for r, out in zip(requests, out_requests, strict=True):
+        signer = db.get(Signer, r.signer_id)
+        signer_name = signer.full_name if signer else "Firmante"
+        for event in out["events"]:
+            if event["event_type"].startswith("batch_"):
+                continue
+            for item in _event_entry(event, out, system_name, signer_name):
+                order += 1
+                entries.append((_aware(item["at"]), order, {**item, "signature_request_id": r.id}))
+        for d in out["webhook_deliveries"]:
+            item = _delivery_entry(d, system_name)
+            order += 1
+            entries.append((_aware(item["at"]), order, {**item, "signature_request_id": r.id}))
+    entries.sort(key=lambda t: (t[0], t[1]))
+    return [e for _, _, e in entries]
+
+
+def _technical(
+    db: Session, document: Document, versions: list[DocumentVersion], requests: list[SignatureRequest]
+) -> dict | None:
+    """Datos técnicos de la última firma completada. Sin IP de origen: el sistema no la registra."""
+    signed = [r for r in requests if r.status == RequestStatus.SIGNED]
+    if not signed:
+        return None
+    request = max(signed, key=lambda r: _aware(r.signed_at) or datetime.min.replace(tzinfo=UTC))
+    version = next((v for v in versions if v.signature_request_id == request.id), None)
+    certificate = db.get(Certificate, request.certificate_id) if request.certificate_id else None
+    signer = db.get(Signer, request.signer_id)
+    original = min(versions, key=lambda v: v.version_number) if versions else None
+    return {
+        "transaction_id": request.id,
+        "provider": request.provider.value,
+        "signature_level": version.signature_level.value if version and version.signature_level else None,
+        "certificate": (
+            {
+                "subject": certificate.subject,
+                "issuer_subject": certificate.issuer_subject,
+                "serial_number": certificate.serial_number,
+            }
+            if certificate
+            else None
+        ),
+        "signer": {"name": signer.full_name, "identifier": signer.identifier} if signer else None,
+        "original_hash": original.document_hash if original else None,
+        "signed_hash": version.document_hash if version else None,
+        "signed_version_number": version.version_number if version else None,
+    }
+
+
+def version_download(db: Session, storage, document_id: uuid.UUID, number: int) -> tuple[bytes, str]:
+    """El PDF de una versión (lectura de administración). Devuelve los bytes y un nombre de archivo."""
+    document = db.get(Document, document_id)
+    version = db.scalar(
+        select(DocumentVersion).where(
+            DocumentVersion.document_id == document_id, DocumentVersion.version_number == number
+        )
+    )
+    if document is None or version is None:
+        raise NotFound("versión inexistente")
+    base = document.external_document_id or str(document.id)
+    safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in base)
+    return storage.read(version.storage_ref), f"{safe}-v{number}.pdf"
 
 
 # --- webhooks ---------------------------------------------------------------------------------------
