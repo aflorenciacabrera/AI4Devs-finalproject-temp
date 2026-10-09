@@ -150,6 +150,30 @@ def test_sistema_interno_se_crea_una_vez(client, admin, session):
     assert systems[0].allowed_origins == "http://test"
 
 
+def test_origenes_extra_del_panel(client, admin, session, settings, tmp_path):
+    settings.panel_origins = "http://localhost:4200/, http://test ,,"
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<html></html>")
+    settings.widget_dist = str(dist)
+    body = upload(client, admin).json()
+    assert panel_systems(session)[0].allowed_origins == "http://test,http://localhost:4200"
+    assert frame_ancestors(client.get(f"/sign/{body['request_id']}")) == "frame-ancestors http://test http://localhost:4200"
+
+
+def test_los_origenes_siguen_a_la_configuracion(client, admin, session, settings):
+    upload(client, admin)
+    assert panel_systems(session)[0].allowed_origins == "http://test"
+    settings.panel_origins = "http://localhost:4200"
+    upload(client, admin)
+    systems = panel_systems(session)
+    assert len(systems) == 1
+    assert systems[0].allowed_origins == "http://test,http://localhost:4200"
+    settings.panel_origins = ""
+    upload(client, admin)
+    assert panel_systems(session)[0].allowed_origins == "http://test"
+
+
 def test_ninguna_api_key_autentica_contra_el_sistema_interno(client, admin, session):
     upload(client, admin)
     system = panel_systems(session)[0]

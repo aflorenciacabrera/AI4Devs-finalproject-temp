@@ -19,6 +19,20 @@ Todas las rutas de la API usan `Authorization: Bearer <token>`.
 | `GET /local-certificate` · `POST /local-certificate/rotate` | Certificado propio del proveedor `local` |
 | `GET /events` | Acciones de administración registradas |
 
+## Panel Angular (`/panel`)
+
+Además del panel estático de `/admin`, `frontend/` contiene el mismo panel como aplicación **Angular 21 + PrimeNG 21**
+(ver `frontend/README.md`). El backend lo sirve en `GET /panel` desde `FIRMADOC_FRONTEND_DIST` (por defecto
+`frontend/dist/firmadoc-panel/browser`; se compila con `npm run build` en `frontend/`). Sin build responde `503`
+(`code: frontend_not_built`); sin token de administración, `404`.
+
+- Misma CSP que `/admin`, con `base-uri 'self'` (el build lleva `<base href="/panel/">`) y un **nonce por pedido** en
+  `style-src` para los estilos que Angular y PrimeNG inyectan en tiempo de ejecución: el servidor lo escribe en el
+  atributo `ngCspNonce` de `<app-root>`.
+- En desarrollo (`ng serve` en `http://localhost:4200`), `FIRMADOC_PANEL_ORIGINS=http://localhost:4200` agrega ese
+  origen a los permitidos del sistema interno «Firmadoc (panel)» (se sincronizan con la configuración en cada carga
+  de un PDF), para que el widget acepte ser enmarcado desde ahí. Fuera de desarrollo se deja vacía.
+
 ## Qué queda registrado
 
 Las acciones que **modifican** algo (reenviar un webhook, agregar/quitar un ancla, rotar el certificado) se

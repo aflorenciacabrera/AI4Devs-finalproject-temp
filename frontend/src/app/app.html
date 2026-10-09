@@ -1,0 +1,33 @@
+<header class="topbar">
+  <h1>Firmadoc · Administración</h1>
+  <div class="header-actions">
+    <p-button [icon]="theme.icon()" [text]="true" [rounded]="true" severity="secondary" [ariaLabel]="theme.label()" [title]="theme.label()" (onClick)="theme.toggle()" />
+    @if (api.loggedIn()) {
+      <p-button label="Cerrar sesión" severity="secondary" [outlined]="true" size="small" (onClick)="api.logout()" />
+    }
+  </div>
+</header>
+
+<main>
+  @if (!api.loggedIn()) {
+    <app-login />
+  } @else {
+    <div class="layout">
+      <nav class="sidebar" aria-label="Secciones">
+        <p-menu [model]="menu()" styleClass="sidebar-menu" ariaLabel="Secciones" />
+      </nav>
+      <div class="content">
+        @switch (tab()) {
+          @case ('sign') { <app-sign /> }
+          @case ('documents') { <app-documents /> }
+          @case ('audit') { <app-audit /> }
+          @case ('integrators') { <app-integrators /> }
+          @case ('trust') { <app-trust /> }
+        }
+      </div>
+    </div>
+  }
+</main>
+
+<p-toast position="top-center" />
+<p-confirmdialog header="Confirmar" acceptLabel="Sí" rejectLabel="No" rejectButtonStyleClass="p-button-text" />

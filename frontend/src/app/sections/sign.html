@@ -1,0 +1,78 @@
+<h2>Firmar documento</h2>
+<p class="muted">Cargá un PDF y firmalo con tu token. Firmadoc guarda el original y la versión firmada.</p>
+
+@if (ready(); as r) {
+  <div class="card doc-card" id="sign-ready">
+    <div>
+      <strong id="sign-name">{{ r.name }}</strong>
+      <div class="muted">{{ r.meta }}</div>
+      @if (r.documents; as docs) {
+        <ul class="staged-list" id="sign-docs">
+          @for (d of docs; track d.document_id) {
+            <li>
+              <span class="file-name">{{ d.filename }}</span>
+              <span class="muted">{{ pages(d.page_count) }} · {{ d.size_bytes | size }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+    <div class="doc-actions">
+      <p-button label="Reemplazar" severity="secondary" [outlined]="true" (onClick)="replace()" />
+      <p-button label="Quitar" severity="secondary" [outlined]="true" (onClick)="reset()" />
+    </div>
+  </div>
+  <p class="muted">Se guarda como versión original (v1). Al firmar, la versión firmada será la v2 y quedará como vigente.</p>
+  <div class="sign-widget">
+    <iframe
+      #frame
+      [src]="r.url"
+      title="Firma de documento (Firmadoc)"
+      allow="local-network-access; local-network; loopback-network"
+      sandbox="allow-scripts allow-same-origin allow-downloads"
+      referrerpolicy="no-referrer"></iframe>
+  </div>
+  @if (result(); as res) {
+    <p-message [severity]="res.severity" role="status" id="sign-result">{{ res.text }}</p-message>
+  }
+} @else {
+  <div class="sign-layout" id="sign-upload">
+    <div class="sign-main">
+      <p-fileupload
+        #uploader
+        name="documents[]"
+        [customUpload]="true"
+        [multiple]="true"
+        accept="application/pdf,.pdf"
+        [maxFileSize]="maxBytes"
+        [disabled]="uploading()"
+        chooseLabel="Seleccionar archivos"
+        [uploadLabel]="uploadLabel()"
+        cancelLabel="Cancelar"
+        invalidFileTypeMessageSummary="{0}:"
+        invalidFileTypeMessageDetail="no es un PDF. Solo se pueden cargar archivos PDF."
+        invalidFileSizeMessageSummary="{0}:"
+        invalidFileSizeMessageDetail="supera el tamaño máximo de {0}."
+        (onSelect)="onSelect($event)"
+        (onRemove)="onRemove()"
+        (onClear)="onClear()"
+        (uploadHandler)="upload($event.files)">
+        <ng-template #empty>
+          <div class="dropzone-hint">
+            <strong>Arrastrá uno o varios PDF acá</strong>
+            <span>o seleccionalos desde tu PC. Si cargás varios, se firman en lote con un solo PIN.</span>
+          </div>
+        </ng-template>
+      </p-fileupload>
+    </div>
+    <aside class="sign-help" aria-label="Cómo se firma">
+      <h3>Cómo se firma</h3>
+      <ol class="steps">
+        <li><strong>Cargá el PDF</strong> Queda guardado como versión original (v1).</li>
+        <li><strong>Elegí el método de firma</strong> Con token, remota o propia (demostración).</li>
+        <li><strong>Elegí el certificado y confirmá con el PIN</strong> El PIN se ingresa en tu PC, en Firmadoc Agent.</li>
+        <li><strong>Descargá el documento firmado</strong> Queda como nueva versión vigente; el original se conserva.</li>
+      </ol>
+    </aside>
+  </div>
+}

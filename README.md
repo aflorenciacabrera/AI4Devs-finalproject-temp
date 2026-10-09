@@ -196,7 +196,7 @@ flowchart TB
         Valid["Validación de confianza\n(cadena, vigencia, CRL/OCSP, CUIL)"]
         Audit["Servicio de auditoría\n(append-only)"]
         Webhook["Despachador de webhooks"]
-        Admin["Panel de administración\n(React SPA)"]
+        Admin["Panel de administración\n(Angular + PrimeNG)"]
         DB[("PostgreSQL")]
     end
 
@@ -259,7 +259,7 @@ El navegador solo transporta mensajes entre ambos lados: **el agente no tiene cr
 | Servicio de auditoría | FastAPI + PostgreSQL | Registra cada evento del ciclo de vida de una firma, de forma inmutable (append-only) |
 | Despachador de webhooks | FastAPI (background tasks) | Notifica de forma asíncrona al sistema integrador cuando cambia el estado de una solicitud |
 | Widget embebible | React (+ wrapper Web Component) | UI de firma: lista certificados, coordina servidor y agente, muestra el estado |
-| Panel de administración | React SPA | Consulta de auditoría, gestión de sistemas integradores/API keys, certificados y confianza |
+| Panel de administración | Angular 21 + PrimeNG 21 (`frontend/`), servido por el backend en `/panel`; además una versión estática sin dependencias en `/admin` | Carga de PDF y widget embebido, consulta de auditoría, gestión de sistemas integradores/API keys, certificados y confianza |
 | Base de datos | PostgreSQL | Persistencia relacional de todo el dominio |
 
 ### **2.3. Descripción de alto nivel del proyecto y estructura de ficheros**
@@ -290,7 +290,7 @@ firmadoc/
 ├── widget/                      # widget de firma embebible (React)
 │   ├── src/
 │   └── package.json
-├── admin-panel/                 # panel de administración/auditoría (React)
+├── frontend/                    # panel de administración/auditoría (Angular + PrimeNG)
 │   ├── src/
 │   └── package.json
 ├── docker-compose.yml
@@ -298,7 +298,7 @@ firmadoc/
 └── prompts.md                   # registro de uso de IA (raíz del repo, formato oficial)
 ```
 
-Sigue una separación clásica por capas dentro de `backend/` (API / dominio / infraestructura), con `providers/` aislado explícitamente porque es el punto de extensión más importante del sistema. `widget/` y `admin-panel/` son dos frontends React independientes porque tienen ciclos de vida y audiencias distintas (uno se embebe en sistemas de terceros, el otro es de uso interno). `agent/` es un proyecto aparte porque se instala en las PC de los usuarios, no en el servidor.
+Sigue una separación clásica por capas dentro de `backend/` (API / dominio / infraestructura), con `providers/` aislado explícitamente porque es el punto de extensión más importante del sistema. `widget/` (React) y `frontend/` (Angular + PrimeNG) son dos frontends independientes porque tienen ciclos de vida y audiencias distintas (uno se embebe en sistemas de terceros, el otro es de uso interno); el panel Angular es además el ejemplo de referencia de cómo una aplicación Angular embebe el widget. `agent/` es un proyecto aparte porque se instala en las PC de los usuarios, no en el servidor.
 
 ### **2.4. Infraestructura y despliegue**
 

@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     widget_dist: str = "widget/dist"  # widget compilado
     max_batch_size: int = 50  # documentos por lote de firma
     admin_token: str | None = None  # token de administración (>= 32 caracteres); sin él, deshabilitada
+    # Panel Angular (frontend/): build compilado y orígenes extra desde los que puede embeber el widget
+    frontend_dist: str = "frontend/dist/firmadoc-panel/browser"
+    panel_origins: str = ""  # separados por coma, p. ej. http://localhost:4200 (servidor de desarrollo)
     # Firma remota (`firmar`): habilitada solo con firmar_base_url
     firmar_base_url: str | None = None
     firmar_client_id: str = "firmadoc"

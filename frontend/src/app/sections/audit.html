@@ -1,0 +1,53 @@
+<h2>Entregas de webhook</h2>
+<form class="filters" id="webhooks-filters" (ngSubmit)="loadDeliveries()">
+  <label>Estado
+    <p-select name="status" [options]="statusOptions" optionLabel="label" optionValue="value" [(ngModel)]="status" />
+  </label>
+  <p-button type="submit" label="Filtrar" />
+</form>
+<p-table id="webhooks-table" [value]="deliveries()" [loading]="loading()" size="small" [tableStyle]="{ 'min-width': '70rem' }">
+  <ng-template #header>
+    <tr>
+      <th>Creada</th><th>Evento</th><th>URL</th><th>Estado</th><th>Intentos</th>
+      <th>Próximo intento</th><th>Último error</th><th>HTTP</th><th>Acciones</th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-d>
+    <tr>
+      <td>{{ d.created_at | fmt }}</td>
+      <td>{{ d.event_type }}</td>
+      <td class="mono">{{ d.url }}</td>
+      <td>{{ d.status }}</td>
+      <td>{{ d.attempts }}</td>
+      <td>{{ d.next_attempt_at | fmt }}</td>
+      <td>{{ d.last_error | fmt }}</td>
+      <td>{{ d.response_status | fmt }}</td>
+      <td>
+        @if (d.status === 'failed') {
+          <p-button label="Reenviar" size="small" severity="secondary" [outlined]="true" (onClick)="retry(d)" />
+        }
+      </td>
+    </tr>
+  </ng-template>
+  <ng-template #emptymessage>
+    <tr><td colspan="9">Sin resultados</td></tr>
+  </ng-template>
+</p-table>
+
+<h2>Eventos de administración</h2>
+<p-table id="events-table" [value]="events()" size="small">
+  <ng-template #header>
+    <tr><th>Fecha</th><th>Actor</th><th>Acción</th><th>Detalle</th></tr>
+  </ng-template>
+  <ng-template #body let-e>
+    <tr>
+      <td>{{ e.created_at | fmt }}</td>
+      <td>{{ e.actor }}</td>
+      <td>{{ e.action }}</td>
+      <td class="mono">{{ e.detail | fmt }}</td>
+    </tr>
+  </ng-template>
+  <ng-template #emptymessage>
+    <tr><td colspan="4">Sin resultados</td></tr>
+  </ng-template>
+</p-table>

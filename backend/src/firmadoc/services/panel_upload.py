@@ -30,17 +30,34 @@ def panel_origin(settings: Settings) -> str:
     return f"{parts.scheme}://{parts.netloc}"
 
 
+def panel_origins(settings: Settings) -> str:
+    """Orígenes que pueden enmarcar el widget del panel: el público más los extra (servidor de desarrollo)."""
+    origins = [panel_origin(settings)]
+    for extra in settings.panel_origins.split(","):
+        extra = extra.strip().rstrip("/")
+        if extra and extra not in origins:
+            origins.append(extra)
+    return ",".join(origins)
+
+
 def get_panel_system(db: Session, settings: Settings) -> IntegratingSystem:
-    """El sistema interno de los PDF cargados desde el panel; se crea la primera vez. Sin API key utilizable."""
+    """El sistema interno de los PDF cargados desde el panel; se crea la primera vez. Sin API key utilizable.
+
+    Sus orígenes permitidos siguen a la configuración: si cambia, se actualizan en la siguiente carga.
+    """
+    origins = panel_origins(settings)
     system = db.scalar(select(IntegratingSystem).where(IntegratingSystem.name == PANEL_SYSTEM_NAME))
     if system is None:
         system = IntegratingSystem(
             name=PANEL_SYSTEM_NAME,
             api_key_hash=hash_api_key("fdk_" + secrets.token_urlsafe(32)),  # el valor en claro se descarta
-            allowed_origins=panel_origin(settings),
+            allowed_origins=origins,
             webhook_secret=new_webhook_secret(),
         )
         db.add(system)
+        db.flush()
+    elif system.allowed_origins != origins:
+        system.allowed_origins = origins
         db.flush()
     return system
 
