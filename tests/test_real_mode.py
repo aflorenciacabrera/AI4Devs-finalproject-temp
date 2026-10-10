@@ -49,7 +49,8 @@ def test_configuracion_correcta_no_tiene_errores(good):
 
 def test_advertencias_no_impiden(good):
     warnings = codes(good, "warning")
-    assert {"sqlite", "admin_disabled", "storage_files"} <= warnings
+    assert {"admin_disabled", "storage_files"} <= warnings
+    assert ("sqlite" in warnings) == good.database_url.startswith("sqlite")
     assert preflight.errors(preflight.check(good)) == []
 
 

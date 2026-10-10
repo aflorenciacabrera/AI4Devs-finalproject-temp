@@ -1,11 +1,14 @@
 """Modo demostración: prepara y arranca Firmadoc para probarlo sin token USB.
 
-Uso: `python -m firmadoc.demo [--port 8000] [--host 127.0.0.1] [--reset] [--cuil ... --nombre ... [--email ...]]`
+Uso: `python -m firmadoc.demo [--port 8000] [--host 127.0.0.1] [--reset] [--database-url URL]
+                              [--cuil ... --nombre ... [--email ...]]`
 
-Crea (o reutiliza) un entorno aislado en `data/demo/` con su base SQLite, sus documentos y su certificado de
-demostración, aplica las migraciones, carga el seed y arranca el servidor. El método de firma sin token es
-«Firma propia» (proveedor `local`). Con `--cuil` y `--nombre`, el panel firma como el titular de un token
-físico (su CUIL debe ser el del certificado). No es el modo real: ver `docs/real-mode.md`.
+Crea (o reutiliza) un entorno aislado en `data/demo/` con su base SQLite (los PDF dentro, en `stored_blob`) y su
+certificado de demostración, aplica las migraciones, carga el seed y arranca el servidor. Con `--database-url`
+usa esa base (por ejemplo la PostgreSQL de `docker compose`) y conserva el resto del entorno en `data/demo/`.
+El método de firma sin token es «Firma propia» (proveedor `local`). Con `--cuil` y `--nombre`, el panel firma
+como el titular de un token físico (su CUIL debe ser el del certificado). No es el modo real: ver
+`docs/real-mode.md`.
 """
 
 import argparse
@@ -74,6 +77,16 @@ class DemoEnv:
     token_dir: Path | None = None  # PKI de prueba para firmar con el agente (token de software)
     signer: PanelSigner | None = None  # firmante del panel (None = el del token de prueba)
     migrated: int = 0  # PDF copiados de data/demo/storage a la base en este arranque (entornos anteriores)
+    external_database: bool = False  # --database-url: la base no vive en data/demo (--reset no la toca)
+
+    @property
+    def database_shown(self) -> str:
+        """La base en uso, sin la contraseña."""
+        from sqlalchemy.engine import make_url
+
+        if not self.external_database:
+            return "firmadoc-demo.db (SQLite, en la carpeta de datos)"
+        return make_url(self.database_url).render_as_string(hide_password=True)
 
     @property
     def panel_signer(self) -> PanelSigner:
@@ -142,10 +155,25 @@ def check_not_real_mode() -> None:
         )
 
 
-def prepare(directory: Path, port: int = 8000, signer: PanelSigner | None = None) -> DemoEnv:
+def check_database_url(url: str) -> str:
+    """`DemoError` si SQLAlchemy no interpreta la URL. Devuelve la URL tal cual."""
+    from sqlalchemy.engine import make_url
+    from sqlalchemy.exc import ArgumentError
+
+    try:
+        make_url(url)
+    except ArgumentError as e:
+        raise DemoError(f"--database-url no es una URL de base de datos válida ({e})") from e
+    return url
+
+
+def prepare(
+    directory: Path, port: int = 8000, signer: PanelSigner | None = None, database_url: str | None = None
+) -> DemoEnv:
     """Deja el entorno listo (carpetas, secretos, variables, migraciones y seed). No arranca el servidor.
 
     `signer`: titular de un token físico para que el panel firme con su CUIL; sin él, el token de prueba.
+    `database_url`: base externa (p. ej. PostgreSQL); sin ella, la SQLite de `directory`.
     """
     check_not_real_mode()
     panel_signer = signer or PanelSigner.demo()
@@ -158,14 +186,15 @@ def prepare(directory: Path, port: int = 8000, signer: PanelSigner | None = None
     from .db import make_engine, make_session_factory
     from .seed import seed_demo
     from .storage import DatabaseStorage
-    from .storage_migrate import migrate
+    from .storage_migrate import Report, migrate, versions_without_blob
 
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "local-cert").mkdir(exist_ok=True)
     storage_dir = directory / "storage"  # solo entornos anteriores: hoy los PDF van a la base
     keys = _load_or_create_secrets(directory)
 
-    database_url = f"sqlite:///{(directory / 'firmadoc-demo.db').as_posix()}"
+    external = database_url is not None
+    database_url = check_database_url(database_url) if external else _sqlite_url(directory)
     public_base_url = f"http://localhost:{port}"
     # Token de prueba: AC y certificado con CUIL para firmar con el agente en modo token de software.
     pki = demo_pki.ensure_demo_pki(directory / "token")
@@ -197,14 +226,28 @@ def prepare(directory: Path, port: int = 8000, signer: PanelSigner | None = None
     engine = make_engine(database_url)
     try:
         with make_session_factory(engine)() as session:
-            # Entornos creados cuando la demo guardaba los PDF en disco: pasan a la base (idempotente, sin borrar).
-            report = migrate(session, "files-to-database", str(storage_dir))
-            if report.problems:
-                detail = "\n".join(f"  - {p}" for p in report.problems)
-                raise DemoError(
-                    f"no se pudieron pasar a la base {len(report.problems)} PDF de {storage_dir}:\n{detail}\n"
-                    "Restaurá los archivos o empezá de cero con --reset."
-                )
+            if external:
+                # data/demo/storage pertenece a la base SQLite de la demo: no se copia a una base externa.
+                # Solo se comprueba que toda versión registrada tenga su PDF (si no, el servidor no podría servirla).
+                report = Report()
+                missing = versions_without_blob(session)
+                if missing:
+                    detail = "\n".join(f"  - {ref}" for ref in missing)
+                    raise DemoError(
+                        f"la base tiene {len(missing)} versiones sin su PDF en stored_blob:\n{detail}\n"
+                        "Migralos desde la carpeta donde estén (FIRMADOC_STORAGE_DIR=<carpeta> "
+                        "python -m firmadoc.storage_migrate files-to-database, con FIRMADOC_DATABASE_URL "
+                        "apuntando a esa base) o recreá la base."
+                    )
+            else:
+                # Entornos creados cuando la demo guardaba los PDF en disco: pasan a la base (idempotente, sin borrar).
+                report = migrate(session, "files-to-database", str(storage_dir))
+                if report.problems:
+                    detail = "\n".join(f"  - {p}" for p in report.problems)
+                    raise DemoError(
+                        f"no se pudieron pasar a la base {len(report.problems)} PDF de {storage_dir}:\n{detail}\n"
+                        "Restaurá los archivos o empezá de cero con --reset."
+                    )
             created = seed_demo(session, DatabaseStorage(session))
     finally:
         engine.dispose()
@@ -222,7 +265,12 @@ def prepare(directory: Path, port: int = 8000, signer: PanelSigner | None = None
         token_dir=pki.directory,
         signer=signer,
         migrated=report.copied,
+        external_database=external,
     )
+
+
+def _sqlite_url(directory: Path) -> str:
+    return f"sqlite:///{(directory / 'firmadoc-demo.db').as_posix()}"
 
 
 def guide(env: DemoEnv) -> str:
@@ -239,9 +287,15 @@ def guide(env: DemoEnv) -> str:
         f"  Token de acceso: {env.admin_token}",
         f"  API key demo:    {DEMO_API_KEY} (cabecera X-API-Key, para la API de integradores)",
         f"  Datos en:        {env.directory}",
-        "  PDF:             dentro de la base (firmadoc-demo.db, tabla stored_blob)",
+        f"  Base:            {env.database_shown}",
+        "  PDF:             dentro de la base (tabla stored_blob)",
         f"  Firmante del panel: {who.name} (CUIL {who.cuil}) — {kind}",
     ]
+    if env.external_database:
+        lines += [
+            "  --reset borra solo la carpeta de datos, no esta base. Para empezar de cero con la base del",
+            "  proyecto: docker compose down -v (borra sus datos) y docker compose up -d postgres.",
+        ]
     if env.migrated:
         lines += [
             f"  Se copiaron {env.migrated} PDF de {env.directory / 'storage'} a la base;",
@@ -286,6 +340,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--reset", action="store_true", help="borra data/demo y empieza de cero")
     parser.add_argument("--prepare-only", action="store_true", help="prepara el entorno y no arranca el servidor")
+    parser.add_argument(
+        "--database-url",
+        help="base de datos a usar en lugar de la SQLite de data/demo (URL de SQLAlchemy, p. ej. "
+        "postgresql+psycopg://firmadoc:firmadoc@localhost:5432/firmadoc); --reset no la toca",
+    )
     parser.add_argument("--cuil", help="CUIL del titular de un token físico (11 dígitos): el panel firma con él")
     parser.add_argument("--nombre", help="nombre del titular del token físico, como figura en el certificado")
     parser.add_argument("--email", help="correo del titular (por defecto <cuil>@invalid)")
@@ -299,10 +358,12 @@ def main(argv: list[str] | None = None) -> int:
     directory = default_directory()
     try:
         signer = PanelSigner.from_args(args.nombre, args.cuil, args.email)  # antes de tocar el disco
+        if args.database_url is not None:
+            check_database_url(args.database_url)
         check_not_real_mode()  # antes de borrar nada
         if args.reset:
             reset(directory)
-        env = prepare(directory, args.port, signer)
+        env = prepare(directory, args.port, signer, args.database_url)
     except DemoError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1

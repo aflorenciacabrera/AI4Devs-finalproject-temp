@@ -36,6 +36,25 @@ Todo queda en `data/demo/` (ignorado por git), sin tocar tu base ni tu `.env`:
 Los datos y los secretos son de demostración: no se usan en producción. Con `FIRMADOC_REAL_MODE=true` el comando se
 niega a arrancar (ver `real-mode.md`).
 
+## Con PostgreSQL
+
+La misma demo puede correr sobre la base PostgreSQL del proyecto (o cualquier otra URL de SQLAlchemy), que es la
+instalación recomendada para operar (`database.md`):
+
+```bash
+docker compose up -d postgres
+python -m firmadoc.demo --database-url postgresql+psycopg://firmadoc:firmadoc@localhost:5432/firmadoc
+```
+
+Aplica las migraciones en esa base, carga el seed si no está y guarda los PDF en su tabla `stored_blob` (se ven desde
+DBeaver). El resto del entorno (secretos, token de prueba, directorio de confianza, certificado de «Firma propia») sigue
+en `data/demo/`, así que `firmadoc-demo.db` no se crea. La guía muestra la base en uso sin la contraseña.
+
+`--reset` borra solo `data/demo/`; **no toca la base externa**. Para empezar de cero con la base del proyecto:
+`docker compose down -v` (borra sus datos) y `docker compose up -d postgres`. Si la base tiene versiones cuyo PDF no
+está en `stored_blob` (por ejemplo, cargadas con el almacén `files`), la demo no arranca e indica cómo migrarlos con
+`storage_migrate` (`database.md`, «Pasar de archivos a la base»).
+
 ## Widget
 
 El comando no compila el widget (necesita Node). Si falta, avisa y el panel funciona, pero no se verá el módulo de

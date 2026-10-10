@@ -347,6 +347,125 @@ def test_los_pdf_de_un_entorno_anterior_pasan_a_la_base(demo_dir):
     assert "Se copiaron" not in demo.guide(third)
 
 
+def blobs_in(url: str) -> int:
+    from sqlalchemy import text
+
+    from firmadoc.db import make_engine
+
+    engine = make_engine(url)
+    try:
+        with engine.connect() as conn:
+            return conn.execute(text("SELECT count(*) FROM stored_blob")).scalar_one()
+    finally:
+        engine.dispose()
+
+
+# --- base externa (--database-url) ---------------------------------------------------------------------
+
+
+def test_database_url_usa_otra_base_y_reset_no_la_toca(demo_dir, tmp_path):
+    other = tmp_path / "otra.db"
+    url = f"sqlite:///{other.as_posix()}"
+    env = demo.prepare(demo_dir, 8130, database_url=url)
+    assert env.created is True and env.external_database is True and env.database_url == url
+    assert other.is_file() and not (demo_dir / "firmadoc-demo.db").exists()
+    assert os.environ["FIRMADOC_DATABASE_URL"] == url
+    assert blobs_in(url) == 2  # los PDF del seed, en esa base
+    text = demo.guide(env)
+    assert "Base:            sqlite:///" in text and "otra.db" in text
+    assert "--reset borra solo la carpeta de datos" in text and "docker compose down -v" in text
+
+    sign_from_panel(env)
+    assert blobs_in(url) == 4
+
+    demo.reset(demo_dir)
+    again = demo.prepare(demo_dir, 8130, database_url=url)
+    assert again.created is False  # el seed ya estaba en la base externa
+    assert blobs_in(url) == 4 and (demo_dir / "demo.json").is_file()
+
+
+def test_sin_database_url_la_base_es_la_de_la_carpeta(demo_dir):
+    env = demo.prepare(demo_dir)
+    assert env.external_database is False and env.database_url.endswith("firmadoc-demo.db")
+    assert "Base:            firmadoc-demo.db" in demo.guide(env)
+    assert "docker compose down -v" not in demo.guide(env)
+
+
+def test_la_guia_no_muestra_la_contrasena_de_la_base(demo_dir):
+    env = demo.DemoEnv(
+        directory=demo_dir,
+        port=8000,
+        admin_token="t" * 32,
+        signing_secret="s" * 32,
+        public_base_url="http://localhost:8000",
+        database_url="postgresql+psycopg://firmadoc:secreta@localhost:5432/firmadoc",
+        created=False,
+        widget_built=True,
+        external_database=True,
+    )
+    text = demo.guide(env)
+    assert "postgresql+psycopg://firmadoc:***@localhost:5432/firmadoc" in text
+    assert "secreta" not in text
+
+
+def test_database_url_invalida_termina_sin_crear_nada(demo_dir, monkeypatch, capsys):
+    monkeypatch.setattr(demo, "default_directory", lambda: demo_dir)
+    assert demo.main(["--prepare-only", "--reset", "--database-url", "esto no es una url"]) == 1
+    assert "no es una URL de base de datos" in capsys.readouterr().err
+    assert not demo_dir.exists()
+
+
+def test_base_externa_con_versiones_sin_pdf_no_sugiere_reset(demo_dir, tmp_path):
+    url = f"sqlite:///{(tmp_path / 'otra.db').as_posix()}"
+    env = demo.prepare(demo_dir, 8131, database_url=url)
+    sign_from_panel(env, storage_backend="files")
+    for pdf in (demo_dir / "storage").rglob("*.pdf"):
+        pdf.unlink()
+    with pytest.raises(demo.DemoError) as e:
+        demo.prepare(demo_dir, 8131, database_url=url)
+    message = str(e.value)
+    assert "storage_migrate" in message and "FIRMADOC_STORAGE_DIR" in message
+    assert "--reset" not in message
+
+
+def test_base_externa_ignora_los_archivos_de_la_demo_sqlite(demo_dir, tmp_path):
+    """`data/demo/storage` es de la base SQLite: el seed usa referencias fijas que chocarían con otro seed."""
+    env = demo.prepare(demo_dir)  # demo SQLite
+    sign_from_panel(env, storage_backend="files")  # deja PDF en data/demo/storage
+    storage = demo_dir / "storage"
+    (storage / "demo" / "EXP-DEMO-001").mkdir(parents=True)
+    (storage / "demo" / "EXP-DEMO-001" / "v1.pdf").write_bytes(b"%PDF-otro seed")
+    url = f"sqlite:///{(tmp_path / 'otra.db').as_posix()}"
+    other = demo.prepare(demo_dir, 8132, database_url=url)
+    assert other.created is True and other.migrated == 0 and blobs_in(url) == 2
+
+
+def test_demo_sobre_postgresql(demo_dir):
+    """Contra la base PostgreSQL de pruebas (FIRMADOC_TEST_PG_URL): se recrea el esquema, como en conftest."""
+    from sqlalchemy import text
+
+    from firmadoc.db import make_engine
+
+    from .conftest import PG_URL
+
+    if not PG_URL:
+        pytest.skip("FIRMADOC_TEST_PG_URL no definida")
+    engine = make_engine(PG_URL)
+    with engine.begin() as conn:
+        conn.execute(text("DROP SCHEMA public CASCADE"))
+        conn.execute(text("CREATE SCHEMA public"))
+    engine.dispose()
+
+    env = demo.prepare(demo_dir, 8140, database_url=PG_URL)
+    assert env.created is True and blobs_in(PG_URL) == 2
+    assert "Base:            postgresql" in demo.guide(env)
+    sign_from_panel(env)
+    assert blobs_in(PG_URL) == 4
+    assert not (demo_dir / "storage").exists() and not (demo_dir / "firmadoc-demo.db").exists()
+    again = demo.prepare(demo_dir, 8140, database_url=PG_URL)
+    assert again.created is False and again.migrated == 0 and blobs_in(PG_URL) == 4
+
+
 def test_un_pdf_anterior_ausente_o_corrupto_impide_arrancar(demo_dir):
     env = demo.prepare(demo_dir)
     sign_from_panel(env, storage_backend="files")

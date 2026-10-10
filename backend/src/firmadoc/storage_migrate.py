@@ -60,6 +60,16 @@ def _copy(db: Session, source, target, direction: str) -> Report:
     return report
 
 
+def versions_without_blob(db: Session) -> list[str]:
+    """Referencias de versiones registradas que no tienen su binario en `stored_blob`."""
+    database = DatabaseStorage(db)
+    return [
+        version.storage_ref
+        for version in db.scalars(select(DocumentVersion).order_by(DocumentVersion.created_at))
+        if _read_or_none(database, version.storage_ref) is None
+    ]
+
+
 def migrate(db: Session, direction: str, storage_dir: str) -> Report:
     files = LocalFileStorage(storage_dir)
     database = DatabaseStorage(db)

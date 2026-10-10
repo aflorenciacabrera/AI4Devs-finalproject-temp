@@ -4,7 +4,9 @@ Toda la información de Firmadoc vive en una sola base: solicitudes, versiones d
 webhooks, administración **y los PDF** (tabla `stored_blob`, almacén `database`).
 
 El modo demostración (`python -m firmadoc.demo`) usa el mismo almacén sobre SQLite: los PDF de `data/demo/` están en
-`stored_blob` de `data/demo/firmadoc-demo.db` (se consultan igual, por ejemplo con DBeaver y el driver SQLite).
+`stored_blob` de `data/demo/firmadoc-demo.db` (se consultan igual, por ejemplo con DBeaver y el driver SQLite). Para
+verla sobre esta base: `python -m firmadoc.demo --database-url postgresql+psycopg://firmadoc:firmadoc@localhost:5432/firmadoc`
+(`demo.md`, «Con PostgreSQL»); el seed crea el integrador de demostración, así que no se usa con una base de trabajo.
 
 > Las credenciales de este documento y de `docker-compose.yml` son **solo de desarrollo**. En un despliegue real se
 > definen con las variables `FIRMADOC_DB_USER`, `FIRMADOC_DB_PASSWORD` y `FIRMADOC_DB_NAME` (o las de la base

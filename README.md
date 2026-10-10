@@ -121,7 +121,7 @@ pip install -e ".[dev]"
 python -m firmadoc.demo                                   # prepara data/demo/ y arranca en http://localhost:8000
 ```
 
-El comando crea una base y carpetas propias en `data/demo/` (no toca tu configuración), aplica las migraciones, carga el seed, muestra la URL del panel (`/admin`), el token de acceso y la API key de demostración. Los PDF quedan dentro de la base de la demo (tabla `stored_blob`), como en una instalación real. Opciones: `--port`, `--reset`, `--prepare-only`. Detalle en `docs/demo.md`.
+El comando crea una base y carpetas propias en `data/demo/` (no toca tu configuración), aplica las migraciones, carga el seed, muestra la URL del panel (`/admin`), el token de acceso y la API key de demostración. Los PDF quedan dentro de la base de la demo (tabla `stored_blob`), como en una instalación real. Opciones: `--port`, `--reset`, `--prepare-only`, `--database-url` (la misma demo sobre PostgreSQL: `docker compose up -d postgres` y `--database-url postgresql+psycopg://firmadoc:firmadoc@localhost:5432/firmadoc`). Detalle en `docs/demo.md`.
 
 **Instalación manual (desarrollo).**
 
@@ -152,7 +152,7 @@ Para habilitar el panel hay que definir `FIRMADOC_ADMIN_TOKEN` (32 caracteres o 
 | Integrador de prueba | sistema «Sistema de demostración», API key `firmadoc-demo-key` (cabecera `X-API-Key`) |
 | Firmante de prueba | Juan Pérez, CUIL `20123456789` (el que usan las pruebas automáticas) |
 
-**Cómo correr todo en limpio:** `python -m firmadoc.demo --reset` (borra y recrea `data/demo/`). Con PostgreSQL: `docker compose up -d postgres`, `alembic upgrade head` y `python -m firmadoc.seed`. Suite completa: `pytest` (las pruebas en Chrome real necesitan Chrome y el widget compilado; las de PostgreSQL, `FIRMADOC_TEST_PG_URL`).
+**Cómo correr todo en limpio:** `python -m firmadoc.demo --reset` (borra y recrea `data/demo/`). Con PostgreSQL: `docker compose up -d postgres` y `python -m firmadoc.demo --database-url postgresql+psycopg://firmadoc:firmadoc@localhost:5432/firmadoc` (para vaciar esa base: `docker compose down -v`); sin la demo, `alembic upgrade head` y `python -m firmadoc.seed` con las variables de `docs/database.md`. Suite completa: `pytest` (las pruebas en Chrome real necesitan Chrome y el widget compilado; las de PostgreSQL, `FIRMADOC_TEST_PG_URL`).
 
 **Flujos a probar** (a mano en el panel, y la prueba automática que cada uno tiene):
 
