@@ -36,7 +36,7 @@ describe('WidgetDialog', () => {
   it('embebe el widget con sandbox, allow y referrerpolicy', () => {
     const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement;
     expect(iframe.getAttribute('src')).toBe(SIGNING_URL);
-    expect(iframe.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin allow-downloads');
+    expect(iframe.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox');
     expect(iframe.getAttribute('allow')).toContain('local-network-access');
     expect(iframe.getAttribute('referrerpolicy')).toBe('no-referrer');
     expect(component.origin).toBe(ORIGIN);

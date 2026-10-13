@@ -26,7 +26,7 @@ iframe { display: block; width: 100%; height: 100%; border: 0; }
  * desconocidos se ignoran: se declaran todos.
  */
 const ALLOW = "local-network-access; local-network; loopback-network";
-const SANDBOX = "allow-scripts allow-same-origin allow-downloads";
+const SANDBOX = "allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox";
 
 export class FirmadocWidgetElement extends HTMLElement {
   static observedAttributes = ["signing-url"];

@@ -29,11 +29,12 @@ Interfaz de firma que un sistema integrador **embebe** en su propia pantalla. Co
   title="Firma de documento (Firmadoc)"
   width="480" height="760"
   allow="local-network-access; local-network; loopback-network"
-  sandbox="allow-scripts allow-same-origin allow-downloads"
+  sandbox="allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"
   referrerpolicy="no-referrer"></iframe>
 ```
 
 - `allow`: delega el permiso de **acceso a la red local** al iframe, necesario para que el widget hable con el agente en `127.0.0.1` desde Chrome/Edge 142+. El nombre de la política cambió entre versiones del navegador; los desconocidos se ignoran, por eso se listan todos. Verificarlo con el navegador instalado.
+- Si el sistema anfitrión pasa el HTML por un sanitizador o gestor de contenido, comprobá en el DOM ya renderizado que el atributo `allow` siga presente: según fuentes secundarias, algunas plataformas lo eliminan y entonces el widget no puede hablar con el agente. Firefox y Safari no están verificados.
 - `sandbox`: `allow-same-origin` es necesario para que el widget llame a su propio servidor; `allow-downloads` para el botón "Descargar PDF firmado".
 - Solo se puede embeber desde los orígenes del integrador (`allowed_origins`): el servidor responde `Content-Security-Policy: frame-ancestors <orígenes>`. Desde cualquier otro origen el navegador bloquea el marco.
 
@@ -104,7 +105,7 @@ import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
       title="Firma de documento (Firmadoc)"
       width="480" height="760"
       allow="local-network-access; local-network; loopback-network"
-      sandbox="allow-scripts allow-same-origin allow-downloads"
+      sandbox="allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"
       referrerpolicy="no-referrer"></iframe>`,
 })
 export class FirmarDocumentoComponent {

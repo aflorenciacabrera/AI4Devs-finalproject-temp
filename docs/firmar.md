@@ -16,6 +16,8 @@ clave nunca pasa por Firmadoc. No hay convenio con el servicio real: el contrato
 
 Para probar todo en un solo servidor: `FIRMAR_BASE_URL=http://localhost:8000/mock/firmar`, `MOCK_ENABLED=true`,
 un `CLIENT_SECRET` y un `CALLBACK_SECRET`. La AC del simulado se suma sola a las anclas de verificación.
+**El modo demostración (`python -m firmadoc.demo`) ya lo configura así**, con secretos generados una vez en
+`data/demo/demo.json` (`demo.md`, «Firma remota con el servicio simulado»).
 
 ## Flujo
 
@@ -24,8 +26,11 @@ un `CLIENT_SECRET` y un `CALLBACK_SECRET`. La AC del simulado se suma sola a las
    (`POST {base}/v1/operations` con `document_base64`, `signer_cuil`, `callback_url`).
    La respuesta de `prepare` trae `challenges: []` y `remote: {operation_id, authorization_url}`.
    `complete` no aplica: `409 remote_signature_pending`.
-3. El usuario autoriza en el servicio. En el simulado: `POST /mock/firmar/v1/operations/{id}/approve` con
-   `{"otp": "123456", "pin": "1234"}` (3 fallos bloquean la operación) o `…/reject`.
+3. El usuario autoriza en el servicio. En el simulado hay dos caminos equivalentes: la **página de
+   autorización** de la `authorization_url` (`GET /mock/firmar/authorize/{id}`, la que abre el widget con
+   «Continuar en el servicio de firma»: formulario con OTP y PIN y botón «Rechazar», sin token OAuth porque es la
+   pantalla del usuario y no una ruta de la API), o por API: `POST /mock/firmar/v1/operations/{id}/approve` con
+   `{"otp": "123456", "pin": "1234"}` o `…/reject`. En ambos, 3 fallos bloquean la operación.
 4. El servicio llama a `POST /api/v1/providers/firmar/callback` con
    `{"operation_id", "status": "signed"|"rejected"|"expired", "signed_document_base64"}` y la cabecera
    `X-Firmar-Signature: sha256=<HMAC-SHA256 del cuerpo crudo con el secreto del callback>`.
@@ -49,6 +54,5 @@ el PDF firmado extienda al enviado. Esas diferencias se concentran en `providers
 
 ## Límites
 
-- El widget todavía no ofrece este proveedor (requiere elegir proveedor desde el widget).
-- Sin lotes con `firmar`. El estado del simulado vive en memoria.
+- Sin lotes con `firmar`. El estado del simulado vive en memoria (se pierde al reiniciar el servidor).
 - La revocación del certificado remoto no se consulta al aceptar el PDF.

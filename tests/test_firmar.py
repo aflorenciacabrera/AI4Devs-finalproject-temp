@@ -478,3 +478,67 @@ def test_flujo_por_http_real(live_server):
     final = httpx.get(f"{live_server}/api/v1/signature-requests/{rid}", headers=headers).json()
     assert final["status"] == "signed" and final["document"]["version_number"] == 2
     assert base64.b64decode(final["document"]["signed_document_base64"]).startswith(b"%PDF-")
+
+
+# --- página de autorización (la pantalla del usuario en el servicio simulado) ----------------------------
+
+
+def authorize_form(client, operation_id, otp="123456", pin="1234", action="approve"):
+    return client.post(f"/mock/firmar/authorize/{operation_id}", data={"otp": otp, "pin": pin, "action": action})
+
+
+def test_pagina_de_autorizacion_firma_sin_token_oauth(client, firmar_env, session):
+    rid = new_request(client)
+    body = client.post(f"/api/v1/signature-requests/{rid}/prepare", json={}).json()
+    url = body["remote"]["authorization_url"]
+    assert url.startswith("http://test/mock/firmar/authorize/")
+    page = client.get(url)
+    assert page.status_code == 200 and "text/html" in page.headers["content-type"]
+    assert "<form" in page.text and "name='otp'" in page.text and "name='pin'" in page.text
+    assert "123456" in page.text and "1234" in page.text and "simulado" in page.text.lower()
+    assert page.headers["cache-control"] == "no-store" and "form-action 'self'" in page.headers["content-security-policy"]
+
+    done = authorize_form(client, body["remote"]["operation_id"])
+    assert done.status_code == 200 and "Documento firmado" in done.text and "<form" not in done.text
+    assert status_of(client, rid) == "signed"
+    again = client.get(url)
+    assert again.status_code == 200 and "<form" not in again.text and "signed" in again.text
+    assert authorize_form(client, body["remote"]["operation_id"]).status_code == 409
+
+
+def test_pagina_de_autorizacion_datos_incorrectos_y_bloqueo(client, firmar_env):
+    rid, op = prepared(client)
+    first = authorize_form(client, op, otp="000000")
+    assert first.status_code == 403 and "incorrectos" in first.text and "Te quedan 2 intentos" in first.text
+    assert "<form" in first.text  # se puede volver a intentar
+    second = authorize_form(client, op, pin="9999")
+    assert second.status_code == 403 and "Te quedan 1 intento." in second.text
+    third = authorize_form(client, op, otp="x")
+    assert third.status_code == 403 and "bloqueada" in third.text and "<form" not in third.text
+    assert status_of(client, rid) == "signing"  # el callback nunca se llamó
+    assert authorize_form(client, op).status_code == 409
+
+
+def test_pagina_de_autorizacion_rechazo(client, firmar_env, session):
+    rid, op = prepared(client)
+    r = authorize_form(client, op, otp="", pin="", action="reject")
+    assert r.status_code == 200 and "rechazada" in r.text
+    assert status_of(client, rid) == "failed"
+    session.expire_all()
+    events = session.scalars(select(AuditEvent).where(AuditEvent.signature_request_id == uuid.UUID(rid))).all()
+    assert next(e for e in events if e.event_type == "failed").payload["code"] == "remote_rejected"
+
+
+def test_pagina_de_autorizacion_inexistente_o_simulado_apagado(client, firmar_env):
+    assert client.get("/mock/firmar/authorize/no-existe").status_code == 404
+    assert authorize_form(client, "no-existe").status_code == 404
+    _, op = prepared(client)
+    firmar_env.firmar_mock_enabled = False
+    assert client.get(f"/mock/firmar/authorize/{op}").status_code == 404
+    assert authorize_form(client, op).status_code == 404
+
+
+def test_valores_escapados_en_la_pagina(client, firmar_env):
+    mock_firmar._operations["<script>"] = mock_firmar.Operation("<script>", make_pdf(), "<b>cuil</b>", "http://x")
+    page = client.get("/mock/firmar/authorize/<script>")
+    assert page.status_code == 200 and "<script>" not in page.text and "<b>" not in page.text

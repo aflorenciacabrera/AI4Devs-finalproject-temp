@@ -77,22 +77,21 @@ def test_firma_remota_desde_el_widget(live, page, monkeypatch):
 
     link = widget.get_by_role("link", name="Continuar en el servicio de firma")
     href = link.get_attribute("href")
-    operation_id = href.rsplit("/", 1)[1]
     assert href.startswith(f"{live.base}/mock/firmar/authorize/")
 
-    # la persona "autoriza en el servicio" (OTP + PIN) desde otra pestaña: acá, directamente al simulado
-    token = httpx.post(
-        f"{live.base}/mock/firmar/oauth/token",
-        content=f"grant_type=client_credentials&client_id=firmadoc&client_secret={CLIENT_SECRET}",
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-    ).json()["access_token"]
-    approved = httpx.post(
-        f"{live.base}/mock/firmar/v1/operations/{operation_id}/approve",
-        json={"otp": "123456", "pin": "1234"},
-        headers={"Authorization": f"Bearer {token}"},
-        timeout=60,
-    )
-    assert approved.status_code == 200 and approved.json()["callback_status"] == 200, approved.text
+    # la persona autoriza en el servicio desde otra pestaña: el enlace abre la página del simulado
+    # (el sandbox del iframe debe permitir abrir pestañas), y ahí ingresa el OTP y el PIN
+    with page.context.expect_page() as opened:
+        link.click()
+    service = opened.value
+    service.wait_for_load_state()
+    assert service.url == href
+    service.fill("#otp", "123456")
+    service.fill("#pin", "1234")
+    service.get_by_role("button", name="Firmar", exact=True).click()
+    service.locator(".msg.ok").wait_for(timeout=60_000)
+    assert "Documento firmado" in service.locator(".msg.ok").inner_text()
+    service.close()
 
     heading(widget, SIGNED).wait_for(timeout=20_000)
     assert wait_for_message(page, "firmadoc:signed")["document"]["version_number"] == 2

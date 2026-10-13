@@ -71,9 +71,15 @@ Firmadoc resuelve esto con un **widget embebible** (diseñado para integrarse ta
 **Ejemplo de integración desde un sistema host (ej. Angular):** no requiere instalar ningún paquete de Firmadoc — el sistema integrador solo consume la `signing_url` que devuelve la API.
 
 ```html
-<!-- Opción 1: iframe (recomendada, cero configuración extra) -->
-<iframe [src]="signingUrl | safe" width="480" height="760"></iframe>
+<!-- Opción 1: iframe (recomendada) -->
+<iframe [src]="signingUrl | safe" title="Firma de documento (Firmadoc)" width="480" height="760"
+  allow="local-network-access; local-network; loopback-network"
+  sandbox="allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"
+  referrerpolicy="no-referrer"></iframe>
 ```
+El atributo `allow` es **necesario**: delega al iframe el permiso de acceso a la red local para que el widget pueda hablar con el agente en `127.0.0.1` desde Chrome/Edge 142+ (sin él, el navegador bloquea la llamada aunque la política empresarial ya permita el origen). Los nombres de la política cambiaron entre versiones del navegador, por eso se listan varios. Si el sistema host sanea el HTML (algunos gestores de contenido eliminan `allow`), hay que verificarlo en el DOM ya renderizado. La guía completa para Angular está en `widget/README.md`.
+
+**Alternativa sin iframe (no implementada, a evaluar):** abrir la `signing_url` en una ventana emergente o redirección. Firmadoc pasaría a ser la página principal, sin delegar el permiso de red local ni depender de un contexto embebido, a costa de la experiencia (bloqueadores de ventanas y salida de la aplicación) y de que el widget avise al anfitrión por `window.opener` en lugar de `window.parent`. En cualquier caso el resultado confiable lo consulta el backend del integrador con su API key.
 ```html
 <!-- Opción 2: Web Component in-page -->
 <script src="https://firmadoc.example.org/widget.js"></script> <!-- una sola vez -->
@@ -121,7 +127,7 @@ pip install -e ".[dev]"
 python -m firmadoc.demo                                   # prepara data/demo/ y arranca en http://localhost:8000
 ```
 
-El comando crea una base y carpetas propias en `data/demo/` (no toca tu configuración), aplica las migraciones, carga el seed, muestra la URL del panel (`/admin`), el token de acceso y la API key de demostración. Los PDF quedan dentro de la base de la demo (tabla `stored_blob`), como en una instalación real. Opciones: `--port`, `--reset`, `--prepare-only`, `--database-url` (la misma demo sobre PostgreSQL: `docker compose up -d postgres` y `--database-url postgresql+psycopg://firmadoc:firmadoc@localhost:5432/firmadoc`). Detalle en `docs/demo.md`.
+El comando crea una base y carpetas propias en `data/demo/` (no toca tu configuración), aplica las migraciones, carga el seed, muestra la URL del panel (`/admin`), el token de acceso y la API key de demostración. Los PDF quedan dentro de la base de la demo (tabla `stored_blob`), como en una instalación real. Ofrece los tres métodos de firma: «Firma propia», «Firma con token» (token de software o físico, con el agente) y «Firma remota» contra el servicio simulado del mismo servidor (OTP `123456`, PIN `1234`). Opciones: `--port`, `--reset`, `--prepare-only`, `--database-url` (la misma demo sobre PostgreSQL: `docker compose up -d postgres` y `--database-url postgresql+psycopg://firmadoc:firmadoc@localhost:5432/firmadoc`). Detalle en `docs/demo.md`.
 
 **Instalación manual (desarrollo).**
 
@@ -161,6 +167,7 @@ Para habilitar el panel hay que definir `FIRMADOC_ADMIN_TOKEN` (32 caracteres o 
 | **Firma electrónica de demostración** | Panel → «Firmar documento» → cargar un PDF → «Firma propia» → «Firmar» | «Documento firmado correctamente»; aparece como v2 vigente en «Documentos»; la v1 original se conserva | `tests/e2e/test_panel_sign_e2e.py::test_cargar_y_firmar_con_el_widget_embebido` |
 | **Firma individual con token de software** | Con la demo arriba, en otra terminal `firmadoc-agent run --software-token data/demo/token/firmante.pem --origin http://localhost:8000` (lo imprime la demo); en el panel cargar un PDF → «Firma con token» → certificado → PIN `1234` en la ventana del agente (`docs/demo.md`) | Firma digital PAdES verificable contra la AC de prueba; el PIN solo se ingresó en el agente | `tests/e2e/test_widget_e2e.py::test_firma_con_token_dentro_del_iframe` (token de software en memoria), `agent/tests/test_agent_software_token.py` y `agent/tests/test_agent_pkcs11.py` (SoftHSM real; ver `agent/README.md`) |
 | **Firma con el token físico** | Middleware del fabricante instalado y `%APPDATA%\FirmadocAgent\config.json` con su DLL; `python -m firmadoc_agent --config ... diagnose` para comprobar que lista el certificado; `python -m firmadoc.demo` (opcional `--cuil <CUIL> --nombre "<Titular>"` para mostrar al titular como firmante del panel); en otra terminal `python -m firmadoc_agent --config ... run --origin http://localhost:8000`; en el panel «Firma con token» → PIN del token en la ventana del agente (`docs/demo.md`, «Firma con el token físico desde la demo») | Firma digital PAdES cuya cadena llega a la AC Raíz de la República Argentina (anclas en `backend/trust/`) | `tests/test_trust_repo.py` (anclas y cadena), `tests/test_demo.py` (firmante real); la firma con el PIN es manual (`agent/README.md`) |
+| **Firma remota con el servicio simulado** | Panel → «Firmar documento» → cargar un PDF → «Firma remota» → «Firmar documento» → «Continuar en el servicio de firma» (se abre la página del simulado) → OTP `123456` y PIN `1234` → «Firmar» (`docs/demo.md`, «Firma remota con el servicio simulado») | El widget pasa solo a «Documento firmado»; v2 firmada por la AC del simulado, verificable en «Documentos»; con «Rechazar» la solicitud queda fallida (`remote_rejected`) | `tests/test_demo.py::test_firma_remota_de_punta_a_punta_desde_el_panel_de_la_demo` y `tests/test_firmar.py` (página de autorización, bloqueo, rechazo) |
 | **Firma en lote con fallo parcial** | Cargar 3 PDF → «Firmar 3 documentos» (un solo PIN); si uno falla: «Descargar firmados» y «Reintentar» | «2 de 3 documentos firmados»; ZIP solo con los firmados; el reintento crea otro lote con el fallido | `tests/e2e/test_batch_e2e.py::test_exito_parcial_zip_y_reintento` |
 | **Certificado rechazado antes del PIN** | Con un certificado revocado, vencido o de una AC no confiable → «Validar y continuar». El CUIL del certificado **no** se coteja con el del firmante salvo con `FIRMADOC_REQUIRE_CUIL_MATCH=true` (entonces un certificado de otra persona da `cuil_mismatch`) | Mensaje con el motivo y **sin** pedido de PIN | `tests/e2e/test_widget_e2e.py::test_certificado_revocado_se_rechaza_antes_del_pin` y `tests/test_token_flow.py` |
 | **Agente no detectado** | Elegir «Firma con token» con el agente apagado | «No detectamos Firmadoc Agent» con las comprobaciones y opción de elegir otro método o reintentar | `tests/e2e/test_widget_e2e.py::test_agente_ausente_y_reintento_de_deteccion` |
@@ -318,7 +325,8 @@ Para la entrega del máster: **hoy** hay un `docker-compose.yml` con PostgreSQL 
 ### **2.5. Seguridad**
 
 - **Autenticación de sistemas integradores**: cada sistema que use Firmadoc se registra y opera con API key / OAuth2 client-credentials; el widget no acepta solicitudes de un sistema no registrado.
-- **Aislamiento del iframe**: cabecera `Content-Security-Policy: frame-ancestors` con lista explícita de orígenes permitidos por sistema integrador (evita clickjacking).
+- **Aislamiento del iframe**: cabecera `Content-Security-Policy: frame-ancestors` con lista explícita de orígenes permitidos por sistema integrador (evita clickjacking); atributos `sandbox` y `referrerpolicy="no-referrer"` en el iframe; `postMessage` siempre con `targetOrigin` explícito (nunca `"*"`) y validación del emisor en la página anfitriona.
+- **Sin dependencia de cookies de terceros**: Safari las bloquea y Firefox las particiona, así que el widget no usa cookies para identificar a la persona. La `signing_url` lleva un token de corta duración, acotado a esa solicitud, en el fragmento (`#t=`), que el navegador no envía al servidor; el widget lo guarda solo en memoria y lo quita de la barra de direcciones.
 - **Firma diferida**: el PDF no viaja a la PC del usuario y la clave privada del token nunca toca el servidor.
 - **Validación de confianza en el servidor**, al firmar y al recibir documentos de terceros: cadena hasta las anclas de `backend/trust/`, vigencia, revocación (CRL/OCSP) e integridad. Las anclas se descargan siempre de la fuente oficial de la AC y su huella SHA-256 se confirma por un canal independiente (una raíz de origen dudoso invalidaría toda la validación).
 - **Vinculación de identidad**: el CUIL del certificado debe coincidir con el del usuario autenticado en el sistema integrador.
@@ -350,7 +358,8 @@ Decisiones que dependen de datos del organismo o que no pude verificar en fuente
 4. **Reglas de negocio:** quién firma cada tipo de acto, si hay firma múltiple o secuencial, y qué documentos admiten firma electrónica en lugar de digital.
 5. **Firma remota:** requiere un convenio de integración con la autoridad nacional y las credenciales no son de acceso público; el límite de documentos por operación citado en el relevamiento previo no está verificado.
 6. **Hardware:** la política de la AC exige dispositivos criptográficos FIPS 140-2 nivel 2 o superior; el agente debe probarse contra los modelos de token realmente entregados. La biblioteca PKCS#11 del fabricante debe coincidir en arquitectura con el Python del agente.
-7. **Componentes existentes:** si el organismo ya cuenta con un firmador invocable desde otras aplicaciones, convendría evaluarlo; Firmadoc se propone justamente como servicio neutral y reutilizable por cualquier sistema.
+7. **Compatibilidad del iframe con el agente local:** el atributo `allow` de delegación del permiso de red local y sus nombres de política cambiaron entre versiones de Chrome/Edge, y se conoce por fuentes secundarias (no por documentación oficial verificada) que algunas plataformas lo eliminan al sanear el HTML. Se verifica con el navegador instalado en los equipos del organismo. El comportamiento en Firefox y Safari al llamar a `127.0.0.1` desde un iframe no está verificado. La alternativa de ventana emergente (ver 1.2) no está implementada.
+8. **Componentes existentes:** si el organismo ya cuenta con un firmador invocable desde otras aplicaciones, convendría evaluarlo; Firmadoc se propone justamente como servicio neutral y reutilizable por cualquier sistema.
 
 ---
 
@@ -679,6 +688,7 @@ _Estado al 08/10/2026: los tres tickets están **implementados** (Jira: FIRDOC-2
   - Orquestación: `prepare` → agente `/sign` → `complete`, con estados "validando", "firmando", "firmado", "error".
   - Comunicación `postMessage` con la ventana padre al completar.
   - Cabeceras de seguridad (`frame-ancestors`) validadas contra `allowed_origins` del integrador.
+  - Ejemplo de iframe con `allow` (red local), `sandbox` y `referrerpolicy`, con prueba que verifica los atributos.
 - **Criterios de aceptación**: embebido en una página Angular de prueba, el flujo completo (elegir certificado → confirmar → estado firmado) funciona dentro del iframe sin recargar la página padre, usando un token de software.
 - **Estimación**: 10h.
 

@@ -6,9 +6,9 @@ Uso: `python -m firmadoc.demo [--port 8000] [--host 127.0.0.1] [--reset] [--data
 Crea (o reutiliza) un entorno aislado en `data/demo/` con su base SQLite (los PDF dentro, en `stored_blob`) y su
 certificado de demostración, aplica las migraciones, carga el seed y arranca el servidor. Con `--database-url`
 usa esa base (por ejemplo la PostgreSQL de `docker compose`) y conserva el resto del entorno en `data/demo/`.
-El método de firma sin token es «Firma propia» (proveedor `local`). Con `--cuil` y `--nombre`, el panel firma
-como el titular de un token físico (su CUIL debe ser el del certificado). No es el modo real: ver
-`docs/real-mode.md`.
+El método de firma sin token es «Firma propia» (proveedor `local`); la firma remota corre contra el servicio
+simulado del mismo servidor. Con `--cuil` y `--nombre`, el panel firma como el titular de un token físico (su
+CUIL debe ser el del certificado). No es el modo real: ver `docs/real-mode.md`.
 """
 
 import argparse
@@ -21,7 +21,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import demo_pki
+from . import demo_pki, mock_firmar
 
 ROOT = Path(__file__).resolve().parents[3]  # raíz del repositorio (backend/src/firmadoc/demo.py)
 DEMO_DIR_NAME = "demo"
@@ -120,14 +120,19 @@ def default_directory() -> Path:
     return Path.cwd() / "data" / DEMO_DIR_NAME
 
 
+SECRET_KEYS = ("admin_token", "signing_secret", "firmar_client_secret", "firmar_callback_secret")
+
+
 def _load_or_create_secrets(directory: Path) -> dict[str, str]:
+    """Secretos de la demo: se generan una vez; los que falten o sean cortos se completan sin tocar el resto."""
     path = directory / SECRETS_FILE
+    data: dict[str, str] = {}
     if path.is_file():
-        data = json.loads(path.read_text(encoding="utf8"))
-        if len(data.get("admin_token", "")) >= 32 and len(data.get("signing_secret", "")) >= 32:
-            return data
-    data = {"admin_token": secrets.token_urlsafe(32), "signing_secret": secrets.token_urlsafe(32)}
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf8")
+        data = {k: v for k, v in json.loads(path.read_text(encoding="utf8")).items() if isinstance(v, str)}
+    missing = [k for k in SECRET_KEYS if len(data.get(k, "")) < 32]
+    if missing:
+        data.update({k: secrets.token_urlsafe(32) for k in missing})
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf8")
     return data
 
 
@@ -215,6 +220,12 @@ def prepare(
             "FIRMADOC_PANEL_SIGNER_IDENTIFIER": panel_signer.cuil,
             "FIRMADOC_PANEL_SIGNER_EMAIL": panel_signer.email,
             "FIRMADOC_REAL_MODE": "false",
+            # Firma remota contra el servicio simulado del mismo servidor (OTP 123456, PIN 1234).
+            "FIRMADOC_FIRMAR_BASE_URL": f"{public_base_url}/mock/firmar",
+            "FIRMADOC_FIRMAR_MOCK_ENABLED": "true",
+            "FIRMADOC_FIRMAR_CLIENT_ID": "firmadoc",
+            "FIRMADOC_FIRMAR_CLIENT_SECRET": keys["firmar_client_secret"],
+            "FIRMADOC_FIRMAR_CALLBACK_SECRET": keys["firmar_callback_secret"],
         }
     )
 
@@ -312,6 +323,10 @@ def guide(env: DemoEnv) -> str:
         f"  PIN del token de prueba: {demo_pki.DEMO_PIN}   "
         + f"(titular: {demo_pki.DEMO_SIGNER_NAME}, CUIL {demo_pki.DEMO_SIGNER_CUIL})",
         "Después, en el panel elegí «Firma con token»: el PIN se ingresa en la ventana del agente.",
+        "",
+        "Para probar la firma remota (servicio de firma remota SIMULADO, en este mismo servidor):",
+        "  en el panel elegí «Firma remota» → «Continuar en el servicio de firma» → se abre la página del",
+        f"  simulado: OTP {mock_firmar.VALID_OTP} y PIN {mock_firmar.VALID_PIN} (o «Rechazar»). El widget se actualiza solo.",
         "",
         "Para firmar con un token físico (middleware del fabricante instalado y config.json del agente):",
         f"  {env.pkcs11_agent_command}",

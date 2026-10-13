@@ -134,7 +134,7 @@ describe("<firmadoc-widget>", () => {
     expect(iframe).not.toBeNull();
     expect(iframe!.src).toBe(URL_OK);
     expect(iframe!.title).toMatch(/Firmadoc/);
-    expect(iframe!.getAttribute("sandbox")).toBe("allow-scripts allow-same-origin allow-downloads");
+    expect(iframe!.getAttribute("sandbox")).toBe("allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox");
     expect(iframe!.getAttribute("allow")).toContain("local-network-access");
     expect(iframe!.referrerPolicy).toBe("no-referrer");
   });

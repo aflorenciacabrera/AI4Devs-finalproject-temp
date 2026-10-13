@@ -46,7 +46,7 @@
     const frame = document.createElement("iframe");
     frame.title = "Firma de documento (Firmadoc)";
     frame.setAttribute("allow", "local-network-access; local-network; loopback-network");
-    frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-downloads");
+    frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox");
     frame.referrerPolicy = "no-referrer";
     frame.src = signingUrl;
     slot.appendChild(frame);

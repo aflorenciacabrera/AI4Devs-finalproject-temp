@@ -477,3 +477,99 @@ def test_un_pdf_anterior_ausente_o_corrupto_impide_arrancar(demo_dir):
     message = str(e.value)
     assert "2 PDF" in message and "--reset" in message
     assert "hash" in message and "no se pudo leer" in message
+
+
+# --- firma remota con el servicio simulado -------------------------------------------------------------
+
+
+def test_la_demo_habilita_la_firma_remota_contra_el_simulado(demo_dir):
+    env = demo.prepare(demo_dir, 8150)
+    assert os.environ["FIRMADOC_FIRMAR_BASE_URL"] == "http://localhost:8150/mock/firmar"
+    assert os.environ["FIRMADOC_FIRMAR_MOCK_ENABLED"] == "true"
+    assert os.environ["FIRMADOC_FIRMAR_CLIENT_ID"] == "firmadoc"
+    saved = json.loads((demo_dir / "demo.json").read_text(encoding="utf8"))
+    for key in ("firmar_client_secret", "firmar_callback_secret"):
+        assert len(saved[key]) >= 32 and os.environ[f"FIRMADOC_{key.upper()}"] == saved[key]
+    assert len({saved[k] for k in demo.SECRET_KEYS}) == 4  # todos distintos
+    again = json.loads((demo_dir / "demo.json").read_text(encoding="utf8"))
+    demo.prepare(demo_dir, 8150)
+    assert json.loads((demo_dir / "demo.json").read_text(encoding="utf8")) == again
+    text = demo.guide(env)
+    assert "«Firma remota»" in text and "OTP 123456 y PIN 1234" in text and "SIMULADO" in text
+
+
+def test_un_demo_json_anterior_se_completa_sin_regenerar_lo_que_tenia(demo_dir):
+    demo_dir.mkdir(parents=True)
+    old = {"admin_token": "a" * 40, "signing_secret": "s" * 40}
+    (demo_dir / "demo.json").write_text(json.dumps(old), encoding="utf8")
+    env = demo.prepare(demo_dir)
+    assert env.admin_token == "a" * 40 and env.signing_secret == "s" * 40
+    saved = json.loads((demo_dir / "demo.json").read_text(encoding="utf8"))
+    assert saved["admin_token"] == "a" * 40
+    assert len(saved["firmar_client_secret"]) >= 32 and len(saved["firmar_callback_secret"]) >= 32
+
+
+def test_firma_remota_de_punta_a_punta_desde_el_panel_de_la_demo(demo_dir, monkeypatch):
+    import httpx
+
+    from firmadoc import mock_firmar
+    from firmadoc.providers import firmar
+
+    env = demo.prepare(demo_dir, 8151)
+    settings = Settings()
+    app.dependency_overrides[settings_dep] = lambda: settings
+    mock_firmar.reset()
+
+    def forward(request: httpx.Request) -> httpx.Response:  # el servidor se llama a sí mismo
+        r = TestClient(app).request(request.method, str(request.url), content=request.content, headers=dict(request.headers))
+        return httpx.Response(r.status_code, content=r.content, headers={"content-type": r.headers.get("content-type", "")})
+
+    monkeypatch.setattr(firmar, "TRANSPORT", httpx.MockTransport(forward))
+    try:
+        client = TestClient(app)
+        admin = {"Authorization": f"Bearer {env.admin_token}"}
+        r = client.post(
+            "/api/v1/admin/signing-uploads",
+            headers=admin,
+            json={"filename": "Remoto.pdf", "document_base64": base64.b64encode(make_pdf()).decode()},
+        )
+        assert r.status_code == 201, r.text
+        token = r.json()["signing_url"].partition("#t=")[2]
+        rid = r.json()["request_id"]
+        h = {"Authorization": f"Bearer {token}", "X-Session-Ref": "s1"}
+        base = f"/api/v1/widget/requests/{rid}"
+        context = client.get(base, headers=h).json()
+        assert context["allowed_providers"] == ["token", "firmar", "local"]
+        assert client.post(f"{base}/provider", json={"provider": "firmar"}, headers=h).status_code == 200
+        prepared = client.post(f"{base}/prepare", json={}, headers=h)
+        assert prepared.status_code == 200, prepared.text
+        url = prepared.json()["remote"]["authorization_url"]
+        assert url.startswith("http://localhost:8151/mock/firmar/authorize/")
+        page = client.get(url)
+        assert page.status_code == 200 and "<form" in page.text
+        done = client.post(url, data={"otp": "123456", "pin": "1234", "action": "approve"})
+        assert done.status_code == 200 and "Documento firmado" in done.text
+        context = client.get(base, headers=h).json()
+        assert context["status"] == "signed"
+        signed = client.get(f"{base}/download", headers=h)
+        assert signed.status_code == 200 and signed.content.startswith(b"%PDF-")
+        assert (demo_dir / "local-cert" / "firmar-mock" / "ca.crt").is_file()  # la AC del simulado
+    finally:
+        app.dependency_overrides.clear()
+        mock_firmar.reset()
+    assert count(demo_dir, "stored_blob") == 4
+
+
+def test_el_lote_del_panel_de_la_demo_sigue_sin_firma_remota(demo_dir):
+    env = demo.prepare(demo_dir, 8152)
+    app.dependency_overrides[settings_dep] = lambda: Settings()
+    try:
+        client = TestClient(app)
+        admin = {"Authorization": f"Bearer {env.admin_token}"}
+        docs = [{"filename": f"{i}.pdf", "document_base64": base64.b64encode(make_pdf()).decode()} for i in (1, 2)]
+        r = client.post("/api/v1/admin/signing-batch-uploads", headers=admin, json={"documents": docs})
+        assert r.status_code == 201, r.text
+    finally:
+        app.dependency_overrides.clear()
+    with sqlite3.connect(demo_dir / "firmadoc-demo.db") as conn:
+        assert conn.execute("SELECT allowed_providers FROM signature_batch").fetchone()[0] == "token,local"

@@ -9,6 +9,7 @@ import base64
 import binascii
 import datetime
 import hmac
+import html
 import io
 import json
 import secrets
@@ -27,7 +28,8 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 from fastapi import APIRouter, Depends, Header, Request
-from fastapi.responses import JSONResponse
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.sign import signers
@@ -259,6 +261,32 @@ def get_operation(operation_id: str, authorized: bool = Depends(bearer)):
     return found if isinstance(found, JSONResponse) else {"operation_id": found.id, "status": found.status}
 
 
+def _approve(settings: Settings, operation: Operation, otp: str, pin: str) -> tuple[str, int | None]:
+    """Decisión del usuario con OTP y PIN. Devuelve (resultado, código HTTP del callback o None).
+
+    Resultados: `signed` (callback hecho), `invalid_credentials` (quedan intentos), `locked` (tercer fallo)
+    y `not_pending` (la operación ya no estaba pendiente). La API y la página comparten esta lógica.
+    """
+    if operation.status != "pending":
+        return "not_pending", None
+    if not (hmac.compare_digest(otp, VALID_OTP) and hmac.compare_digest(pin, VALID_PIN)):
+        operation.attempts += 1
+        if operation.attempts >= MAX_ATTEMPTS:
+            operation.status = "locked"
+            return "locked", None
+        return "invalid_credentials", None
+    signed = _sign_pdf(settings, operation.pdf, operation.signer_cuil)
+    operation.status = "signed"
+    return "signed", _call_back(settings, operation, "signed", signed)
+
+
+def _reject(settings: Settings, operation: Operation) -> tuple[str, int | None]:
+    if operation.status != "pending":
+        return "not_pending", None
+    operation.status = "rejected"
+    return "rejected", _call_back(settings, operation, "rejected", None)
+
+
 @router.post("/v1/operations/{operation_id}/approve")
 def approve(
     operation_id: str,
@@ -270,17 +298,13 @@ def approve(
     found = _get(operation_id, authorized)
     if isinstance(found, JSONResponse):
         return found
-    if found.status != "pending":
+    result, code = _approve(settings, found, body.otp, body.pin)
+    if result == "not_pending":
         return error(409, "not_pending", f"la operación está '{found.status}'")
-    if not (hmac.compare_digest(body.otp, VALID_OTP) and hmac.compare_digest(body.pin, VALID_PIN)):
-        found.attempts += 1
-        if found.attempts >= MAX_ATTEMPTS:
-            found.status = "locked"
-            return error(403, "locked", "operación bloqueada por intentos fallidos")
+    if result == "locked":
+        return error(403, "locked", "operación bloqueada por intentos fallidos")
+    if result == "invalid_credentials":
         return error(403, "invalid_credentials", "OTP o PIN incorrectos")
-    signed = _sign_pdf(settings, found.pdf, found.signer_cuil)
-    found.status = "signed"
-    code = _call_back(settings, found, "signed", signed)
     return {"operation_id": found.id, "status": "signed", "callback_status": code}
 
 
@@ -289,8 +313,110 @@ def reject(operation_id: str, authorized: bool = Depends(bearer), settings: Sett
     found = _get(operation_id, authorized)
     if isinstance(found, JSONResponse):
         return found
-    if found.status != "pending":
+    result, code = _reject(settings, found)
+    if result == "not_pending":
         return error(409, "not_pending", f"la operación está '{found.status}'")
-    found.status = "rejected"
-    code = _call_back(settings, found, "rejected", None)
     return {"operation_id": found.id, "status": "rejected", "callback_status": code}
+
+
+# --- página de autorización (la pantalla de la persona firmante en el servicio) ----------------------
+
+PAGE_STYLE = """
+  body { font-family: system-ui, sans-serif; background: #f3f4f6; color: #111827; margin: 0; }
+  main { max-width: 30rem; margin: 3rem auto; background: #fff; padding: 2rem; border-radius: .75rem;
+         box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+  h1 { font-size: 1.25rem; margin-top: 0; }
+  .tag { display: inline-block; font-size: .75rem; background: #fef3c7; color: #92400e; padding: .15rem .5rem;
+         border-radius: .25rem; margin-bottom: 1rem; }
+  label { display: block; margin: .75rem 0 .25rem; font-weight: 600; }
+  input { width: 100%; box-sizing: border-box; padding: .5rem; font-size: 1rem; border: 1px solid #9ca3af;
+          border-radius: .375rem; }
+  .actions { display: flex; gap: .5rem; margin-top: 1.25rem; }
+  button { padding: .6rem 1rem; font-size: 1rem; border-radius: .375rem; border: 1px solid #1d4ed8;
+           background: #1d4ed8; color: #fff; cursor: pointer; }
+  button.secondary { background: #fff; color: #1f2937; border-color: #9ca3af; }
+  .msg { padding: .75rem 1rem; border-radius: .375rem; margin-bottom: 1rem; }
+  .msg.error { background: #fee2e2; color: #991b1b; }
+  .msg.ok { background: #dcfce7; color: #166534; }
+  .hint { color: #4b5563; font-size: .9rem; }
+"""
+
+OUTCOMES = {
+    "signed": ("ok", "Documento firmado. Ya podés volver a la pestaña de Firmadoc: el resultado se actualiza solo."),
+    "rejected": ("ok", "Firma rechazada. Volvé a la pestaña de Firmadoc: la solicitud quedó registrada como rechazada."),
+    "locked": ("error", "Operación bloqueada por intentos fallidos. Volvé a Firmadoc y empezá de nuevo."),
+    "invalid_credentials": ("error", "OTP o PIN incorrectos."),
+    "not_pending": ("error", "Esta operación ya no está pendiente."),
+}
+
+
+def _render_page(operation: Operation, result: str | None = None) -> str:
+    cuil = html.escape(operation.signer_cuil)
+    parts = [
+        "<!doctype html><html lang='es'><head><meta charset='utf-8'>",
+        "<meta name='viewport' content='width=device-width, initial-scale=1'>",
+        "<title>Servicio de firma remota (simulado)</title>",
+        f"<style>{PAGE_STYLE}</style></head><body><main>",
+        "<span class='tag'>Servicio simulado: solo para demostración</span>",
+        "<h1>Autorizar la firma del documento</h1>",
+        f"<p>Firmante: CUIL <strong>{cuil}</strong>. Operación <code>{html.escape(operation.id)}</code>.</p>",
+    ]
+    if result is not None:
+        kind, text = OUTCOMES[result]
+        if result == "invalid_credentials":
+            remaining = MAX_ATTEMPTS - operation.attempts
+            text += f" Te quedan {remaining} intento{'s' if remaining != 1 else ''}."
+        parts.append(f"<p class='msg {kind}' role='alert'>{html.escape(text)}</p>")
+    if operation.status == "pending":
+        parts += [
+            "<form method='post'>",
+            "<label for='otp'>Código de un solo uso (OTP)</label>",
+            "<input id='otp' name='otp' inputmode='numeric' autocomplete='one-time-code' required autofocus>",
+            "<label for='pin'>PIN del certificado remoto</label>",
+            "<input id='pin' name='pin' type='password' inputmode='numeric' required>",
+            "<div class='actions'>",
+            "<button type='submit' name='action' value='approve'>Firmar</button>",
+            "<button type='submit' name='action' value='reject' class='secondary' formnovalidate>Rechazar</button>",
+            "</div></form>",
+            (
+                f"<p class='hint'>En el simulado el OTP es <code>{VALID_OTP}</code> y el PIN <code>{VALID_PIN}</code>; "
+                "tres intentos fallidos bloquean la operación.</p>"
+            ),
+        ]
+    else:
+        parts.append(f"<p class='hint'>Estado de la operación: <strong>{html.escape(operation.status)}</strong>.</p>")
+    parts.append("</main></body></html>")
+    return "".join(parts)
+
+
+PAGE_HEADERS = {
+    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'",
+    "Cache-Control": "no-store",
+}
+
+
+def _page(operation: Operation, result: str | None = None, status_code: int = 200) -> HTMLResponse:
+    return HTMLResponse(_render_page(operation, result), status_code=status_code, headers=PAGE_HEADERS)
+
+
+@router.get("/authorize/{operation_id}")
+def authorize_page(operation_id: str):
+    """Pantalla del usuario en el servicio: no exige el token OAuth (lo que lo identifica es el OTP y el PIN)."""
+    operation = _operations.get(operation_id)
+    if operation is None:
+        raise NotFound("operación inexistente")
+    return _page(operation)
+
+
+@router.post("/authorize/{operation_id}")
+async def authorize_submit(operation_id: str, request: Request, settings: Settings = Depends(enabled)):
+    operation = _operations.get(operation_id)
+    if operation is None:
+        raise NotFound("operación inexistente")
+    form = {k: v[0] for k, v in parse_qs((await request.body()).decode(errors="replace")).items()}
+    if form.get("action") == "reject":
+        result, _ = await run_in_threadpool(_reject, settings, operation)
+    else:
+        result, _ = await run_in_threadpool(_approve, settings, operation, form.get("otp", ""), form.get("pin", ""))
+    codes = {"signed": 200, "rejected": 200, "not_pending": 409}
+    return _page(operation, result, status_code=codes.get(result, 403))

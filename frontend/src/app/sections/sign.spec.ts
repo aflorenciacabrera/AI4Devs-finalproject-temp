@@ -82,7 +82,7 @@ describe('Sign', () => {
     expect(component.widgetOpen()).toBe(true);
     const iframe = dialogIframe();
     expect(iframe?.getAttribute('src')).toBe(SIGNING_URL);
-    expect(iframe?.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin allow-downloads');
+    expect(iframe?.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox');
     expect(document.querySelector('.widget-dialog .p-dialog-title')?.textContent).toContain('Resolucion.pdf');
   });
 

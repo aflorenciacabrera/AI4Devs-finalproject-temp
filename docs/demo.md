@@ -20,7 +20,8 @@ Al arrancar muestra la URL del panel, el token de acceso y la API key de demostr
 
 **Firma propia** es el proveedor `local`: firma electrónica de demostración con un certificado propio de Firmadoc.
 No usa el token USB ni el agente y **no tiene la presunción legal de la firma digital** (Ley 25.506); sirve para
-recorrer y evaluar todos los flujos.
+recorrer y evaluar todos los flujos. Los otros dos métodos también se pueden probar: **Firma con token** con un
+token de software o con el token físico, y **Firma remota** con el servicio simulado (secciones de abajo).
 
 ## Qué crea
 
@@ -30,8 +31,8 @@ Todo queda en `data/demo/` (ignorado por git), sin tocar tu base ni tu `.env`:
 |---|---|
 | `firmadoc-demo.db` | base SQLite con el esquema completo, el seed de demostración **y los PDF** (tabla `stored_blob`, almacén `database`, como en una instalación real; ver `database.md`) |
 | `storage/` | solo en entornos creados antes de que la demo guardara los PDF en la base: al arrancar, esos PDF se copian a la base (la guía dice cuántos) y los archivos quedan como copia, se pueden borrar. Si alguno falta o está corrupto, la demo no arranca y lo indica (`--reset` empieza de cero) |
-| `local-cert/` | certificado de demostración de «Firma propia» |
-| `demo.json` | token de administración y secreto de los enlaces del widget (se generan una vez y se conservan) |
+| `local-cert/` | certificado de demostración de «Firma propia»; en `firmar-mock/`, la AC del servicio de firma remota simulado (se crea en la primera firma remota) |
+| `demo.json` | token de administración, secreto de los enlaces del widget y secretos del servicio de firma remota simulado (cliente y callback); se generan una vez y se conservan, y un `demo.json` anterior se completa sin regenerar lo que ya tenía |
 
 Los datos y los secretos son de demostración: no se usan en producción. Con `FIRMADOC_REAL_MODE=true` el comando se
 niega a arrancar (ver `real-mode.md`).
@@ -98,6 +99,20 @@ el PIN nunca pasa por el navegador. Chrome/Edge pueden pedir una vez permiso de 
 
 Todo esto es demostración: la clave privada vive en un archivo sin cifrar dentro de `data/demo/` y la AC no tiene
 valor legal. El `.exe` instalado por política de dominio sigue usando un módulo PKCS#11 real.
+
+## Firma remota con el servicio simulado
+
+La demo también habilita el tercer método, **Firma remota**, contra el **servicio de firma remota simulado** que
+corre en el mismo servidor (`/mock/firmar`, ver `firmar.md`): fija `FIRMADOC_FIRMAR_BASE_URL=http://localhost:8000/mock/firmar`
+y `FIRMADOC_FIRMAR_MOCK_ENABLED=true`, con un secreto de cliente y uno de callback que guarda en `demo.json`. Para
+recorrerlo, en el panel: cargá un PDF → **Firma remota** → **Firmar documento** → **Continuar en el servicio de
+firma**. Se abre en otra pestaña la página del simulado (la pantalla que en un servicio real sería la del
+usuario): ingresá el OTP `123456` y el PIN `1234` y elegí **Firmar** (o **Rechazar**). El simulado firma el PDF con
+un certificado emitido por su propia AC y avisa a Firmadoc por el callback; el widget, que consulta el estado,
+pasa solo a «Documento firmado» y la v2 queda en «Documentos», verificable contra la AC del simulado (que se suma a
+las anclas mientras el simulado esté habilitado). Tres intentos fallidos bloquean la operación: cancelá en el
+widget y empezá de nuevo. Como el resto de la demo, es una simulación: el contrato del servicio real no está
+verificado y no hay convenio con él. La firma remota no se ofrece en lotes.
 
 ## Firma con el token físico desde la demo
 

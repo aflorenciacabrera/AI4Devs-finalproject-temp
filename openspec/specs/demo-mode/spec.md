@@ -39,7 +39,7 @@ El comando SHALL negarse a arrancar con código de salida distinto de cero y un 
 - **THEN** el comando termina con error sin crear ni modificar `data/demo/`
 
 ### Requirement: Guía al arrancar
-Al arrancar el comando SHALL mostrar la URL del panel, el token de administración, la API key de demostración y el método a usar sin token («Firma propia»), y SHALL avisar, sin impedir el arranque, si el widget no está compilado indicando cómo compilarlo.
+Al arrancar el comando SHALL mostrar la URL del panel, el token de administración, la API key de demostración, el método a usar sin token («Firma propia») y cómo probar la firma remota con el servicio simulado (OTP `123456` y PIN `1234`), y SHALL avisar, sin impedir el arranque, si el widget no está compilado indicando cómo compilarlo.
 
 #### Scenario: Widget sin compilar
 - **WHEN** no existe `widget/dist/index.html`
@@ -48,6 +48,10 @@ Al arrancar el comando SHALL mostrar la URL del panel, el token de administraci�
 #### Scenario: Datos de acceso
 - **WHEN** el entorno está listo
 - **THEN** se imprime la URL de `/admin`, el token de administración y el uso de «Firma propia»
+
+#### Scenario: Firma remota en la guía
+- **WHEN** el entorno está listo
+- **THEN** la guía indica elegir «Firma remota», continuar en el servicio simulado e ingresar OTP `123456` y PIN `1234`
 
 ### Requirement: Token de prueba para firmar con el agente
 El modo demostración SHALL generar una vez, en `data/demo/token/`, una AC de prueba (`ca.crt`) y un certificado de firmante con clave privada (`firmante.pem`) cuyo sujeto lleve el CUIL `20000000001` («Firmante de Prueba»), y SHALL reutilizarlos en arranques siguientes. SHALL armar un directorio de confianza propio (`data/demo/trust/`) con las anclas del repositorio más la AC de prueba y apuntar `FIRMADOC_TRUST_DIR` a él, sin modificar `backend/trust`. SHALL configurar al firmante del panel con ese nombre y CUIL para que la validación del certificado del token de prueba pase. La guía SHALL imprimir el comando del agente con token de software y el PIN `1234`.
@@ -113,3 +117,22 @@ Si al preparar el entorno con la base propia de `data/demo/` existen en `data/de
 #### Scenario: Sin la opción
 - **WHEN** se ejecuta sin `--database-url`
 - **THEN** usa `data/demo/firmadoc-demo.db` como hasta ahora
+
+### Requirement: Firma remota con el servicio simulado
+El modo demostración SHALL habilitar el proveedor `firmar` contra el servicio de firma remota simulado del mismo servidor (`FIRMADOC_FIRMAR_BASE_URL` = `http://localhost:{puerto}/mock/firmar`, `FIRMADOC_FIRMAR_MOCK_ENABLED=true`), de modo que un PDF cargado desde el panel ofrezca «Firma remota» entre sus métodos y el flujo se complete desde el navegador: el widget abre la página de autorización del simulado, la persona ingresa OTP `123456` y PIN `1234`, y la solicitud queda firmada con una versión nueva cuya cadena llega a la AC del simulado. El comando SHALL generar una única vez un secreto de cliente y un secreto de callback (de al menos 32 caracteres), guardarlos en `data/demo/demo.json` junto a los existentes y reutilizarlos; en un `demo.json` anterior SHALL agregarlos sin regenerar el token de administración ni el secreto del widget. La guía SHALL explicar el recorrido y los códigos. Los lotes del panel SHALL seguir sin ofrecer la firma remota.
+
+#### Scenario: Tarjeta disponible
+- **WHEN** se carga un PDF desde el panel de la demo
+- **THEN** el contexto del widget incluye `firmar` entre `allowed_providers` y la tarjeta «Firma remota» se muestra habilitada
+
+#### Scenario: Firma remota de punta a punta
+- **WHEN** se elige «Firma remota», se abre la `authorization_url` y se envía el formulario con OTP `123456` y PIN `1234`
+- **THEN** el simulado llama al callback, la solicitud pasa a `signed` y la versión 2 del documento lleva una firma verificable contra la AC del simulado
+
+#### Scenario: Secretos conservados y completados
+- **WHEN** se prepara el entorno dos veces, o sobre un `demo.json` que solo tiene el token de administración y el secreto del widget
+- **THEN** los secretos de cliente y de callback son los mismos entre arranques, miden al menos 32 caracteres, y el token de administración y el secreto del widget anteriores se conservan
+
+#### Scenario: Lote desde el panel
+- **WHEN** se cargan varios PDF desde el panel de la demo
+- **THEN** el lote ofrece solo `token` y `local`

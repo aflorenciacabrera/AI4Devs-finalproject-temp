@@ -23,7 +23,7 @@ export interface WidgetDialogData {
       [src]="url"
       title="Firma de documento (Firmadoc)"
       allow="local-network-access; local-network; loopback-network"
-      sandbox="allow-scripts allow-same-origin allow-downloads"
+      sandbox="allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"
       referrerpolicy="no-referrer"></iframe>
   `,
 })
