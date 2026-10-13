@@ -28,19 +28,35 @@ export interface ServerClientOptions {
   sessionRef: string;
   baseUrl?: string;
   fetchFn?: typeof fetch;
+  /** Consultas cortas: contexto, elección de método y descarga. */
   timeoutMs?: number;
+  /** prepare y complete: el servidor procesa cada PDF del lote, uno por uno. */
+  signingTimeoutMs?: number;
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
+/** Hasta 50 documentos; preparar cuatro PDF ya superó el tiempo de una consulta. */
+const SIGNING_TIMEOUT_MS = 30 * 60_000;
+
+interface CallInit {
+  method: string;
+  body?: unknown;
+  timeoutMs?: number;
+}
 
 /** Transporte común: cabeceras de seguridad, tiempo máximo y errores normalizados. */
 function createTransport(options: ServerClientOptions, root: string) {
-  const { token, sessionRef, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
+  const {
+    token,
+    sessionRef,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    signingTimeoutMs = SIGNING_TIMEOUT_MS,
+  } = options;
   const fetchFn = options.fetchFn ?? ((...args: Parameters<typeof fetch>) => fetch(...args));
 
-  async function call(path: string, init: { method: string; body?: unknown }): Promise<Response> {
+  async function call(path: string, init: CallInit): Promise<Response> {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(), init.timeoutMs ?? timeoutMs);
     let response: Response;
     try {
       response = await fetchFn(`${root}${path}`, {
@@ -71,7 +87,7 @@ function createTransport(options: ServerClientOptions, root: string) {
     return response;
   }
 
-  async function json(path: string, init: { method: string; body?: unknown }): Promise<unknown> {
+  async function json(path: string, init: CallInit): Promise<unknown> {
     const response = await call(path, init);
     try {
       return await response.json();
@@ -89,12 +105,12 @@ function createTransport(options: ServerClientOptions, root: string) {
     return { blob, filename: match?.[1] ?? fallbackName };
   }
 
-  return { call, json, invalid, download };
+  return { json, invalid, download, signingTimeoutMs };
 }
 
 export function createServerClient(options: ServerClientOptions): ServerClient {
   const { requestId, baseUrl = "" } = options;
-  const { json, invalid, download } = createTransport(
+  const { json, invalid, download, signingTimeoutMs } = createTransport(
     options,
     `${baseUrl}/api/v1/widget/requests/${encodeURIComponent(requestId)}`,
   );
@@ -114,12 +130,17 @@ export function createServerClient(options: ServerClientOptions): ServerClient {
       const body = await json("/prepare", {
         method: "POST",
         body: certificatePem ? { certificate_pem: certificatePem } : {},
+        timeoutMs: signingTimeoutMs,
       });
       if (!isPrepareResponse(body)) throw invalid();
       return body;
     },
     async complete(signatures) {
-      const body = await json("/complete", { method: "POST", body: { signatures } });
+      const body = await json("/complete", {
+        method: "POST",
+        body: { signatures },
+        timeoutMs: signingTimeoutMs,
+      });
       if (!isWidgetContext(body)) throw invalid();
       return body;
     },
@@ -153,7 +174,7 @@ export function batchToContext(batch: BatchContextResponse): WidgetContext {
 
 export function createBatchServerClient(options: ServerClientOptions): ServerClient {
   const { requestId: batchId, baseUrl = "" } = options;
-  const { json, invalid, download } = createTransport(
+  const { json, invalid, download, signingTimeoutMs } = createTransport(
     options,
     `${baseUrl}/api/v1/widget/batches/${encodeURIComponent(batchId)}`,
   );
@@ -173,12 +194,15 @@ export function createBatchServerClient(options: ServerClientOptions): ServerCli
       const body = await json("/prepare", {
         method: "POST",
         body: certificatePem ? { certificate_pem: certificatePem } : {},
+        timeoutMs: signingTimeoutMs,
       });
       if (!isPrepareResponse(body)) throw invalid();
       return body;
     },
     async complete(signatures) {
-      return asContext(await json("/complete", { method: "POST", body: { signatures } }));
+      return asContext(
+        await json("/complete", { method: "POST", body: { signatures }, timeoutMs: signingTimeoutMs }),
+      );
     },
     downloadPdf: () => download("/download", "documentos-firmados.zip"),
     async retry() {

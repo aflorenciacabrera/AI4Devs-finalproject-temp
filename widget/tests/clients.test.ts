@@ -93,6 +93,24 @@ describe("serverClient", () => {
     });
   });
 
+  it("prepare no se corta con el tiempo de una consulta", async () => {
+    const fetchFn = vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((resolve, reject) => {
+          const timer = setTimeout(
+            () => resolve(jsonResponse({ challenges: [challenge], expires_at: "2099-01-01T00:00:00Z" })),
+            50,
+          );
+          init.signal!.addEventListener("abort", () => {
+            clearTimeout(timer);
+            reject(new DOMException("abort", "AbortError"));
+          });
+        }),
+    );
+    const prepared = await server(fetchFn as unknown as typeof fetch, 20).prepare("PEM");
+    expect(prepared.challenges).toHaveLength(1);
+  });
+
   it.each([
     ["contexto sin forma", () => jsonResponse({ hola: 1 })],
     ["texto plano", () => new Response("hola", { status: 200 })],
