@@ -17,3 +17,7 @@ data/
 agent/dist/
 agent/build/
 *.spec
+
+# agentes de IA: configuración local y contexto de sesiones
+.claude/settings.local.json
+.claude/sessions/
