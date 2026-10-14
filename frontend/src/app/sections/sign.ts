@@ -11,6 +11,7 @@ import { BatchDocument, SigningBatchUpload, SigningUpload } from '../core/api-ty
 import { MAX_PDF_BYTES, SizePipe, formatSize, isPdf, pagesLabel } from '../core/format';
 import { SignResult } from '../core/widget-messages';
 import { WidgetDialog, WidgetDialogData } from './widget-dialog';
+import { WidgetWindow, WidgetWindowHandle } from './widget-window';
 
 export interface Ready {
   name: string;
@@ -54,7 +55,10 @@ function readBase64(file: File): Promise<string> {
   });
 }
 
-/** Carga de uno o varios PDF (p-fileupload con plantillas propias) y widget de firma en un diálogo dinámico. */
+/**
+ * Carga de uno o varios PDF (p-fileupload con plantillas propias) y widget de firma en una ventana propia
+ * (`WidgetWindow`); si el navegador bloquea la ventana, en un diálogo dinámico (`WidgetDialog`) como respaldo.
+ */
 @Component({
   selector: 'app-sign',
   imports: [FileUpload, Button, Card, Tag, Timeline, Message, SizePipe],
@@ -65,7 +69,11 @@ export class Sign {
   private readonly api = inject(AdminApi);
   private readonly dialog = inject(DialogService);
   private readonly injector = inject(Injector);
+  private readonly windows = inject(WidgetWindow);
   private dialogRef: DynamicDialogRef | null = null;
+  private windowHandle: WidgetWindowHandle | null = null;
+  /** Ventana reservada en el clic de «Cargar y firmar», mientras se lee y sube el PDF. */
+  private reserved: WidgetWindowHandle | null = null;
 
   readonly uploader = viewChild<FileUpload>('uploader');
 
@@ -105,6 +113,8 @@ export class Sign {
       return;
     }
     this.uploading.set(true);
+    // La ventana se reserva en el gesto del usuario, antes de leer y subir: después el navegador la bloquearía.
+    this.reserved = this.windows.reserve();
     try {
       const documents = [];
       for (const file of files) documents.push({ filename: file.name, document_base64: await readBase64(file) });
@@ -117,16 +127,50 @@ export class Sign {
       }
       this.uploader()?.clear();
     } catch (error) {
+      this.reserved?.close();
+      this.reserved = null;
       this.api.fail(error, 'No se pudo cargar');
     } finally {
       this.uploading.set(false);
     }
   }
 
-  /** Abre el widget en un diálogo dinámico de PrimeNG; los resultados se reflejan en la tarjeta. */
+  /**
+   * Abre el widget en una ventana propia (Firmadoc como página principal: sin módulo dentro de un diálogo y sin
+   * delegar el permiso de red local). Si el navegador bloquea la ventana, usa el diálogo dinámico de PrimeNG.
+   * Los resultados se reflejan en la tarjeta.
+   */
   openWidget(): void {
     const ready = this.ready();
-    if (!ready || this.dialogRef) return;
+    if (!ready || this.widgetOpen()) return;
+    const handle = this.reserved ?? this.windows.reserve();
+    this.reserved = null;
+    if (!handle) {
+      this.openDialog(ready);
+      return;
+    }
+    let reported = false;
+    this.widgetOpen.set(true);
+    this.windowHandle = handle;
+    handle.open(ready.signingUrl, {
+      onResult: (result) => {
+        reported = true;
+        this.result.set(result);
+      },
+      onClosed: () => {
+        if (this.windowHandle === handle) this.windowHandle = null;
+        this.widgetOpen.set(false);
+        if (!reported) this.result.set(CLOSED_WITHOUT_SIGNING);
+      },
+    });
+  }
+
+  /** Trae al frente la ventana de firma (si el widget está en el diálogo, no hace nada). */
+  focusWidget(): void {
+    this.windowHandle?.focus();
+  }
+
+  private openDialog(ready: Ready): void {
     let reported = false;
     const data: WidgetDialogData = {
       signingUrl: ready.signingUrl,
@@ -161,7 +205,16 @@ export class Sign {
     });
   }
 
+  /** Cierra el módulo de firma (ventana o diálogo) y descarta la ventana reservada, si la hay. */
   closeWidget(): void {
+    this.closeOpen();
+    this.reserved?.close();
+    this.reserved = null;
+  }
+
+  private closeOpen(): void {
+    this.windowHandle?.close();
+    this.windowHandle = null;
     this.dialogRef?.close();
     this.dialogRef = null;
     this.widgetOpen.set(false);
@@ -179,7 +232,7 @@ export class Sign {
   }
 
   private show(name: string, meta: string, signingUrl: string, documents: BatchDocument[] | null): void {
-    this.closeWidget();
+    this.closeOpen(); // el módulo anterior, no la ventana reservada para este documento
     this.result.set(null);
     this.ready.set({ name, meta, signingUrl, documents });
     this.openWidget();

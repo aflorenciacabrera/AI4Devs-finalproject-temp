@@ -36,10 +36,9 @@
       </p-message>
       <p-button
         id="sign-open"
-        [label]="widgetOpen() ? 'Módulo de firma abierto' : 'Abrir módulo de firma'"
-        icon="pi pi-pen-to-square"
-        [disabled]="widgetOpen()"
-        (onClick)="openWidget()" />
+        [label]="widgetOpen() ? 'Ir a la ventana de firma' : 'Abrir módulo de firma'"
+        [icon]="widgetOpen() ? 'pi pi-external-link' : 'pi pi-pen-to-square'"
+        (onClick)="widgetOpen() ? focusWidget() : openWidget()" />
     </div>
   </p-card>
   @if (result(); as res) {

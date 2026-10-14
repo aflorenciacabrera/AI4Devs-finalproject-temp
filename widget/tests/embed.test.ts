@@ -226,3 +226,70 @@ describe("<firmadoc-widget>", () => {
     expect(any).not.toHaveBeenCalled();
   });
 });
+
+describe("ventana propia (abierta con window.open)", () => {
+  it("avisa a la ventana que la abrió, a cada origen permitido y nunca a '*'", () => {
+    const opener = { postMessage: vi.fn(), closed: false };
+    const host = createHostNotifier(["https://a.example.org", "https://b.example.org"], REQUEST, {
+      target: opener,
+      kind: "opener",
+    });
+    host.ready();
+    expect(opener.postMessage.mock.calls.map((c) => c[1])).toEqual(["https://a.example.org", "https://b.example.org"]);
+    expect(opener.postMessage.mock.calls[0]![0]).toEqual({ source: "firmadoc", type: "firmadoc:ready", requestId: REQUEST });
+  });
+
+  it("si la ventana que la abrió ya se cerró, no envía nada ni falla", () => {
+    const opener = { postMessage: vi.fn(), closed: true };
+    const host = createHostNotifier(["https://a.example.org"], REQUEST, { target: opener, kind: "opener" });
+    expect(() => host.signed(null)).not.toThrow();
+    expect(opener.postMessage).not.toHaveBeenCalled();
+  });
+
+  it("«Cerrar» avisa y después cierra la ventana propia", () => {
+    const opener = { postMessage: vi.fn(), closed: false };
+    const close = vi.fn();
+    createHostNotifier(["https://a.example.org"], REQUEST, { target: opener, kind: "opener" }, close).closed();
+    expect(opener.postMessage.mock.calls[0]![0]).toMatchObject({ type: "firmadoc:closed" });
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(opener.postMessage.mock.invocationCallOrder[0]!).toBeLessThan(close.mock.invocationCallOrder[0]!);
+  });
+
+  it("embebido en un iframe, «Cerrar» no cierra ninguna ventana", () => {
+    const parent = { postMessage: vi.fn() };
+    const close = vi.fn();
+    createHostNotifier(["https://a.example.org"], REQUEST, { target: parent, kind: "parent" }, close).closed();
+    expect(parent.postMessage).toHaveBeenCalledTimes(1);
+    expect(close).not.toHaveBeenCalled();
+  });
+
+  it("sin anfitrión no envía nada ni cierra nada", () => {
+    const close = vi.fn();
+    const host = createHostNotifier(["https://a.example.org"], REQUEST, null, close);
+    expect(() => host.closed()).not.toThrow();
+    expect(close).not.toHaveBeenCalled();
+  });
+
+  it("findHostWindow: el marco padre gana; si no, el opener abierto; si no, nada", async () => {
+    const { findHostWindow } = await import("../src/embed/hostMessages");
+    const originalParent = window.parent;
+    const originalOpener = window.opener;
+    try {
+      Object.defineProperty(window, "parent", { value: window, configurable: true });
+      Object.defineProperty(window, "opener", { value: null, configurable: true });
+      expect(findHostWindow()).toBeNull();
+      const opener = { postMessage: vi.fn(), closed: false };
+      Object.defineProperty(window, "opener", { value: opener, configurable: true });
+      expect(findHostWindow()).toEqual({ target: opener, kind: "opener" });
+      Object.defineProperty(window, "opener", { value: { postMessage: vi.fn(), closed: true }, configurable: true });
+      expect(findHostWindow()).toBeNull();
+      const parent = { postMessage: vi.fn() };
+      Object.defineProperty(window, "parent", { value: parent, configurable: true });
+      Object.defineProperty(window, "opener", { value: opener, configurable: true });
+      expect(findHostWindow()).toEqual({ target: parent, kind: "parent" });
+    } finally {
+      Object.defineProperty(window, "parent", { value: originalParent, configurable: true });
+      Object.defineProperty(window, "opener", { value: originalOpener, configurable: true });
+    }
+  });
+});

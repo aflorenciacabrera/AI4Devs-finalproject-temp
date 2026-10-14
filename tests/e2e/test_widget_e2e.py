@@ -201,6 +201,30 @@ def test_web_component_emite_eventos_dom(live, page):
     assert "evento DOM firmadoc-signed" in kinds
 
 
+def test_firma_local_en_ventana_emergente(live, page):
+    """Opción 3: la anfitriona abre la signing_url con window.open y el widget avisa por window.opener."""
+    request = live.create_request("local")
+    page.goto(live.host_url(request["signing_url"], mode="popup"))
+    with page.context.expect_page() as opened:
+        page.click("#open-popup")  # en un gesto del usuario, si no el navegador la bloquea
+    popup = opened.value
+    popup.wait_for_load_state()
+    heading(popup, "Firmar el documento").wait_for()
+    assert wait_for_message(page, "firmadoc:ready")["requestId"] == request["id"]
+    popup.get_by_role("button", name="Firmar", exact=True).click()
+    heading(popup, SIGNED).wait_for()
+    assert wait_for_message(page, "firmadoc:signed")["document"]["version_number"] == 2
+
+    popup.get_by_role("button", name="Cerrar", exact=True).click()  # avisa y cierra su propia ventana
+    wait_for_message(page, "firmadoc:closed")
+    deadline = time.time() + 5
+    while not popup.is_closed() and time.time() < deadline:
+        page.wait_for_timeout(100)
+    assert popup.is_closed()
+    wait_for_message(page, "popup:closed")  # la anfitriona detectó el cierre por popup.closed
+    assert live.get_request(request["id"])["status"] == "signed"
+
+
 # --- seguridad del embebido -----------------------------------------------------------------
 
 

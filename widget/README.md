@@ -3,7 +3,7 @@
 Interfaz de firma que un sistema integrador **embebe** en su propia pantalla. Coordina al servidor de Firmadoc con el agente local: lista los certificados del token, valida el certificado **antes** de pedir el PIN, hace que el agente firme el hash y registra la nueva versión del documento.
 
 - Stack: React + TypeScript (Vite), español rioplatense, accesible por teclado y lectores de pantalla.
-- Proveedores: `token` (firma digital con el token, vía el agente) y `local` (firma electrónica de demostración). Para `firmar` muestra que el método no está disponible.
+- Proveedores: `token` (firma digital con el token, vía el agente), `local` (firma electrónica de demostración) y `firmar` (firma remota: abre el servicio en otra pestaña y espera su resultado).
 - **El widget nunca ve el PIN**: se ingresa en la ventana de Firmadoc Agent, en la PC de la persona.
 
 ## Cómo se integra
@@ -17,7 +17,7 @@ Interfaz de firma que un sistema integrador **embebe** en su propia pantalla. Co
 
    y recibe una `signing_url` con la forma `https://firmadoc.example.org/sign/{id}#t={token}`.
 2. Entrega esa `signing_url` a su pantalla (por ejemplo en la respuesta de su propia API).
-3. La pantalla la embebe con un `<iframe>` o con el Web Component y escucha los mensajes del widget.
+3. La pantalla la embebe con un `<iframe>` o con el Web Component (o la abre en una ventana propia) y escucha los mensajes del widget.
 
 > **La API key del integrador nunca debe llegar al navegador.** El `token` del fragmento (`#t=`) es otra cosa: es una credencial acotada a **esa** solicitud, de una hora de vida (`FIRMADOC_SIGNING_TOKEN_TTL_SECONDS`), que solo sirve para los endpoints del widget. Va en el fragmento para que el navegador no lo envíe al servidor, no aparezca en registros de acceso ni en el `Referer`; el widget lo guarda solo en memoria y lo borra de la barra de direcciones y del historial al cargar.
 
@@ -47,9 +47,33 @@ Interfaz de firma que un sistema integrador **embebe** en su propia pantalla. Co
 
 Es un **envoltorio del iframe** (mismo aislamiento, sin CORS ni estilos filtrados). Tamaño por defecto 480 × 760; se cambia con CSS (`firmadoc-widget { height: 640px }`). Reemite los mensajes como eventos DOM: `firmadoc-ready`, `firmadoc-signed`, `firmadoc-failed`, `firmadoc-cancelled`, `firmadoc-closed` (el mensaje original va en `event.detail`). Solo reemite lo que viene de **su propio iframe** y del **origen de la `signing-url`**. Si se cambia el atributo `signing-url`, recarga.
 
+### Opción 3: ventana emergente (alternativa)
+
+```js
+// En un gesto del usuario (clic): fuera de él, el navegador bloquea la ventana.
+const popup = window.open(signingUrl, "firmadoc-firma", "popup,width=560,height=860");
+if (!popup) { /* bloqueada: pedir que la permita, o caer al iframe */ }
+window.addEventListener("message", (event) => {
+  if (event.source !== popup) return;                           // la ventana que abrimos
+  if (event.origin !== "https://firmadoc.example.org") return;  // el origen de Firmadoc
+  if (event.data?.source !== "firmadoc") return;
+  // ...
+});
+```
+
+El widget corre como **página principal** de esa ventana y avisa por `window.opener` con los mismos mensajes y el
+mismo destinatario explícito por origen permitido (una ventana abierta desde otro origen no recibe nada). «Cerrar»
+cierra la ventana; para detectar que la persona la cerró antes, consultá `popup.closed`. Cuándo conviene: cuando el
+anfitrión no puede delegar el permiso de acceso a la red local (elimina el atributo `allow` o no lo admite), porque
+aquí el permiso se le pide al origen de Firmadoc directamente, y cuando se quiere evitar un módulo dentro de un
+diálogo. Costos: hay que abrirla en un gesto del usuario, la persona sale momentáneamente de la aplicación y, con
+`noopener`, no hay forma de avisar (el resultado se consulta igual desde el backend con la API key). El panel de
+Firmadoc (`frontend/src/app/sections/widget-window.ts`) usa este modo, con el iframe en un diálogo como respaldo si
+la ventana fue bloqueada.
+
 ## Mensajes hacia la página anfitriona
 
-El widget avisa con `window.parent.postMessage`, siempre con `targetOrigin` explícito (uno por cada origen de `allowed_origins`; **nunca `"*"`**) y nunca incluye el token ni el PDF:
+El widget avisa con `postMessage` a la página que lo embebe (`window.parent`) o, en una ventana propia, a la que lo abrió (`window.opener`), siempre con `targetOrigin` explícito (uno por cada origen de `allowed_origins`; **nunca `"*"`**) y nunca incluye el token ni el PDF:
 
 | `type` | Cuándo | Campos extra |
 |---|---|---|
@@ -151,6 +175,35 @@ export class FirmarDocumentoComponent {
 ```
 
 > El proyecto no incluye una aplicación Angular de prueba; esta guía se verificó contra la página anfitriona `examples/host.html` (mismos mensajes, mismas validaciones). Un componente Angular concreto puede requerir ajustes de `DomSanitizer` o del `Content-Security-Policy` de la aplicación.
+
+**4. O en una ventana propia** (sin iframe ni delegación del permiso de red local). Abrila en el `click`:
+
+```ts
+// firmar-en-ventana.component.ts
+@Component({ selector: "app-firmar-en-ventana", standalone: true, template: `<button (click)="abrir()">Firmar</button>` })
+export class FirmarEnVentanaComponent {
+  @Input() signingUrl = "";
+  private popup: Window | null = null;
+
+  abrir() {
+    this.popup = window.open(this.signingUrl, "firmadoc-firma", "popup,width=560,height=860");
+    if (!this.popup) alert("Permití las ventanas emergentes para firmar."); // o caer al iframe
+  }
+
+  @HostListener("window:message", ["$event"])
+  onMessage(event: MessageEvent) {
+    if (!this.popup || event.source !== this.popup) return; // la ventana que abrimos
+    if (event.origin !== new URL(this.signingUrl).origin) return; // origen de Firmadoc
+    if (event.data?.source !== "firmadoc") return;
+    if (event.data.type === "firmadoc:signed") {
+      // actualizar la pantalla; el estado definitivo se confirma contra tu backend
+    }
+  }
+}
+```
+
+El ejemplo completo, con detección de la ventana cerrada y el diálogo como respaldo, está en el panel de Firmadoc:
+`frontend/src/app/sections/widget-window.ts` y `sign.ts`.
 
 ## Configuración del servidor
 

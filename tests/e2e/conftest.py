@@ -4,6 +4,7 @@ otro origen y un Chrome real (Playwright, con el Chrome del sistema: no se desca
 
 import functools
 import http.server
+import os
 import socket
 import threading
 import time
@@ -39,6 +40,10 @@ def free_port() -> int:
         return s.getsockname()[1]
 
 
+# Navegadores del sistema con los que corre la suite (FIRMADOC_E2E_BROWSER): no se descarga ninguno.
+BROWSERS = {"chrome": "Chrome", "msedge": "Edge"}
+
+
 @pytest.fixture(scope="module")
 def browser():
     # Alcance de módulo (no de sesión): la API síncrona de Playwright mantiene un event loop en el
@@ -46,11 +51,14 @@ def browser():
     sync_api = pytest.importorskip("playwright.sync_api")
     if not (WIDGET_DIST / "index.html").exists():
         pytest.skip("el widget no está compilado: ejecutar `npm run build` en widget/")
+    channel = os.environ.get("FIRMADOC_E2E_BROWSER", "chrome").strip().lower() or "chrome"
+    if channel not in BROWSERS:
+        pytest.fail(f"FIRMADOC_E2E_BROWSER={channel!r}: los valores admitidos son {', '.join(BROWSERS)}")
     with sync_api.sync_playwright() as p:
         try:
-            instance = p.chromium.launch(channel="chrome", headless=True)
-        except Exception as e:  # noqa: BLE001 - cualquier fallo al lanzar = Chrome no disponible
-            pytest.skip(f"Chrome no disponible para Playwright: {e}")
+            instance = p.chromium.launch(channel=channel, headless=True)
+        except Exception as e:  # noqa: BLE001 - cualquier fallo al lanzar = navegador no disponible
+            pytest.skip(f"{BROWSERS[channel]} no disponible para Playwright: {e}")
         yield instance
         instance.close()
 

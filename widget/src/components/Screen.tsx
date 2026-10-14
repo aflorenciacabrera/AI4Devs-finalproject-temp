@@ -13,6 +13,9 @@ interface ScreenProps {
   tone?: "default" | "error" | "success";
 }
 
+/** En un iframe el widget es un módulo de otra pantalla; en una ventana propia, es la pantalla. */
+const FRAMED = typeof window !== "undefined" && window.parent !== window;
+
 export function Screen({ title, subtitle, announce, children, actions, tone = "default" }: ScreenProps) {
   const heading = useRef<HTMLHeadingElement>(null);
   const announceMessage = useContext(AnnounceContext);
@@ -26,7 +29,7 @@ export function Screen({ title, subtitle, announce, children, actions, tone = "d
     <section className={`card card--${tone}`} aria-labelledby="screen-title">
       <header className="brandbar">
         <span className="brand">Firmadoc</span>
-        <span className="chip">Módulo embebido</span>
+        <span className="chip">{FRAMED ? "Módulo embebido" : "Ventana de firma"}</span>
       </header>
       <div className="body">
         <h1 id="screen-title" tabIndex={-1} ref={heading}>
