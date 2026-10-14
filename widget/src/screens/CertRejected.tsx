@@ -48,10 +48,6 @@ export function CertRejected({ certificate, code, onChooseAnother, onCancel, onC
           <span className="reason__text">{explanation}</span>
         </dd>
       </dl>
-      <p className="hint">
-        Otros motivos de rechazo: certificado vencido, emitido por una AC no confiable, o con un CUIL
-        distinto al del firmante.
-      </p>
     </Screen>
   );
 }

@@ -17,7 +17,7 @@ body {
 
 .shell {
   min-height: 100vh;
-  padding: 12px;
+  padding: 0;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -38,39 +38,13 @@ body {
 .card {
   display: flex;
   flex-direction: column;
-  /* El contenido se desplaza dentro de la tarjeta: los botones quedan siempre visibles al pie. */
-  max-height: calc(100vh - 24px);
+  /* Sin marco propio (ni borde, ni fondo): el widget se ve como parte de lo que lo embebe.
+     El contenido se desplaza dentro; los botones quedan siempre visibles al pie. */
+  max-height: 100vh;
   width: 100%;
-  max-width: 480px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  max-width: 520px;
+  margin: 0 auto;
   overflow: hidden;
-}
-.card--error {
-  border-top: 4px solid var(--red);
-}
-.card--success {
-  border-top: 4px solid var(--teal);
-}
-
-.brandbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--border);
-}
-.brand {
-  font-weight: 600;
-  color: var(--brand);
-}
-.chip {
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-3);
 }
 
 .body {
@@ -79,7 +53,6 @@ body {
   min-height: 0;
   overflow-y: auto;
 }
-.brandbar,
 .actions {
   flex: 0 0 auto;
 }
@@ -116,7 +89,6 @@ p {
   gap: 8px;
   padding: 12px 16px;
   border-top: 1px solid var(--border);
-  background: var(--surface-2);
 }
 .btn {
   font: inherit;

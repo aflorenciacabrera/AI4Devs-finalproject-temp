@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { newSessionRef, requestIdFromPath, takeToken } from "../src/bootstrap/token";
+import { applyTheme, newSessionRef, requestIdFromPath, takeToken } from "../src/bootstrap/token";
 
 const ID = "11111111-2222-4333-8444-555555555555";
 
@@ -70,5 +70,19 @@ describe("newSessionRef", () => {
     const b = newSessionRef();
     expect(a).toMatch(/^[0-9a-f]{32}$/);
     expect(a).not.toBe(b);
+  });
+});
+
+describe("applyTheme", () => {
+  it("fija el tema que pide el anfitrión y lo quita con un valor desconocido o ausente", () => {
+    const root = { dataset: {} as DOMStringMap };
+    expect(applyTheme(root, "?theme=dark")).toBe("dark");
+    expect(root.dataset.theme).toBe("dark");
+    expect(applyTheme(root, "?theme=light")).toBe("light");
+    expect(root.dataset.theme).toBe("light");
+    expect(applyTheme(root, "?theme=verde")).toBeNull();
+    expect(root.dataset.theme).toBeUndefined();
+    expect(applyTheme(root, "")).toBeNull();
+    expect(root.dataset.theme).toBeUndefined();
   });
 });

@@ -45,7 +45,6 @@ export function Success({ context, onDownload, onClose }: Props) {
         </>
       }
     >
-      <p>La firma quedó incorporada como nueva versión vigente del documento.</p>
       {downloadFailed ? (
         <p className="alert alert--error" role="alert">
           No se pudo descargar el PDF. Reintentá en unos instantes.
@@ -87,9 +86,6 @@ export function Success({ context, onDownload, onClose }: Props) {
             <dd>
               v{document.version_number}
               {document.is_active_version ? " · vigente" : ""}
-              {document.version_number > 1 ? (
-                <small>Las versiones anteriores se conservan.</small>
-              ) : null}
             </dd>
           </>
         ) : null}

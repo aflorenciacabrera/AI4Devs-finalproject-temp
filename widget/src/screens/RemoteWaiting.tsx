@@ -43,7 +43,6 @@ export function RemoteWaiting({ documentName, authorizationUrl, onCancel }: Prop
         </p>
       )}
       <Spinner label="Esperando la confirmación del servicio…" />
-      <p className="hint">Esta pantalla se actualiza sola cuando el servicio informa el resultado.</p>
     </Screen>
   );
 }

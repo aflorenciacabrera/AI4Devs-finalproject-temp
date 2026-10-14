@@ -36,17 +36,14 @@ export function AwaitingPin({ documentName, phase }: Props) {
       {waiting ? (
         <p className="alert alert--info" role="status">
           Ingresá el PIN en la ventana de <strong>Firmadoc Agent</strong> que se abrió en tu PC.
-          Firmadoc no recibe tu PIN.
         </p>
       ) : null}
       <ol className="steps">
         <Step state="done">
           Certificado validado
-          <small>Cadena de confianza, vigencia, revocación y CUIL</small>
         </Step>
         <Step state={waiting ? "active" : "done"}>
           Esperando el PIN en Firmadoc Agent
-          <small>El agente firma solo el hash que preparó el servidor</small>
         </Step>
         <Step state={waiting ? "todo" : "active"}>Incrustar la firma en el documento</Step>
         <Step state="todo">Registrar la nueva versión del documento</Step>

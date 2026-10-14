@@ -1,6 +1,8 @@
 /* Tokens de diseño tomados del mockup (design/mockup/Widget*.dc.html). */
 :root {
-  --bg: oklch(97.5% 0.006 250);
+  /* El esquema debe coincidir con el del anfitrión: si no, el navegador pinta el iframe opaco (blanco). */
+  color-scheme: light dark;
+  --bg: transparent; /* el widget no tiene fondo propio: se ve sobre el diálogo o la página que lo embebe */
   --surface: oklch(100% 0 0);
   --surface-2: oklch(96% 0.008 250);
   --border: oklch(89% 0.012 250);
@@ -19,4 +21,51 @@
   --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
   --radius: 10px;
+}
+
+/*
+ * Tema oscuro: lo pide el anfitrión con `?theme=dark` en la URL de firma (el panel pasa el suyo) o, si no
+ * dice nada, el esquema del sistema. `?theme=light` fuerza el claro.
+ */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: oklch(24% 0.014 255);
+  --surface-2: oklch(29% 0.014 255);
+  --border: oklch(38% 0.014 255);
+  --text: oklch(94% 0.01 255);
+  --text-2: oklch(80% 0.012 255);
+  --text-3: oklch(70% 0.012 255);
+  --brand: oklch(80% 0.08 255);
+  --brand-tint: oklch(32% 0.05 255);
+  --teal: oklch(78% 0.12 165);
+  --teal-tint: oklch(30% 0.05 165);
+  --amber: oklch(82% 0.13 80);
+  --amber-tint: oklch(32% 0.06 85);
+  --red: oklch(78% 0.15 25);
+  --red-tint: oklch(32% 0.07 25);
+  --focus: oklch(75% 0.15 255);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: oklch(24% 0.014 255);
+    --surface-2: oklch(29% 0.014 255);
+    --border: oklch(38% 0.014 255);
+    --text: oklch(94% 0.01 255);
+    --text-2: oklch(80% 0.012 255);
+    --text-3: oklch(70% 0.012 255);
+    --brand: oklch(80% 0.08 255);
+    --brand-tint: oklch(32% 0.05 255);
+    --teal: oklch(78% 0.12 165);
+    --teal-tint: oklch(30% 0.05 165);
+    --amber: oklch(82% 0.13 80);
+    --amber-tint: oklch(32% 0.06 85);
+    --red: oklch(78% 0.15 25);
+    --red-tint: oklch(32% 0.07 25);
+    --focus: oklch(75% 0.15 255);
+  }
 }

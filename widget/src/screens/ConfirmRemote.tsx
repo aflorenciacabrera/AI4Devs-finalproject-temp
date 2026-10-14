@@ -52,10 +52,6 @@ export function ConfirmRemote({
         <dt>Firmante</dt>
         <dd>{signerName}</dd>
       </dl>
-      <p className="hint">
-        Firmadoc enviará el documento al servicio de firma remota. La firma se confirma ahí, con tu
-        certificado remoto, un código (OTP) y tu PIN: Firmadoc no los ve.
-      </p>
     </Screen>
   );
 }

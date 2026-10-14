@@ -37,10 +37,6 @@ export function ConfirmLocal({ documentName, signerName, working, onConfirm, onC
         <dt>Firmante</dt>
         <dd>{signerName}</dd>
       </dl>
-      <p className="alert alert--info">
-        Es una <strong>firma electrónica de demostración</strong> con un certificado propio de
-        Firmadoc: sirve para probar el flujo y no equivale a una firma digital con token.
-      </p>
     </Screen>
   );
 }

@@ -140,14 +140,14 @@ describe("revisión del lote", () => {
     expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     expect(within(list).getByText("Expediente_1.pdf")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Firmar 3 documentos" })).toBeEnabled();
-    expect(screen.getByText(/El PIN se pide una sola vez para los 3 documentos/)).toBeInTheDocument();
+    expect(screen.getByText(/Un solo PIN para los 3 documentos/)).toBeInTheDocument();
   });
 
   it("la firma remota se muestra deshabilitada con su motivo", async () => {
     mount(batchFakes());
     await heading("Elegí el método de firma");
     expect(screen.getByRole("radio", { name: /Firma remota/ })).toBeDisabled();
-    expect(screen.getByText(/Puede limitar la cantidad de documentos por lote/)).toBeInTheDocument();
+    expect(screen.getByText(/Confirmás en el servicio de firma remota/)).toBeInTheDocument();
     expect(screen.getByText("No está disponible para firmar lotes.")).toBeInTheDocument();
   });
 

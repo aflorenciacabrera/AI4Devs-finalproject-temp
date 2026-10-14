@@ -49,3 +49,17 @@ export function newSessionRef(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
+
+/**
+ * Tema que pide el anfitrión con `?theme=light|dark` (el panel pasa el suyo). Otro valor o ninguno: sin
+ * atributo, y los estilos siguen el esquema del sistema.
+ */
+export function applyTheme(root: { dataset: DOMStringMap }, search: string): "light" | "dark" | null {
+  const value = new URLSearchParams(search).get("theme");
+  if (value === "light" || value === "dark") {
+    root.dataset.theme = value;
+    return value;
+  }
+  delete root.dataset.theme;
+  return null;
+}

@@ -46,7 +46,6 @@ describe("firma con el proveedor local", () => {
     // datos tal como los informa el servidor, sin inventar valores
     expect(screen.getByText("PAdES B-B")).toBeInTheDocument();
     expect(screen.getByText(/v2 · vigente/)).toBeInTheDocument();
-    expect(screen.getByText(/Las versiones anteriores se conservan/)).toBeInTheDocument();
     expect(screen.queryByText(/B-LT/)).not.toBeInTheDocument();
   });
 

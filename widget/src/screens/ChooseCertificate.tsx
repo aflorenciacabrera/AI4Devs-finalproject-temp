@@ -90,10 +90,6 @@ export function ChooseCertificate({
           );
         })}
       </fieldset>
-      <p className="hint">
-        Antes de pedirte el PIN, Firmadoc valida el certificado: cadena de confianza, vigencia,
-        revocación y que el CUIL coincida con el tuyo.
-      </p>
     </Screen>
   );
 }

@@ -35,7 +35,8 @@ Interfaz de firma que un sistema integrador **embebe** en su propia pantalla. Co
 
 - `allow`: delega el permiso de **acceso a la red local** al iframe, necesario para que el widget hable con el agente en `127.0.0.1` desde Chrome/Edge 142+. El nombre de la política cambió entre versiones del navegador; los desconocidos se ignoran, por eso se listan todos. Verificarlo con el navegador instalado.
 - Si el sistema anfitrión pasa el HTML por un sanitizador o gestor de contenido, comprobá en el DOM ya renderizado que el atributo `allow` siga presente: según fuentes secundarias, algunas plataformas lo eliminan y entonces el widget no puede hablar con el agente. Firefox y Safari no están verificados.
-- `sandbox`: `allow-same-origin` es necesario para que el widget llame a su propio servidor; `allow-downloads` para el botón "Descargar PDF firmado".
+- `sandbox`: `allow-same-origin` es necesario para que el widget llame a su propio servidor; `allow-downloads` para el botón "Descargar PDF firmado"; `allow-popups allow-popups-to-escape-sandbox` para que la firma remota abra el servicio en otra pestaña.
+- **Apariencia:** el widget no dibuja marco propio (ni marca, ni borde, ni fondo): se ve como parte del diálogo o la página que lo embebe. Para que use el tema del anfitrión, agregá `?theme=light` o `?theme=dark` a la `signing_url` **antes** del `#` (por ejemplo `.../sign/{id}?theme=dark#t=...`); sin el parámetro sigue el esquema de colores del sistema.
 - Solo se puede embeber desde los orígenes del integrador (`allowed_origins`): el servidor responde `Content-Security-Policy: frame-ancestors <orígenes>`. Desde cualquier otro origen el navegador bloquea el marco.
 
 ### Opción 2: Web Component
@@ -67,9 +68,10 @@ cierra la ventana; para detectar que la persona la cerró antes, consultá `popu
 anfitrión no puede delegar el permiso de acceso a la red local (elimina el atributo `allow` o no lo admite), porque
 aquí el permiso se le pide al origen de Firmadoc directamente, y cuando se quiere evitar un módulo dentro de un
 diálogo. Costos: hay que abrirla en un gesto del usuario, la persona sale momentáneamente de la aplicación y, con
-`noopener`, no hay forma de avisar (el resultado se consulta igual desde el backend con la API key). El panel de
-Firmadoc (`frontend/src/app/sections/widget-window.ts`) usa este modo, con el iframe en un diálogo como respaldo si
-la ventana fue bloqueada.
+`noopener`, no hay forma de avisar (el resultado se consulta igual desde el backend con la API key). Además, la
+**dirección de la firma queda visible** en la barra del navegador y en su historial (el widget borra el token del
+fragmento antes de dibujar, pero se ven el origen y el identificador de la solicitud). Por eso los paneles de
+Firmadoc usan el iframe.
 
 ## Mensajes hacia la página anfitriona
 
@@ -202,8 +204,8 @@ export class FirmarEnVentanaComponent {
 }
 ```
 
-El ejemplo completo, con detección de la ventana cerrada y el diálogo como respaldo, está en el panel de Firmadoc:
-`frontend/src/app/sections/widget-window.ts` y `sign.ts`.
+El ejemplo completo, con detección de la ventana cerrada, está en la página anfitriona de ejemplo
+(`widget/examples/host.js`, `mode=popup`). El panel de Firmadoc usa el iframe en un diálogo (`frontend/src/app/sections/widget-dialog.ts`).
 
 ## Configuración del servidor
 

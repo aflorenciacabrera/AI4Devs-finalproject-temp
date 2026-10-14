@@ -97,7 +97,6 @@ export function ChooseProvider({ context, agentStatus, pending, failed, onChoose
           );
         })}
       </div>
-      <p className="hint">Con el token, Firmadoc valida tu certificado antes de pedirte el PIN.</p>
     </Screen>
   );
 }

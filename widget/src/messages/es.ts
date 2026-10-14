@@ -222,24 +222,19 @@ export const PROVIDER_CHOICES: Record<string, ProviderChoice> = {
   token: {
     title: "Firma con token",
     badge: "Firma digital",
-    description:
-      "Firmás con el token USB conectado a tu PC. El PIN se ingresa solo en tu PC y la clave nunca sale del token.",
-    batchDescription:
-      "El PIN se pide una sola vez para los {n} documentos. Se firman todos juntos y la clave nunca sale del token.",
+    description: "Con el token USB conectado a tu PC; el PIN se ingresa en Firmadoc Agent.",
+    batchDescription: "Un solo PIN para los {n} documentos.",
   },
   local: {
     title: "Firma propia",
     badge: "Demostración",
-    description:
-      "Certificado de demostración, sin token. Es firma electrónica: no tiene la presunción legal de la firma digital (Ley 25.506).",
+    description: "Sin token, con un certificado de demostración: no tiene la presunción legal de la firma digital.",
   },
   firmar: {
     title: "Firma remota",
     badge: "Firmar",
-    description:
-      "Te redirigimos al servicio de firma remota para que confirmes con tu certificado remoto. Firmadoc no accede a tu credencial.",
-    batchDescription:
-      "Confirmás con tu certificado remoto en el servicio externo. Puede limitar la cantidad de documentos por lote.",
+    description: "Confirmás en el servicio de firma remota con tu certificado remoto.",
+    batchDescription: "Confirmás en el servicio de firma remota con tu certificado remoto.",
   },
 };
 

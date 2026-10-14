@@ -38,10 +38,6 @@ export function AgentMissing({ documentName, onRetry, onCancel, onChangeProvider
           </li>
         ))}
       </ol>
-      <p className="hint">
-        ¿Sigue sin funcionar? Ejecutá el diagnóstico del agente: lista los certificados del token y
-        verifica que cargue su biblioteca, sin pedir el PIN.
-      </p>
     </Screen>
   );
 }
