@@ -102,6 +102,7 @@ export function makeFakes(context: WidgetContext = makeContext()): Fakes {
     failed: vi.fn(),
     cancelled: vi.fn(),
     closed: vi.fn(),
+    resized: vi.fn(),
   };
   const saveFile = vi.fn();
   return {

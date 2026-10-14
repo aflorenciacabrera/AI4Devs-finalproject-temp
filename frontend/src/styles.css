@@ -429,9 +429,12 @@ textarea.pem {
 .widget-frame {
   display: block;
   width: 100%;
+  /* Alto inicial hasta que el widget informa el de su contenido (`firmadoc:resize`). */
   height: min(760px, 80vh);
+  max-height: min(760px, 80vh);
   border: 0;
   background: var(--p-content-background);
+  transition: height 0.15s ease;
 }
 
 /* Detalle del documento */

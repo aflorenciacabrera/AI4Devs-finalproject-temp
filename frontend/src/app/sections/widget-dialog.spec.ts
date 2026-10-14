@@ -74,6 +74,21 @@ describe('WidgetDialog', () => {
     expect(results[1].text).toBe('La firma falló (agent_missing).');
   });
 
+  it('ajusta el alto del iframe al contenido que informa el widget', () => {
+    message({ source: 'firmadoc', type: 'firmadoc:resize', height: 480.2 });
+    expect(component.frameHeight()).toBe(481);
+    fixture.detectChanges();
+    const iframe = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement;
+    expect(iframe.style.height).toBe('481px');
+    expect(results).toEqual([]);
+    expect(close).not.toHaveBeenCalled();
+
+    message({ source: 'firmadoc', type: 'firmadoc:resize', height: 0 });
+    message({ source: 'firmadoc', type: 'firmadoc:resize', height: 'alto' });
+    message({ source: 'firmadoc', type: 'firmadoc:resize', height: 9000 });
+    expect(component.frameHeight()).toBe(4000);
+  });
+
   it('se cierra cuando la persona cierra la pantalla final del widget', () => {
     message({ source: 'firmadoc', type: 'firmadoc:closed' });
     expect(close).toHaveBeenCalledTimes(1);

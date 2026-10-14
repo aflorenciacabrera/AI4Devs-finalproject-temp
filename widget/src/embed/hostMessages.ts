@@ -18,7 +18,8 @@ export type HostMessageType =
   | "firmadoc:failed"
   | "firmadoc:batch-completed"
   | "firmadoc:cancelled"
-  | "firmadoc:closed";
+  | "firmadoc:closed"
+  | "firmadoc:resize";
 
 export interface HostNotifier {
   ready(): void;
@@ -27,6 +28,8 @@ export interface HostNotifier {
   failed(code: string): void;
   cancelled(): void;
   closed(): void;
+  /** Alto del contenido en píxeles, para que el diálogo anfitrión se ajuste. */
+  resized(height: number): void;
 }
 
 type PostTarget = Pick<Window, "postMessage"> & { closed?: boolean };
@@ -103,6 +106,10 @@ export function createHostNotifier(
       send("firmadoc:closed");
       if (resolved?.kind === "opener") closeWindow(); // en una ventana propia, «Cerrar» la cierra
     },
+    resized: (height: number) => {
+      if (!Number.isFinite(height) || height < 1) return;
+      send("firmadoc:resize", { height: Math.min(4000, Math.ceil(height)) });
+    },
   };
 }
 
@@ -113,4 +120,5 @@ export const silentNotifier: HostNotifier = {
   failed() {},
   cancelled() {},
   closed() {},
+  resized() {},
 };

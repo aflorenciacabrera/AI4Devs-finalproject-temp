@@ -16,9 +16,15 @@ const EVENTS: Record<string, string> = {
 };
 
 const CSS = `
-:host { display: block; width: 480px; max-width: 100%; height: 760px; }
+:host { display: block; width: 480px; max-width: 100%; height: 760px; max-height: min(760px, 80vh); }
 iframe { display: block; width: 100%; height: 100%; border: 0; }
 `;
+
+/** Alto informado por el widget, en píxeles. Fuera de rango no se aplica. */
+function frameHeightPx(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 1) return null;
+  return Math.min(4000, Math.ceil(value));
+}
 
 /**
  * El iframe necesita delegar el permiso de acceso a la red local para hablar con el agente en
@@ -96,6 +102,14 @@ export class FirmadocWidgetElement extends HTMLElement {
     if (typeof data !== "object" || data === null) return;
     const message = data as { source?: unknown; type?: unknown };
     if (message.source !== "firmadoc" || typeof message.type !== "string") return;
+    if (message.type === "firmadoc:resize") {
+      const height = frameHeightPx((data as { height?: unknown }).height);
+      if (height !== null) {
+        this.style.height = `${height}px`;
+        this.emit("firmadoc-resize", data);
+      }
+      return;
+    }
     const name = EVENTS[message.type];
     if (name) this.emit(name, data);
   }

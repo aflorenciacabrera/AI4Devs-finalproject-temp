@@ -15,6 +15,19 @@ interface WidgetMessage {
   code?: unknown;
 }
 
+/**
+ * Alto en píxeles que pide `firmadoc:resize` para ajustar el diálogo al contenido.
+ * `null` si el mensaje no es ese o el alto no es usable.
+ */
+export function widgetFrameHeight(data: unknown): number | null {
+  if (!data || typeof data !== 'object') return null;
+  const message = data as { source?: unknown; type?: unknown; height?: unknown };
+  if (message.source !== 'firmadoc' || message.type !== 'firmadoc:resize') return null;
+  const height = message.height;
+  if (typeof height !== 'number' || !Number.isFinite(height) || height < 1) return null;
+  return Math.min(4000, Math.ceil(height));
+}
+
 /** Devuelve el resultado que informa el mensaje, `closed` si la persona cerró la pantalla final, o `null` si no es del widget. */
 export function parseWidgetMessage(data: unknown): WidgetOutcome {
   if (!data || typeof data !== 'object') return null;

@@ -85,6 +85,7 @@ El widget avisa con `postMessage` a la página que lo embebe (`window.parent`) o
 | `firmadoc:failed` | error irrecuperable | `code` (sin detalles internos) |
 | `firmadoc:cancelled` | la persona canceló antes de firmar | — |
 | `firmadoc:closed` | la persona cerró la pantalla de resultado | — |
+| `firmadoc:resize` | cambió el alto del contenido (el diálogo del panel se ajusta a ese valor, con un máximo) | `height` en píxeles |
 
 Todos llevan `{ source: "firmadoc", type, requestId }` (en un lote, `requestId` es el id del lote). El widget **no acepta mensajes entrantes**. Para saber el resultado de forma confiable, el backend del integrador debe consultar la solicitud con su API key (`GET /api/v1/signature-requests/{id}`): el mensaje del navegador es solo para actualizar la interfaz.
 

@@ -1,8 +1,8 @@
-import { Component, ElementRef, HostListener, inject, viewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, inject, signal, viewChild } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Theme, ThemeName } from '../core/theme';
-import { SignResult, parseWidgetMessage } from '../core/widget-messages';
+import { SignResult, parseWidgetMessage, widgetFrameHeight } from '../core/widget-messages';
 
 export interface WidgetDialogData {
   signingUrl: string;
@@ -31,6 +31,7 @@ export function withTheme(signingUrl: string, theme: ThemeName): string {
       #frame
       class="widget-frame"
       [src]="url"
+      [style.height.px]="frameHeight()"
       title="Firma de documento (Firmadoc)"
       allow="local-network-access; local-network; loopback-network"
       sandbox="allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"
@@ -42,6 +43,8 @@ export class WidgetDialog {
   private readonly data = inject(DynamicDialogConfig<WidgetDialogData>).data!;
 
   readonly frame = viewChild<ElementRef<HTMLIFrameElement>>('frame');
+  /** Alto que informa el widget; `null` deja el alto inicial del CSS hasta el primer aviso. */
+  readonly frameHeight = signal<number | null>(null);
   /** Seguro: la signing_url la entrega el propio backend de Firmadoc, no la persona. */
   readonly url: SafeResourceUrl = inject(DomSanitizer).bypassSecurityTrustResourceUrl(
     withTheme(this.data.signingUrl, inject(Theme).current()),
@@ -52,6 +55,11 @@ export class WidgetDialog {
   onMessage(event: MessageEvent): void {
     const frame = this.frame()?.nativeElement;
     if (!frame || event.source !== frame.contentWindow || event.origin !== this.origin) return;
+    const height = widgetFrameHeight(event.data);
+    if (height !== null) {
+      this.frameHeight.set(height);
+      return;
+    }
     const outcome = parseWidgetMessage(event.data);
     if (!outcome) return;
     if (outcome.kind === 'closed') this.ref.close();

@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { measureCardHeight } from "../src/embed/frameHeight";
 import { createHostNotifier } from "../src/embed/hostMessages";
 import "../src/embed/widgetElement"; // registra <firmadoc-widget>
 import type { FirmadocWidgetElement } from "../src/embed/widgetElement";
@@ -77,6 +78,22 @@ describe("mensajes hacia la página anfitriona", () => {
     });
   });
 
+  it("resize: el alto del contenido, en píxeles, sin otros datos", () => {
+    const parent = { postMessage: vi.fn() };
+    const host = createHostNotifier(["https://a.example.org"], REQUEST, parent);
+    host.resized(480.2);
+    expect(parent.postMessage.mock.calls[0]![0]).toEqual({
+      source: "firmadoc",
+      type: "firmadoc:resize",
+      requestId: REQUEST,
+      height: 481,
+    });
+    parent.postMessage.mockClear();
+    host.resized(0);
+    host.resized(Number.NaN);
+    expect(parent.postMessage).not.toHaveBeenCalled();
+  });
+
   it("cancelado y cerrado", () => {
     const parent = { postMessage: vi.fn() };
     const host = createHostNotifier(["https://a.example.org"], REQUEST, parent);
@@ -107,6 +124,30 @@ describe("el widget no escucha mensajes entrantes", () => {
       expect(code, file).not.toMatch(/addEventListener\(\s*["']message["']/);
       expect(code, file).not.toMatch(/\.onmessage\s*=/);
     }
+  });
+});
+
+describe("alto del contenido", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("suma el cuerpo desplazable y el pie de acciones", () => {
+    const card = document.createElement("section");
+    card.className = "card";
+    const body = document.createElement("div");
+    body.className = "body";
+    Object.defineProperty(body, "scrollHeight", { configurable: true, value: 320 });
+    const actions = document.createElement("footer");
+    actions.className = "actions";
+    Object.defineProperty(actions, "offsetHeight", { configurable: true, value: 52 });
+    card.append(body, actions);
+    document.body.append(card);
+    expect(measureCardHeight()).toBe(372);
+  });
+
+  it("sin tarjeta no informa alto", () => {
+    expect(measureCardHeight()).toBeNull();
   });
 });
 
@@ -215,6 +256,19 @@ describe("<firmadoc-widget>", () => {
 
   it("sin signing-url no hay iframe", () => {
     expect(mount({}).iframe).toBeNull();
+  });
+
+  it("ajusta su alto al contenido informado y lo reemite", () => {
+    const { el, iframe } = mount();
+    const resized = vi.fn();
+    el.addEventListener("firmadoc-resize", resized);
+    post(iframe!, { source: "firmadoc", type: "firmadoc:resize", height: 420.4 });
+    expect(el.style.height).toBe("421px");
+    expect(resized).toHaveBeenCalledOnce();
+    post(iframe!, { source: "firmadoc", type: "firmadoc:resize", height: 0 });
+    post(iframe!, { source: "firmadoc", type: "firmadoc:resize", height: "alto" });
+    expect(el.style.height).toBe("421px");
+    expect(resized).toHaveBeenCalledOnce();
   });
 
   it("al quitarse del DOM deja de escuchar", () => {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { AnnounceContext, Screen } from "./components/Screen";
+import { ReportFrameHeight } from "./embed/ReportFrameHeight";
 import { Button, Notice, Spinner } from "./components/Notice";
 import {
   INVALID_LINK,
@@ -30,7 +31,7 @@ export interface AppProps {
 }
 
 export function App({ services, now = () => new Date() }: AppProps) {
-  const { state, actions, agentStatus } = useSigningFlow(services);
+  const { state, actions, agentStatus, host } = useSigningFlow(services);
   const [announcement, setAnnouncement] = useState("");
 
   const changeProvider = canChangeProvider(state) ? actions.changeProvider : undefined;
@@ -229,6 +230,7 @@ export function App({ services, now = () => new Date() }: AppProps) {
       <main className="shell" key={state.name}>
         {screen}
       </main>
+      <ReportFrameHeight host={host} screen={state.name} />
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {announcement}
       </div>

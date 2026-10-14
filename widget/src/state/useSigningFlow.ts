@@ -54,6 +54,7 @@ export function useSigningFlow(services: FlowServices): {
   state: State;
   actions: FlowActions;
   agentStatus: AgentStatus;
+  host: HostNotifier | null;
 } {
   const [state, dispatch] = useReducer((s: State, e: Parameters<typeof reducer>[1]) => reducer(s, e), initialState);
   const stateRef = useRef(state);
@@ -62,6 +63,7 @@ export function useSigningFlow(services: FlowServices): {
   }, [state]);
   const agentRef = useRef<AgentClient | null>(null);
   const hostRef = useRef<HostNotifier | null>(null);
+  const [host, setHost] = useState<HostNotifier | null>(null);
   const started = useRef(false);
   const [agentResult, setAgentResult] = useState<{ url: string; status: AgentStatus } | null>(null);
 
@@ -167,7 +169,9 @@ export function useSigningFlow(services: FlowServices): {
     void (async () => {
       try {
         const context = await server.getContext();
-        hostRef.current = services.createHost(context.allowed_origins, context.id);
+        const notifier = services.createHost(context.allowed_origins, context.id);
+        hostRef.current = notifier;
+        setHost(notifier);
         const detectsAgent = initialRoute(context).name === "detecting_agent";
         if (detectsAgent) agentRef.current = services.createAgent(context.agent_url);
         dispatch({ type: "context_loaded", context });
@@ -335,5 +339,5 @@ export function useSigningFlow(services: FlowServices): {
     },
   };
 
-  return { state, actions, agentStatus };
+  return { state, actions, agentStatus, host };
 }
