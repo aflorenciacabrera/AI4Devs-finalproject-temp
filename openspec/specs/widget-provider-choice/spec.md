@@ -40,15 +40,15 @@ Mientras no se haya preparado la firma, las pantallas de espera o error del widg
 - **THEN** no se ofrece cambiar de método
 
 ### Requirement: Firma remota desde el widget
-Con el proveedor `firmar`, el widget SHALL mostrar una pantalla de confirmación, enviar el documento al servicio con `prepare`, mostrar el enlace "Continuar en el servicio de firma" (`target="_blank"` con `rel="noopener noreferrer"`, nunca abierto automáticamente) y consultar el estado de la solicitud periódicamente hasta que sea `signed` o `failed`, mostrando entonces la firma completada o el error y notificando al sistema anfitrión como en los demás métodos.
+Con el proveedor `firmar`, el widget SHALL mostrar una pantalla de confirmación, enviar el documento al servicio con `prepare`, mostrar el enlace "Continuar en el servicio de firma" (nunca abierto automáticamente) y consultar el estado de la solicitud periódicamente hasta que sea `signed` o `failed`, mostrando entonces la firma completada o el error y notificando al sistema anfitrión como en los demás métodos. Al pulsar el enlace, el widget SHALL abrir el servicio en una ventana emergente acotada y centrada sobre la del panel; si el navegador la bloquea, el enlace SHALL abrirse en una pestaña (`target="_blank"` con `rel="noreferrer"`). Cuando la espera termina (firmada, rechazada, vencida o cancelada) el widget SHALL cerrar esa ventana si sigue abierta.
 
 #### Scenario: Firma remota exitosa
 - **WHEN** el servicio informa la firma y la solicitud pasa a `signed`
-- **THEN** el widget muestra la firma completada y notifica `signed` al anfitrión
+- **THEN** el widget muestra la firma completada, cierra la ventana del servicio y notifica `signed` al anfitrión
 
 #### Scenario: Rechazo del servicio
 - **WHEN** la solicitud pasa a `failed`
-- **THEN** el widget muestra el error y notifica `failed` al anfitrión
+- **THEN** el widget muestra el error, cierra la ventana del servicio y notifica `failed` al anfitrión
 
 #### Scenario: Servicio no disponible
 - **WHEN** `prepare` responde `503`
@@ -61,6 +61,10 @@ Con el proveedor `firmar`, el widget SHALL mostrar una pantalla de confirmación
 #### Scenario: Sondeo acotado
 - **WHEN** se sale de la pantalla de espera
 - **THEN** se deja de consultar el estado
+
+#### Scenario: Ventana emergente bloqueada
+- **WHEN** el navegador no permite abrir la ventana emergente
+- **THEN** el enlace abre el servicio en una pestaña y la espera continúa igual
 
 ### Requirement: Métodos como tarjetas con validez
 El widget SHALL mostrar los métodos de firma como tarjetas con título, descripción y una etiqueta de validez: «FIRMA DIGITAL» para `token`, «FIRMAR» para la firma remota y «DEMOSTRACIÓN» para la propia, aclarando en esta última que es firma electrónica sin la presunción legal de la firma digital. Las tarjetas SHALL poder elegirse con el teclado.

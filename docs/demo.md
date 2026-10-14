@@ -106,10 +106,10 @@ La demo también habilita el tercer método, **Firma remota**, contra el **servi
 corre en el mismo servidor (`/mock/firmar`, ver `firmar.md`): fija `FIRMADOC_FIRMAR_BASE_URL=http://localhost:8000/mock/firmar`
 y `FIRMADOC_FIRMAR_MOCK_ENABLED=true`, con un secreto de cliente y uno de callback que guarda en `demo.json`. Para
 recorrerlo, en el panel: cargá un PDF → **Firma remota** → **Firmar documento** → **Continuar en el servicio de
-firma**. Se abre en otra pestaña la página del simulado (la pantalla que en un servicio real sería la del
+firma**. Se abre en una ventana emergente chica (en una pestaña si el navegador la bloquea) la página del simulado (la pantalla que en un servicio real sería la del
 usuario): ingresá el OTP `123456` y el PIN `1234` y elegí **Firmar** (o **Rechazar**). El simulado firma el PDF con
 un certificado emitido por su propia AC y avisa a Firmadoc por el callback; el widget, que consulta el estado,
-pasa solo a «Documento firmado» y la v2 queda en «Documentos», verificable contra la AC del simulado (que se suma a
+cierra esa ventana y pasa solo a «Documento firmado» y la v2 queda en «Documentos», verificable contra la AC del simulado (que se suma a
 las anclas mientras el simulado esté habilitado). Tres intentos fallidos bloquean la operación: cancelá en el
 widget y empezá de nuevo. Como el resto de la demo, es una simulación: el contrato del servicio real no está
 verificado y no hay convenio con él. La firma remota no se ofrece en lotes.

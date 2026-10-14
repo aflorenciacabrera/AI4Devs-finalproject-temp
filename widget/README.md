@@ -3,7 +3,7 @@
 Interfaz de firma que un sistema integrador **embebe** en su propia pantalla. Coordina al servidor de Firmadoc con el agente local: lista los certificados del token, valida el certificado **antes** de pedir el PIN, hace que el agente firme el hash y registra la nueva versión del documento.
 
 - Stack: React + TypeScript (Vite), español rioplatense, accesible por teclado y lectores de pantalla.
-- Proveedores: `token` (firma digital con el token, vía el agente), `local` (firma electrónica de demostración) y `firmar` (firma remota: abre el servicio en otra pestaña y espera su resultado).
+- Proveedores: `token` (firma digital con el token, vía el agente), `local` (firma electrónica de demostración) y `firmar` (firma remota: abre el servicio en una ventana emergente y espera su resultado).
 - **El widget nunca ve el PIN**: se ingresa en la ventana de Firmadoc Agent, en la PC de la persona.
 
 ## Cómo se integra
@@ -35,7 +35,7 @@ Interfaz de firma que un sistema integrador **embebe** en su propia pantalla. Co
 
 - `allow`: delega el permiso de **acceso a la red local** al iframe, necesario para que el widget hable con el agente en `127.0.0.1` desde Chrome/Edge 142+. El nombre de la política cambió entre versiones del navegador; los desconocidos se ignoran, por eso se listan todos. Verificarlo con el navegador instalado.
 - Si el sistema anfitrión pasa el HTML por un sanitizador o gestor de contenido, comprobá en el DOM ya renderizado que el atributo `allow` siga presente: según fuentes secundarias, algunas plataformas lo eliminan y entonces el widget no puede hablar con el agente. Firefox y Safari no están verificados.
-- `sandbox`: `allow-same-origin` es necesario para que el widget llame a su propio servidor; `allow-downloads` para el botón "Descargar PDF firmado"; `allow-popups allow-popups-to-escape-sandbox` para que la firma remota abra el servicio en otra pestaña.
+- `sandbox`: `allow-same-origin` es necesario para que el widget llame a su propio servidor; `allow-downloads` para el botón "Descargar PDF firmado"; `allow-popups allow-popups-to-escape-sandbox` para que la firma remota abra el servicio en una ventana emergente.
 - **Apariencia:** el widget no dibuja marco propio (ni marca, ni borde, ni fondo): se ve como parte del diálogo o la página que lo embebe. Para que use el tema del anfitrión, agregá `?theme=light` o `?theme=dark` a la `signing_url` **antes** del `#` (por ejemplo `.../sign/{id}?theme=dark#t=...`); sin el parámetro sigue el esquema de colores del sistema.
 - Solo se puede embeber desde los orígenes del integrador (`allowed_origins`): el servidor responde `Content-Security-Policy: frame-ancestors <orígenes>`. Desde cualquier otro origen el navegador bloquea el marco.
 
@@ -252,4 +252,4 @@ la auditoría (`provider_selected`). Mientras no se haya preparado la firma, las
 ofrecen "Elegir otro método". Sin `allowed_providers` la solicitud admite solo `provider`, como antes.
 
 Con `firmar` el widget envía el documento al servicio, muestra el enlace "Continuar en el servicio de firma" (se
-abre en otra pestaña) y consulta el estado hasta que llega el resultado (ver `docs/firmar.md`).
+abre en una ventana emergente chica, o en una pestaña si el navegador la bloquea) y consulta el estado hasta que llega el resultado; entonces cierra esa ventana (ver `docs/firmar.md`).

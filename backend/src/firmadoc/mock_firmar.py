@@ -342,8 +342,8 @@ PAGE_STYLE = """
 """
 
 OUTCOMES = {
-    "signed": ("ok", "Documento firmado. Ya podés volver a la pestaña de Firmadoc: el resultado se actualiza solo."),
-    "rejected": ("ok", "Firma rechazada. Volvé a la pestaña de Firmadoc: la solicitud quedó registrada como rechazada."),
+    "signed": ("ok", "Documento firmado. Esta ventana se cierra sola; si no, cerrala: Firmadoc ya tiene el resultado."),
+    "rejected": ("ok", "Firma rechazada. Esta ventana se cierra sola; si no, cerrala: la solicitud quedó registrada como rechazada."),
     "locked": ("error", "Operación bloqueada por intentos fallidos. Volvé a Firmadoc y empezá de nuevo."),
     "invalid_credentials": ("error", "OTP o PIN incorrectos."),
     "not_pending": ("error", "Esta operación ya no está pendiente."),

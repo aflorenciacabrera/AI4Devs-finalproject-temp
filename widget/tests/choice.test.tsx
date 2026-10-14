@@ -141,11 +141,64 @@ describe("firma remota", () => {
     const link = screen.getByRole("link", { name: "Continuar en el servicio de firma" });
     expect(link).toHaveAttribute("href", "https://servicio.example/firmar/op-1");
     expect(link).toHaveAttribute("target", "_blank");
-    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(link).toHaveAttribute("rel", "noreferrer");
 
-    fakes.server.getContext.mockResolvedValue(signedContext({ provider: "firmar" }));
-    await heading("Documento firmado correctamente");
-    expect(fakes.host.signed).toHaveBeenCalledOnce();
+    // el clic abre el servicio en una ventana emergente chica (no en otra pestaña)…
+    const service = { closed: false, close: vi.fn(function (this: { closed: boolean }) { this.closed = true; }) };
+    const open = vi.spyOn(window, "open").mockReturnValue(service as unknown as Window);
+    try {
+      const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+      link.dispatchEvent(event);
+      expect(open).toHaveBeenCalledTimes(1);
+      expect(open.mock.calls[0]![0]).toBe("https://servicio.example/firmar/op-1");
+      expect(open.mock.calls[0]![1]).toBe("firmadoc-servicio-remoto");
+      expect(String(open.mock.calls[0]![2])).toContain("popup=yes");
+      expect(event.defaultPrevented).toBe(true); // la pestaña no se abre además de la ventana
+
+      // …y se cierra sola cuando el servicio firma
+      fakes.server.getContext.mockResolvedValue(signedContext({ provider: "firmar" }));
+      await heading("Documento firmado correctamente");
+      expect(service.close).toHaveBeenCalledTimes(1);
+      expect(fakes.host.signed).toHaveBeenCalledOnce();
+    } finally {
+      open.mockRestore();
+    }
+  });
+
+  it("si el navegador bloquea la ventana emergente, el enlace abre una pestaña", async () => {
+    const fakes = makeFakes(remote());
+    fakes.server.prepare.mockResolvedValue(prepared);
+    mount(fakes);
+    await heading("Firmar con el servicio de firma remota");
+    await click("Continuar");
+    await heading("Esperando la firma en el servicio remoto");
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    try {
+      const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+      screen.getByRole("link", { name: "Continuar en el servicio de firma" }).dispatchEvent(event);
+      expect(open).toHaveBeenCalledTimes(1);
+      expect(event.defaultPrevented).toBe(false); // sigue el enlace: target=_blank
+    } finally {
+      open.mockRestore();
+    }
+  });
+
+  it("cancelar la espera cierra la ventana del servicio", async () => {
+    const fakes = makeFakes(remote());
+    fakes.server.prepare.mockResolvedValue(prepared);
+    mount(fakes);
+    await heading("Firmar con el servicio de firma remota");
+    await click("Continuar");
+    await heading("Esperando la firma en el servicio remoto");
+    const service = { closed: false, close: vi.fn() };
+    const open = vi.spyOn(window, "open").mockReturnValue(service as unknown as Window);
+    try {
+      screen.getByRole("link", { name: "Continuar en el servicio de firma" }).dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      await click("Cancelar");
+      expect(service.close).toHaveBeenCalledTimes(1);
+    } finally {
+      open.mockRestore();
+    }
   });
 
   it("si el servicio rechaza, informa y avisa al anfitrión", async () => {

@@ -137,7 +137,7 @@ export class Sign {
     };
     this.widgetOpen.set(true);
     const ref = this.dialog.open(WidgetDialog, {
-      header: ready.name,
+      header: ready.documents ? 'Firma de documentos' : 'Firma de documento', // el nombre del PDF ya está en la tarjeta
       data,
       modal: true,
       closable: true,

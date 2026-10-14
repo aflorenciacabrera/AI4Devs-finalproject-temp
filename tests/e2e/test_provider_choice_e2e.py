@@ -2,6 +2,7 @@
 
 import base64
 import re
+import time
 
 import httpx
 import pytest
@@ -79,8 +80,8 @@ def test_firma_remota_desde_el_widget(live, page, monkeypatch):
     href = link.get_attribute("href")
     assert href.startswith(f"{live.base}/mock/firmar/authorize/")
 
-    # la persona autoriza en el servicio desde otra pestaña: el enlace abre la página del simulado
-    # (el sandbox del iframe debe permitir abrir pestañas), y ahí ingresa el OTP y el PIN
+    # la persona autoriza en el servicio en una ventana emergente que abre el enlace (el sandbox del iframe
+    # debe permitirlo), y ahí ingresa el OTP y el PIN
     with page.context.expect_page() as opened:
         link.click()
     service = opened.value
@@ -91,9 +92,13 @@ def test_firma_remota_desde_el_widget(live, page, monkeypatch):
     service.get_by_role("button", name="Firmar", exact=True).click()
     service.locator(".msg.ok").wait_for(timeout=60_000)
     assert "Documento firmado" in service.locator(".msg.ok").inner_text()
-    service.close()
 
     heading(widget, SIGNED).wait_for(timeout=20_000)
+    # el widget cierra solo la ventana del servicio cuando la firma termina
+    deadline = time.time() + 5
+    while not service.is_closed() and time.time() < deadline:
+        page.wait_for_timeout(100)
+    assert service.is_closed()
     assert wait_for_message(page, "firmadoc:signed")["document"]["version_number"] == 2
     final = live.get_request(request["id"])
     assert final["status"] == "signed" and final["provider"] == "firmar"

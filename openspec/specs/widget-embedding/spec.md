@@ -7,7 +7,7 @@ Integración del widget en la página anfitriona: iframe, Web Component, mensaje
 ## Requirements
 
 ### Requirement: Embebido por iframe
-El widget SHALL poder embeberse con un `<iframe src="{signing_url}">` desde cualquier origen listado en los `allowed_origins` del integrador, sin que el widget dependa del framework de la página anfitriona, y SHALL negarse a mostrarse dentro de cualquier otro origen. El aislamiento (`sandbox`) que aplican el Web Component, la página de ejemplo y los paneles de Firmadoc, y el que documenta la guía de integración, SHALL permitir que el widget abra una pestaña nueva fuera del aislamiento (el enlace «Continuar en el servicio de firma» de la firma remota) y descargue archivos, además de ejecutar scripts y usar su propio origen.
+El widget SHALL poder embeberse con un `<iframe src="{signing_url}">` desde cualquier origen listado en los `allowed_origins` del integrador, sin que el widget dependa del framework de la página anfitriona, y SHALL negarse a mostrarse dentro de cualquier otro origen. El aislamiento (`sandbox`) que aplican el Web Component, la página de ejemplo y los paneles de Firmadoc, y el que documenta la guía de integración, SHALL permitir que el widget abra una ventana nueva fuera del aislamiento (la ventana emergente del servicio de firma remota) y descargue archivos, además de ejecutar scripts y usar su propio origen.
 
 #### Scenario: Origen permitido
 - **WHEN** una página de un origen permitido embebe `signing_url`
@@ -19,7 +19,7 @@ El widget SHALL poder embeberse con un `<iframe src="{signing_url}">` desde cual
 
 #### Scenario: Enlace al servicio de firma remota
 - **WHEN** la persona elige la firma remota dentro del widget embebido con el aislamiento recomendado y pulsa «Continuar en el servicio de firma»
-- **THEN** la página de autorización del servicio se abre en una pestaña nueva, sin aislamiento, y permite enviar su formulario
+- **THEN** la página de autorización del servicio se abre en una ventana emergente (o en una pestaña si el navegador la bloquea), sin aislamiento, y permite enviar su formulario
 
 ### Requirement: Mensajes hacia la página anfitriona
 El widget SHALL notificar a la página que lo embebe (`window.parent`) o, si corre en una ventana propia, a la que lo abrió (`window.opener`) con `postMessage`, dirigiendo cada mensaje **explícitamente** a cada origen de `allowed_origins` (nunca `"*"`), con la forma `{source: "firmadoc", type, requestId, ...}` y los tipos `firmadoc:ready`, `firmadoc:signed`, `firmadoc:failed`, `firmadoc:cancelled` y `firmadoc:closed`.

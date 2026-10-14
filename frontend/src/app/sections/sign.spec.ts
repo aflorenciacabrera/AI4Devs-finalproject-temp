@@ -83,7 +83,8 @@ describe('Sign', () => {
     const iframe = dialogIframe();
     expect(iframe?.getAttribute('src')).toBe(SIGNING_URL.replace('#', '?theme=light#'));
     expect(iframe?.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox');
-    expect(document.querySelector('.widget-dialog .p-dialog-title')?.textContent).toContain('Resolucion.pdf');
+    // el nombre del PDF va en la tarjeta, no en la cabecera
+    expect(document.querySelector('.widget-dialog .p-dialog-title')?.textContent).toBe('Firma de documento');
   });
 
   it('varios PDF se cargan como lote', async () => {
