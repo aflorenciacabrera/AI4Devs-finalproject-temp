@@ -105,7 +105,7 @@ valor legal. El `.exe` instalado por política de dominio sigue usando un módul
 La demo también habilita el tercer método, **Firma remota**, contra el **servicio de firma remota simulado** que
 corre en el mismo servidor (`/mock/firmar`, ver `firmar.md`): fija `FIRMADOC_FIRMAR_BASE_URL=http://localhost:8000/mock/firmar`
 y `FIRMADOC_FIRMAR_MOCK_ENABLED=true`, con un secreto de cliente y uno de callback que guarda en `demo.json`. Para
-recorrerlo, en el panel: cargá un PDF → **Firma remota** → **Firmar documento** → **Continuar en el servicio de
+recorrerlo, en el panel: cargá un PDF → **Firma remota** → **Firmar** → **Continuar en el servicio de
 firma**. Se abre en una ventana emergente chica (en una pestaña si el navegador la bloquea) la página del simulado (la pantalla que en un servicio real sería la del
 usuario): ingresá el OTP `123456` y el PIN `1234` y elegí **Firmar** (o **Rechazar**). El simulado firma el PDF con
 un certificado emitido por su propia AC y avisa a Firmadoc por el callback; el widget, que consulta el estado,

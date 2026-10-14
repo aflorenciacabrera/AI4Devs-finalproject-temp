@@ -68,7 +68,7 @@ def main() -> int:
         page.wait_for_timeout(1500)
         page.locator("#sign-widget iframe").screenshot(path=OUT / "02-widget-metodo.png")
         widget.get_by_role("radio", name=re.compile("Firma propia")).check()
-        widget.get_by_role("button", name="Firmar documento").click()
+        widget.get_by_role("button", name="Firmar", exact=True).click()
         widget.get_by_role("heading", name="Firmar el documento", level=1).wait_for()
         widget.get_by_role("button", name="Firmar", exact=True).click()
         widget.get_by_role("heading", name="Documento firmado correctamente", level=1).wait_for()

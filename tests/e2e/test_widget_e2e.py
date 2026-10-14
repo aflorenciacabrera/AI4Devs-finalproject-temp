@@ -48,9 +48,9 @@ def open_widget(page, live, request, mode="iframe", origin=None):
 
 
 def choose_method(widget, name: str) -> None:
-    """Elige una tarjeta de método (por parte de su nombre) y confirma con «Firmar documento»."""
+    """Elige una tarjeta de método (por parte de su nombre) y confirma con «Firmar»."""
     widget.get_by_role("radio", name=re.compile(name)).check()
-    widget.get_by_role("button", name="Firmar documento").click()
+    widget.get_by_role("button", name="Firmar", exact=True).click()
 
 
 def token_of(request) -> str:

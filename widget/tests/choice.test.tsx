@@ -31,7 +31,7 @@ describe("elección del método", () => {
     expect(await screen.findByText("Firmadoc Agent conectado · token detectado")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /Firma con token/ })).toBeChecked();
 
-    await click("Firmar documento");
+    await click("Firmar");
     await heading("Elegí el certificado");
     expect(fakes.server.selectProvider).toHaveBeenCalledWith("token");
   });
@@ -66,7 +66,7 @@ describe("elección del método", () => {
     mount(fakes);
     await heading(TITLE);
     await pick(/Firma propia/);
-    await click("Firmar documento");
+    await click("Firmar");
     await heading("Firmar el documento");
     await click("Firmar");
     await heading("Documento firmado correctamente");
@@ -82,7 +82,7 @@ describe("elección del método", () => {
     await heading(TITLE);
     expect(await screen.findByText("No detectamos Firmadoc Agent en esta PC")).toBeInTheDocument();
     await pick(/Firma con token/);
-    await click("Firmar documento");
+    await click("Firmar");
     await heading("No detectamos Firmadoc Agent");
     await click("Elegir otro método");
     await heading(TITLE);
@@ -93,9 +93,9 @@ describe("elección del método", () => {
     fakes.server.selectProvider.mockRejectedValue(new ServerError("provider_not_allowed", 422, "x"));
     mount(fakes);
     await heading(TITLE);
-    await click("Firmar documento");
+    await click("Firmar");
     expect(await screen.findByRole("alert")).toHaveTextContent("No se pudo elegir ese método");
-    expect(screen.getByRole("button", { name: "Firmar documento" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Firmar" })).toBeEnabled();
   });
 
   it("se elige con el teclado", async () => {

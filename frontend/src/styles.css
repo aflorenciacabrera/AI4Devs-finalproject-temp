@@ -413,7 +413,15 @@ textarea.pem {
   border-top: 1px solid var(--p-content-border-color);
 }
 
-/* Widget de firma en el diálogo dinámico */
+/* Widget de firma en el diálogo dinámico: cabecera separada del cuerpo por una línea, título en mayúsculas */
+.widget-dialog .p-dialog-header {
+  border-bottom: 1px solid var(--p-content-border-color);
+}
+.widget-dialog .p-dialog-title {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 1rem;
+}
 .widget-dialog .p-dialog-content {
   padding: 0;
   overflow: hidden;

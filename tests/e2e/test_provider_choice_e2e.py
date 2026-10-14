@@ -116,7 +116,7 @@ def test_la_eleccion_muestra_el_documento_y_el_estado_del_agente(live, page, pki
     widget.get_by_text("Firmadoc Agent conectado · token detectado").wait_for()
     assert widget.get_by_role("radio", name=re.compile("Firma con token")).is_checked()
     assert widget.get_by_text("Firma digital").first.is_visible() and widget.get_by_text("Demostración").first.is_visible()
-    widget.get_by_role("button", name="Firmar documento").click()
+    widget.get_by_role("button", name="Firmar", exact=True).click()
     heading(widget, "Elegí el certificado").wait_for()
 
 

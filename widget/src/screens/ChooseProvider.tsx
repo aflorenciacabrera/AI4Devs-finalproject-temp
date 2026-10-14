@@ -50,7 +50,7 @@ export function ChooseProvider({ context, agentStatus, pending, failed, onChoose
             Cancelar
           </Button>
           <Button onClick={() => onChoose(selected)} disabled={busy || !selected}>
-            {busy ? "Preparando…" : documents ? `Firmar ${count} documentos` : "Firmar documento"}
+            {busy ? "Preparando…" : documents ? `Firmar ${count} documentos` : "Firmar"}
           </Button>
         </>
       }
