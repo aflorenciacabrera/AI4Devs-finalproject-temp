@@ -25,10 +25,10 @@ Firmadoc
 Firmadoc es un **servicio de firma digital institucional**: un único componente, mantenido por el área de sistemas de un organismo público, que cualquier aplicación del organismo consume para firmar documentos PDF sin salir de su propia interfaz (mediante un widget embebible y una API). Elimina el flujo manual actual de "descargar el documento → firmarlo afuera con el token → volver a subirlo al sistema". Su modo principal es la **firma con el token criptográfico que los funcionarios ya tienen**, con certificado de una Autoridad Certificante licenciada (firma digital con presunción legal, Ley 25.506), mediante un agente local y **firma diferida**: el servidor prepara el PDF y calcula el hash, el token firma solo ese hash y el servidor incrusta la firma, de modo que el documento nunca viaja a la PC del usuario y la clave privada nunca toca el servidor. Además ofrece firma remota (ej. FirmAR/SIU) y un motor propio de firma electrónica para demostraciones, detrás de la misma interfaz.
 
 ### **0.4. URL del proyecto:**
-_Pendiente — se completará cuando exista un despliegue (Entrega 3)._
+_Todavía sin URL pública; el despliegue está previsto para la entrega final (FIRDOC-42)._ Para la Entrega 2 el sistema se verifica **ejecutándolo en local** con un solo comando (`python -m firmadoc.demo`, ver [1.4](#14-instrucciones-de-instalación)), con las credenciales de prueba y la lista de flujos de [1.5](#15-credenciales-de-prueba-y-flujos-a-probar). No hace falta un token USB para probarlo.
 
 ### 0.5. URL o archivo comprimido del repositorio
-https://github.com/aflorenciacabrera/AI4Devs-finalproject (fork de `LIDR-academy/AI4Devs-finalproject`, rama `feature/entrega-1-AFC`)
+https://github.com/aflorenciacabrera/AI4Devs-finalproject-temp (fork de `LIDR-academy-temp/AI4Devs-finalproject`). Ramas: `feature/entrega-1-AFC` (documentación) y `feature/entrega-2-AFC` (código funcional). El historial incluye los commits del repositorio de desarrollo, cada uno con su ticket `FIRDOC-N`.
 
 ---
 
@@ -711,7 +711,7 @@ _Estado al 08/10/2026: los tres tickets están **implementados** (Jira: FIRDOC-2
 
 ## 7. Pull Requests
 
-Todo el trabajo se hizo con OpenSpec (propuesta, especificación, diseño y tareas por cambio, archivados en `openspec/changes/archive/`) y se registró en Jira (proyecto FIRDOC). El **pull request de entrega** se abre desde la rama de trabajo hacia el repositorio de la entrega (FIRDOC-43); hasta entonces, estos son los cambios con su commit:
+Todo el trabajo se hizo con OpenSpec (propuesta, especificación, diseño y tareas por cambio, archivados en `openspec/changes/archive/`) y se registró en Jira (proyecto FIRDOC). La entrega no usa pull request: se envía el enlace a la rama (`feature/entrega-2-AFC`), que conserva el historial completo. Estos son los cambios con su commit:
 
 | Cambio | Jira | Commit |
 |---|---|---|
@@ -733,3 +733,12 @@ Todo el trabajo se hizo con OpenSpec (propuesta, especificación, diseño y tare
 | Firma en lote y selección de método en el widget | FIRDOC-34, 35 | `9325430` |
 | Modo demostración | FIRDOC-46 | `de0ec36` |
 | Panel: origen, custodia como historia e integradores | FIRDOC-36, 37, 38 | `2ee61d0` |
+| README alineado con el código, capturas y flujos a probar | FIRDOC-40, 41 | `2d4668a` |
+| Panel en Angular + PrimeNG servido en `/panel` | FIRDOC-47 | `8eabc11`, `75eb5a6` |
+| Firma con token de prueba en la demo y ventana de PIN mínima | FIRDOC-48, 51 | `3c2d4df`, `923636c` |
+| Firma con el token físico desde la demo | FIRDOC-49, 50 | `63d30df`, `1d2b051` |
+| Caché de CRL en la validación de certificados | FIRDOC-52 | `f2295e6` |
+| Descarga con el nombre original y PDF de la demo en la base | FIRDOC-53, 54, 55 | `1fe0c08`, `9d380d7`, `dcefd18` |
+| Firma remota simulada en la demo, en ventana emergente | FIRDOC-56, 59 | `c92655a`, `794705e` |
+| Ventana emergente como modo alternativo del widget | FIRDOC-57 | `fb4f275` |
+| Widget integrado al diálogo del panel | FIRDOC-58 | `3a02b32`, `ef00c6f` |

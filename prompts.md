@@ -125,7 +125,10 @@ Se pidió completar el backlog restante "automáticamente" (proponer, aplicar, a
 
 ### 7. Pull Requests
 
-Todavía no se usaron Pull Requests: el trabajo está en commits sobre la rama principal del repositorio de Firmadoc, que se publicaron a pedido de la usuaria. Cada commit referencia la tarea de Jira que cierra.
+No se usaron Pull Requests: el trabajo se hizo en commits sobre el repositorio de desarrollo de Firmadoc, que se publicaron a pedido de la usuaria. Cada commit referencia la tarea de Jira que cierra.
+
+**Prompt 1 (migración a la entrega):**
+"Seguiremos con la entrega 2 sobre la carpeta entregable del proyecto, basándonos en el proyecto Firmadoc que ya aplicamos: ver la forma de migrar a la carpeta de entrega y seguir las consignas que solicitan y las formas de entrega." Claude propuso traer el código con *merge* conservando el historial (en vez de una copia en un solo commit), para que los commits con su ticket `FIRDOC-N` sirvan de evidencia del flujo de trabajo. La usuaria eligió la rama de desarrollo más reciente y el repositorio de la Entrega 1 como destino, y pidió **no abrir pull request ni publicar** hasta revisarlo ella (la consigna tampoco lo exige: se envía el enlace a la rama). Antes de publicar, Claude revisó el estado actual y el historial completo en busca de claves, bases de datos, tokens y menciones al organismo.
 
 ---
 
