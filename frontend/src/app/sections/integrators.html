@@ -1,0 +1,61 @@
+<h2>Integradores</h2>
+<p class="muted">Sistemas que usan Firmadoc por API. La API key y el secreto de webhook se muestran una sola vez.</p>
+
+@if (credentials(); as c) {
+  <div class="credentials" role="alert" id="credentials">
+    <strong>{{ c.title }}</strong>
+    <p class="muted">Guardalas ahora: no se vuelven a mostrar.</p>
+    @for (entry of c.entries; track entry[0]) {
+      <div>{{ entry[0] }}</div>
+      <code>{{ entry[1] }}</code>
+      <p-button [label]="'Copiar ' + entry[0]" size="small" severity="secondary" [outlined]="true" (onClick)="copy(entry[0], entry[1])" />
+    }
+    <div class="doc-actions">
+      <p-button label="Ya las guardé" (onClick)="hideCredentials()" />
+    </div>
+  </div>
+}
+
+<form class="filters" id="integrator-form" (ngSubmit)="create()">
+  <label>Nombre <input pInputText name="name" type="text" required maxlength="200" [(ngModel)]="name" /></label>
+  <label>Orígenes permitidos (uno por línea, https://host[:puerto])
+    <textarea pTextarea name="origins" rows="2" [(ngModel)]="origins"></textarea>
+  </label>
+  <p-button type="submit" label="Crear integrador" />
+</form>
+
+@if (editing(); as target) {
+  <form class="filters" id="origins-form" (ngSubmit)="saveOrigins()">
+    <label>Orígenes de <strong>{{ target.name }}</strong> (uno por línea)
+      <textarea pTextarea name="origins" rows="3" [(ngModel)]="editingOrigins"></textarea>
+    </label>
+    <p-button type="submit" label="Guardar orígenes" />
+    <p-button type="button" label="Cancelar" severity="secondary" [outlined]="true" (onClick)="cancelEdit()" />
+  </form>
+}
+
+<p-table id="integrators-table" [value]="items()" [loading]="loading()" size="small">
+  <ng-template #header>
+    <tr><th>Nombre</th><th>Orígenes permitidos</th><th>Estado</th><th>Acciones</th></tr>
+  </ng-template>
+  <ng-template #body let-i>
+    <tr>
+      <td>{{ i.name }}@if (i.internal) { (interno)}</td>
+      <td>{{ i.allowed_origins.length ? i.allowed_origins.join(', ') : '-' }}</td>
+      <td><span class="chip" [class]="'chip ' + i.status">{{ i.status === 'active' ? 'Activo' : 'Deshabilitado' }}</span></td>
+      <td>
+        @if (!i.internal) {
+          <span class="row-actions">
+            <p-button label="Editar orígenes" size="small" severity="secondary" [outlined]="true" (onClick)="edit(i)" />
+            <p-button label="Rotar secreto de webhook" size="small" severity="secondary" [outlined]="true" (onClick)="rotateWebhookSecret(i)" />
+            <p-button label="Rotar API key" size="small" severity="danger" [outlined]="true" (onClick)="rotateApiKey(i)" />
+            <p-button [label]="i.status === 'active' ? 'Deshabilitar' : 'Habilitar'" size="small" [severity]="i.status === 'active' ? 'danger' : 'secondary'" [outlined]="true" (onClick)="toggle(i)" />
+          </span>
+        }
+      </td>
+    </tr>
+  </ng-template>
+  <ng-template #emptymessage>
+    <tr><td colspan="4">Sin resultados</td></tr>
+  </ng-template>
+</p-table>

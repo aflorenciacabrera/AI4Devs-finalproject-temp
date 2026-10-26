@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    :root{
+      --bg: oklch(97.5% 0.006 250);
+      --surface: oklch(100% 0 0);
+      --surface-2: oklch(96% 0.008 250);
+      --border: oklch(89% 0.012 250);
+      --text: oklch(24% 0.02 255);
+      --text-2: oklch(48% 0.018 255);
+      --text-3: oklch(62% 0.014 255);
+      --brand: oklch(35% 0.09 255);
+      --red: oklch(55% 0.19 25);
+      --red-tint: oklch(94% 0.05 25);
+      --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+    }
+    body{ margin:0; font-family: var(--font-ui); }
+    a{ color: var(--brand); text-decoration:none; }
+    a:hover{ color: oklch(27% 0.08 255); }
+    button{ font-family: var(--font-ui); cursor:pointer; }
+  </style>
+</helmet>
+
+<div style="width:440px;background:var(--bg);display:flex;flex-direction:column;color:var(--text);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px oklch(0% 0 0 / 0.04)">
+
+  <div style="background:var(--brand);color:oklch(98% 0.005 255);padding:20px 24px;display:flex;flex-direction:column;gap:6px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:8px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V5z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+        <span style="font-weight:700;font-size:16px;letter-spacing:0.2px">Firmadoc</span>
+      </div>
+      <span style="font-size:11px;padding:4px 9px;border-radius:999px;background:oklch(98% 0.005 255 / 0.14);letter-spacing:0.3px">MÓDULO EMBEBIDO</span>
+    </div>
+    <div style="font-size:12.5px;color:oklch(98% 0.005 255 / 0.75)">Firma con token — Resolución_0142-2026.pdf</div>
+  </div>
+
+  <div style="padding:28px 24px 24px;display:flex;flex-direction:column;gap:20px;align-items:center;text-align:center">
+
+    <div style="width:64px;height:64px;border-radius:999px;background:var(--red-tint);display:flex;align-items:center;justify-content:center;color:var(--red)">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <span style="font-size:16px;font-weight:700">El certificado no pudo validarse</span>
+      <span style="font-size:12.5px;color:var(--text-2);line-height:1.4">No se te pidió el PIN: Firmadoc rechazó el certificado antes de iniciar la firma.</span>
+    </div>
+
+    <div style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;text-align:left">
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <span style="font-size:12px;color:var(--text-3)">Certificado</span>
+        <span style="font-size:12.5px;font-weight:600;text-align:right">María Fernanda Ríos</span>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <span style="font-size:12px;color:var(--text-3)">Serie</span>
+        <span style="font-family:var(--font-mono);font-size:11.5px;text-align:right">SN=71:0C:D4:9B</span>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <span style="font-size:12px;color:var(--text-3)">Motivo</span>
+        <span style="font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--red-tint);color:var(--red)">CERTIFICADO REVOCADO</span>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <span style="font-size:12px;color:var(--text-3)">Consulta OCSP</span>
+        <span style="font-family:var(--font-mono);font-size:11.5px;text-align:right">02/09/2026 14:26:10 ART</span>
+      </div>
+
+      <div style="height:1px;background:var(--border)"></div>
+
+      <span style="font-size:11.5px;color:var(--text-3);line-height:1.45">Otros motivos de rechazo: certificado vencido, emitido por una AC no confiable, o con un CUIL distinto al del firmante.</span>
+    </div>
+  </div>
+
+  <div style="padding:18px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;background:var(--surface)">
+    <button style="padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-size:13.5px;font-weight:600">Cancelar</button>
+    <button style="padding:10px 18px;border-radius:8px;border:none;background:var(--brand);color:oklch(98% 0.005 255);font-size:13.5px;font-weight:600">Elegir otro certificado</button>
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>

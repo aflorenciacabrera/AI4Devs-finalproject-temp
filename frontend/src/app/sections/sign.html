@@ -1,0 +1,132 @@
+<h2>Firmar documento</h2>
+<p class="muted">Cargá un PDF y firmalo con tu token. Firmadoc guarda el original y la versión firmada.</p>
+
+@if (ready(); as r) {
+  <p-card id="sign-ready" styleClass="doc-card">
+    <div class="doc-row">
+      <span class="doc-icon" aria-hidden="true"><i class="pi pi-file-pdf"></i></span>
+      <div class="doc-info">
+        <strong id="sign-name">{{ r.name }}</strong>
+        <div class="doc-tags">
+          <p-tag [value]="r.meta" severity="secondary" [rounded]="true" />
+          <p-tag value="Versión original (v1)" severity="info" icon="pi pi-clock" [rounded]="true" />
+        </div>
+        @if (r.documents; as docs) {
+          <ul class="upload-list" id="sign-docs">
+            @for (d of docs; track d.document_id) {
+              <li class="upload-item">
+                <i class="pi pi-file-pdf" aria-hidden="true"></i>
+                <div class="upload-item-info">
+                  <span class="file-name">{{ d.filename }}</span>
+                  <span class="muted">{{ pages(d.page_count) }} · {{ d.size_bytes | size }}</span>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+      <div class="doc-actions">
+        <p-button label="Reemplazar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="replace()" />
+        <p-button label="Quitar" icon="pi pi-times" severity="secondary" [text]="true" (onClick)="reset()" />
+      </div>
+    </div>
+    <div class="doc-footer">
+      <p-message severity="secondary" variant="simple" icon="pi pi-info-circle">
+        Al firmar, la versión firmada será la v2 y quedará como vigente; el original se conserva.
+      </p-message>
+      <p-button
+        id="sign-open"
+        [label]="widgetOpen() ? 'Módulo de firma abierto' : 'Abrir módulo de firma'"
+        icon="pi pi-pen-to-square"
+        [disabled]="widgetOpen()"
+        (onClick)="openWidget()" />
+    </div>
+  </p-card>
+  @if (result(); as res) {
+    <p-message [severity]="res.severity" role="status" id="sign-result">{{ res.text }}</p-message>
+  }
+} @else {
+  <div class="sign-layout" id="sign-upload">
+    <div class="sign-main">
+      <p-fileupload
+        #uploader
+        name="documents[]"
+        styleClass="upload"
+        [customUpload]="true"
+        [multiple]="true"
+        accept="application/pdf,.pdf"
+        [maxFileSize]="maxBytes"
+        [disabled]="uploading()"
+        invalidFileTypeMessageSummary="{0}:"
+        invalidFileTypeMessageDetail="no es un PDF. Solo se pueden cargar archivos PDF."
+        invalidFileSizeMessageSummary="{0}:"
+        invalidFileSizeMessageDetail="supera el tamaño máximo de {0}."
+        (uploadHandler)="upload($event.files)">
+        <ng-template #header let-files let-chooseCallback="chooseCallback">
+          <div class="upload-header">
+            <p-button label="Seleccionar archivos" icon="pi pi-plus" [outlined]="true" [disabled]="uploading()" (onClick)="chooseCallback()" />
+            @if (files.length) {
+              <p-tag [value]="summary(files)" severity="secondary" icon="pi pi-file-pdf" [rounded]="true" />
+            }
+          </div>
+        </ng-template>
+        <ng-template #content let-files let-messages="messages" let-removeFileCallback="removeFileCallback" let-clearCallback="clearCallback">
+          @for (m of messages; track $index) {
+            <p-message severity="error" icon="pi pi-exclamation-triangle">{{ m.text }}</p-message>
+          }
+          @if (files.length) {
+            <ul class="upload-list">
+              @for (f of files; track f.name + f.size + f.lastModified; let i = $index) {
+                <li class="upload-item">
+                  <i class="pi pi-file-pdf" aria-hidden="true"></i>
+                  <div class="upload-item-info">
+                    <span class="file-name">{{ f.name }}</span>
+                    <span class="muted">{{ f.size | size }}</span>
+                  </div>
+                  <p-tag value="Listo para firmar" severity="info" [rounded]="true" />
+                  <p-button icon="pi pi-times" [rounded]="true" [text]="true" severity="secondary" [ariaLabel]="'Quitar ' + f.name" [disabled]="uploading()" (onClick)="removeFileCallback($event, i)" />
+                </li>
+              }
+            </ul>
+            <div class="upload-footer">
+              <p class="muted upload-hint">
+                {{ files.length > 1 ? 'Se firman en lote: un solo PIN para todos.' : 'Podés agregar más PDF para firmarlos en lote con un solo PIN.' }}
+              </p>
+              <div class="upload-buttons">
+                <p-button label="Quitar todos" icon="pi pi-times" severity="secondary" [text]="true" [disabled]="uploading()" (onClick)="clearCallback()" />
+                <p-button
+                  [label]="uploadLabel(files.length)"
+                  icon="pi pi-pen-to-square"
+                  [disabled]="uploading()"
+                  [loading]="uploading()"
+                  (onClick)="uploader.upload()" />
+              </div>
+            </div>
+          }
+        </ng-template>
+        <ng-template #empty>
+          <div class="dropzone-hint">
+            <span class="dropzone-icon" aria-hidden="true"><i class="pi pi-cloud-upload"></i></span>
+            <strong>Arrastrá uno o varios PDF acá</strong>
+            <span class="muted">o seleccionalos desde tu PC. Si cargás varios, se firman en lote con un solo PIN.</span>
+            <p-button label="Seleccionar desde tu PC" icon="pi pi-folder-open" severity="secondary" [outlined]="true" size="small" (onClick)="uploader.choose()" />
+            <span class="muted dropzone-note">Solo archivos PDF · hasta {{ maxBytes | size }} por archivo</span>
+          </div>
+        </ng-template>
+      </p-fileupload>
+    </div>
+    <aside class="sign-help" aria-label="Cómo se firma">
+      <p-card header="Cómo se firma">
+        <p-timeline [value]="steps" styleClass="steps-timeline">
+          <ng-template #marker let-step>
+            <span class="step-marker" aria-hidden="true"><i [class]="step.icon"></i></span>
+          </ng-template>
+          <ng-template #content let-step>
+            <strong>{{ step.title }}</strong>
+            <p class="muted step-text">{{ step.text }}</p>
+          </ng-template>
+        </p-timeline>
+      </p-card>
+    </aside>
+  </div>
+}

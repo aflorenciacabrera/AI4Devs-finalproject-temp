@@ -6,8 +6,9 @@ Puedes añadir adicionalmente la conversación completa como link o archivo adju
 | Herramienta | Modelo | Fase |
 |---|---|---|
 | Claude Code | Sonnet 5 y Sonnet 5.5 | Definición de la idea, investigación técnica (documentación de FirmAR/SIU, antecedentes académicos), decisiones de arquitectura y stack, redacción y verificación de la documentación de la Entrega 1 |
-| Claude Code (flujo de diseño) | Sonnet 5 | Mockup interactivo de referencia visual, usado para detectar requisitos (no forma parte del repositorio) |
-| Jira (vía MCP de Atlassian) | — | Carga y seguimiento del backlog en el proyecto `FIRDOC` |
+| Claude Code (flujo de diseño) | Sonnet 5 | Mockup interactivo de referencia visual, usado para detectar requisitos (`design/mockup/`) |
+| Jira (vía MCP de Atlassian) | — | Carga del backlog en el proyecto `FIRDOC` y mantenimiento de estados y asignaciones durante el desarrollo |
+| Claude Code + OpenSpec (comandos `/opsx:propose`, `/opsx:apply`, `/opsx:archive`) | Sonnet 5.5 | Implementación: cada cambio se propone (propuesta, diseño, especificaciones y tareas), se aplica, se prueba y se archiva sincronizando las especificaciones; ver `openspec/` |
 
 No se usaron subagentes ni comandos personalizados en esta fase; el trabajo fue conversacional directo con Claude Code, más búsqueda y lectura web para la investigación de antecedentes y conectores MCP (GitHub, Atlassian).
 
@@ -62,11 +63,11 @@ Pedido de investigar si existía un firmador comercial equivalente al de un prov
 
 ### **2.2. Descripción de componentes principales:**
 
-Sin prompt dedicado: derivada de la conversación de 2.1. La usuaria eligió el stack (Python + pyHanko, FastAPI, React para el widget) entre las alternativas propuestas por Claude. Después pidió que el panel de administración fuera una aplicación **Angular con PrimeNG**, para usarlo también como ejemplo de cómo se embebe el widget desde Angular; Claude verificó que PrimeNG 22 pasó a una licencia comercial y propuso quedarse en PrimeNG 21 (MIT) con Angular 21. Con el proveedor `token` se sumaron el motor PAdES (preparar/completar), la validación de confianza y el Firmadoc Agent.
+Sin prompt dedicado: derivada de la conversación de 2.1. La usuaria eligió el stack (Python + pyHanko, FastAPI, React) entre las alternativas propuestas por Claude. Con el proveedor `token` se sumaron el motor PAdES (preparar/completar), la validación de confianza y el Firmadoc Agent.
 
 ### **2.3. Descripción de alto nivel del proyecto y estructura de ficheros**
 
-Sin prompt dedicado: derivada de la arquitectura de 2.1 (separación `backend/`, `widget/`, `frontend/` y `agent/`).
+Sin prompt dedicado: derivada de la arquitectura de 2.1 (separación `backend/`, `widget/`, `admin-panel/`).
 
 ### **2.4. Infraestructura y despliegue**
 
@@ -102,14 +103,9 @@ Tras el requisito de versionado, se ajustaron `POST /signature-requests`, `GET /
 ### 5. Historias de Usuario
 
 **Prompt 1:**
-Pedido de la usuaria de que la firma **parta, en general, de cargar un PDF desde el navegador** (uno o varios; con varios se firman en lote), manteniendo el camino por sistema integrador como variante (HU 1b). Se reescribió la historia 1 y sus criterios de aceptación.
-
-**Prompt 2:**
 Corrección de la usuaria: descarga y versionado no son alternativas ("y/o"), deben darse **siempre juntas** en toda firma completada. Se ajustaron los criterios de aceptación de las historias 1 a 4.
 
-La usuaria también precisó el lote: el resultado puede ser **parcial** («2 de 3 firmados»), con descarga de los firmados y reintento de los fallidos, y la firma remota no se admite por lote. Pidió además que el panel muestre el origen de cada documento (individual o lote) y su detalle como **cadena de custodia**, y que permita gestionar los sistemas integradores y sus claves.
-
-**Prompt 3:**
+**Prompt 2:**
 La firma en lote se priorizó como *should-have*, no *must-have*, siguiendo la disciplina de alcance de MVP de la Lección 1. Tras el cambio de propuesta se reordenó el backlog: la firma con token y el motor propio (para recorrer los flujos sin hardware) son *must-have*; FirmAR pasó a *should-have*. Se incorporaron los estados de documento `borrador → pendiente de firma (con fecha límite) → firmado` y el listado de firmantes, a propuesta de Claude tras revisar el manual público de un sistema de expediente electrónico judicial; Claude dejó explícito que el comportamiento al vencer el plazo no está definido por la fuente y debe acordarse con cada integrador.
 
 ---
@@ -119,11 +115,17 @@ La firma en lote se priorizó como *should-have*, no *must-have*, siguiendo la d
 **Prompt 1:**
 Los tickets de backend, frontend y base de datos se redactaron con tareas, criterios de aceptación y estimación, y se actualizaron tras el cambio de versionado y de propuesta (flujo `prepare`/`complete`). El agente local quedó como ticket adicional, fuera de los 3 detallados.
 
+**Prompt 2 (implementación guiada por especificaciones):**
+Cada funcionalidad se pidió con `/opsx:propose <tema>` (por ejemplo: "flujo de firma create prepare complete con motor local", "proveedor token y agente local", "widget de firma react") y se implementó con `/opsx:apply` y se archivó con `/opsx:archive`. Los cambios archivados están en `openspec/changes/archive/` y las especificaciones vigentes en `openspec/specs/`: flujo de firma diferida, proveedor token, agente local, widget, webhooks, firma en lote, estado y verificación de documentos, panel de administración, sello de tiempo, firma remota simulada, elección del método en el widget y base de datos real.
+
+**Prompt 3 (autonomía acotada):**
+Se pidió completar el backlog restante "automáticamente" (proponer, aplicar, archivar y confirmar cada cambio sin preguntar entre pasos), con la regla de detenerse ante un riesgo de seguridad o una decisión que cambie el alcance, y de no publicar en GitHub salvo pedido expreso.
+
 ---
 
 ### 7. Pull Requests
 
-Pendiente: la Entrega 1 es 100% documentación, sin código. Se completará desde la Entrega 2.
+Todavía no se usaron Pull Requests: el trabajo está en commits sobre la rama principal del repositorio de Firmadoc, que se publicaron a pedido de la usuaria. Cada commit referencia la tarea de Jira que cierra.
 
 ---
 
@@ -134,9 +136,16 @@ Pendiente: la Entrega 1 es 100% documentación, sin código. Se completará desd
 - La usuaria **eligió explícitamente el stack** entre las opciones propuestas.
 - Los **datos de identidad del proyecto** (nombre, iniciales, nombre "Firmadoc") los aportó la usuaria.
 - Por **confidencialidad**, a pedido de la usuaria se removió toda mención al nombre del organismo empleador, usando referencias genéricas.
-- El requisito de **versionado** lo detectó la usuaria al revisar visualmente el mockup interactivo de referencia visual (no incluido en el repositorio), no desde una especificación escrita: un prototipo temprano destapó un requisito que el texto no había capturado.
+- El requisito de **versionado** lo detectó la usuaria al revisar visualmente el mockup interactivo de referencia visual (en `design/mockup/`), no desde una especificación escrita: un prototipo temprano destapó un requisito que el texto no había capturado.
 - Claude redactó una primera versión con descarga y versionado como alternativas; la usuaria lo **corrigió** (deben darse siempre ambos).
 - La firma **en lote** fue pedido de la usuaria; la priorización como *should-have* fue decisión de la IA y la usuaria no la corrigió.
 - Por confidencialidad, el README cita el paper académico utilizado como antecedente pero no nombra al organismo, a la provincia ni al proveedor comercial de referencia.
-- La usuaria **pidió el PIN "en el medio de la pantalla sobre el diálogo de Angular"**; Claude explicó que el PIN no puede ingresarse en el navegador (invariante de seguridad del proyecto) y lo resolvió en la ventana nativa del agente: mínima (titular, documento y PIN), centrada y siempre al frente. También se decidió poder **simular la firma con token** mediante un token de software, para que un revisor recorra los flujos sin hardware.
+- La usuaria preguntó si el widget podía instalarse en un proyecto Angular y, después, si `<iframe>` estaba deprecado o traía riesgos a futuro. Claude contrastó con fuentes (MDN y artículos técnicos): el elemento no está deprecado (solo atributos de presentación), y detectó tres riesgos reales — delegación del permiso de red local con `allow`, cookies de terceros y cabeceras de embebido — marcando como secundarias las fuentes sobre el atributo `allow`. Al revisar el código del proyecto comprobó que la implementación ya aplicaba el atributo y que el token va en el fragmento de la URL (sin cookies), por lo que el cambio quedó limitado a corregir el ejemplo del README, documentar la alternativa de ventana emergente como **no implementada** y agregar el supuesto a verificar (Firefox/Safari no verificados). Claude propuso una librería Angular envoltorio del iframe como opción; no se implementó.
 - Pendiente de revisión humana antes de cerrar la Entrega 1: validar que las estimaciones de horas por ticket sean realistas y confirmar la viabilidad del despliegue on-premise.
+- La usuaria **decidió la arquitectura de firma**: el agente local en Python (no en otro lenguaje), el criterio de Angular cubierto con una página anfitriona y una guía (no con una app Angular), y que el widget no incluyera al principio la elección del método, el lote ni la administración (se agregaron después como cambios propios).
+- La usuaria **pidió la base de datos real** (con los PDF dentro de la base, conectable con DBeaver y pensada para migrar a la base institucional) y que quedara documentada con su propia tarea de Jira y su cambio de OpenSpec.
+- La IA **detectó y corrigió errores propios al verificar**: por ejemplo, un orden de operaciones en `complete` que gastaba la firma del token si fallaba la autoridad de sellado de tiempo, y restricciones duplicadas en la migración inicial que SQLite toleraba y PostgreSQL no (apareció al ejecutar por primera vez la suite contra PostgreSQL).
+- La usuaria **pidió el panel como aplicación Angular con PrimeNG** (`frontend/`), para usarlo en la carga de documentos y como ejemplo de cómo se abre el widget desde Angular, y **corrigió el menú lateral** ("hacer bien utilizando PrimeNG"): la primera versión usaba botones sueltos y se reemplazó por el componente `p-menu`.
+- Al verificar en Chrome, la IA **detectó que PrimeNG 22 cambió a una licencia comercial** («PrimeUI», con clave obligatoria aunque gratuita para estudiantes) y que su aviso de licencia violaba la CSP del panel; decidió quedarse en **PrimeNG 21 (MIT) con Angular 21** y lo dejó documentado como decisión a revisar si se actualiza.
+- La usuaria **pidió el PIN "en el medio de la pantalla sobre el diálogo de Angular"**; la IA explicó que el PIN no puede ingresarse en el navegador (invariante de seguridad del proyecto) y lo resolvió en la ventana nativa del agente: mínima (titular, documento y PIN), centrada y siempre al frente. También pidió poder **simular la firma con token**: se agregó el token de software a la demo y al agente (`--software-token`).
+- Quedan para revisión humana: la prueba con un **token físico** (solo se probó con SoftHSM y un token de software), la **firma del instalador** del agente, el contrato real de la firma remota (hoy simulado) y los valores de la política de la **autoridad de sellado de tiempo** institucional.

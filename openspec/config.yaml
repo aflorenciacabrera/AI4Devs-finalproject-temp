@@ -1,0 +1,69 @@
+schema: spec-driven
+
+context: |
+  Proyecto: Firmadoc — servicio de firma digital institucional, embebible en otros sistemas
+  (trabajo final del Master AI4Devs). Fuente de verdad del diseño: README.md (secciones 1-7).
+  Backlog: Jira, proyecto FIRDOC (https://aflorenciacabrera.atlassian.net). Cada change de OpenSpec
+  debe citar la clave FIRDOC-N que implementa.
+
+  Reglas para agentes (leer antes de cualquier artefacto): AGENTS.md (idéntico a CLAUDE.md) —
+  principios, invariantes del dominio, idioma, comandos de verificación por área, skills y agentes.
+  Qué documento se actualiza con cada cambio: docs/documentation-standards.md.
+
+  Stack: Python + pyHanko (PAdES, firma interrumpida), FastAPI, SQLAlchemy + Alembic, React + Vite
+  (widget/), Angular 21 + PrimeNG 21 (frontend/, panel de administración), agente local `agent/`
+  con PKCS#11 (python-pkcs11, diálogo tkinter, PyInstaller). Tests: pytest (tests/, agent/tests/),
+  SoftHSM para PKCS#11 en CI, Vitest en widget/ y frontend/, e2e con Chrome real en tests/e2e/.
+  Estructura: backend/, widget/, frontend/, agent/, tests/, docs/, openspec/, ai-specs/.
+
+  Dominio:
+  - Proveedores de firma intercambiables: `token` (firma digital, AC licenciada, modo principal),
+    `local` (autofirmado, firma electrónica, demostración), `firmar` (remoto, mock, should-have).
+  - Firma diferida: el servidor prepara el PDF y calcula el hash (`prepare`), el token firma solo el hash,
+    el servidor incrusta la firma (`complete`). El PDF nunca viaja a la PC.
+  - Versionado: `Document` + `DocumentVersion` inmutables (append-only) con `current_version_id`.
+    Toda firma completada genera una nueva versión vigente Y queda descargable; nunca son alternativas.
+  - Desafíos de firma de un solo uso; `AuditEvent` y `DocumentVersion` sin UPDATE/DELETE.
+  - Confidencialidad: no nombrar al organismo empleador, la provincia ni al proveedor comercial de referencia.
+
+  Agentes (ai-specs/agents/, copiados a .claude/agents y .cursor/agents; planifican, no implementan):
+  - backend-developer: backend/ y agent/ (API, proveedores, PAdES, validación de confianza, agente PKCS#11).
+  - frontend-developer: frontend/ (panel Angular + PrimeNG) y widget/ (React).
+
+  Skills (ai-specs/skills/, copiados a .claude/skills y .cursor/skills): security-audit (obligatorio antes de
+  archivar cambios sensibles), adversarial-review, code-auditing, commit, enrich-us, show-spec-working,
+  update-docs, sync-agent-symlinks, using-git-worktrees, writing-skills, explain, meta-prompt.
+
+  Convenciones: documentación y specs en español; identificadores de código y endpoints en inglés;
+  commits en español con la clave FIRDOC-N entre paréntesis al final (ver skill commit).
+
+rules:
+  _global:
+    - Leer AGENTS.md y respetar sus invariantes del dominio antes de crear o editar cualquier artefacto
+    - Para backend/ y agent/ adoptar las guías de ai-specs/agents/backend-developer.md; para frontend/ y widget/,
+      las de ai-specs/agents/frontend-developer.md
+    - Nunca agregar una dependencia (pip o npm) sin confirmación explícita del desarrollador; señalarlo en la
+      propuesta en lugar de asumir aprobación. PrimeNG se mantiene en la versión 21
+    - Actualizar docs/ y los READMEs de subproyecto según docs/documentation-standards.md cuando cambian
+      API, modelo, configuración, convenciones o arquitectura
+  proposal:
+    - Citar la clave FIRDOC-N del backlog y la historia de usuario (HU) del README que se implementa
+    - Indicar qué áreas toca (backend/, agent/, widget/, frontend/, docs/) y si es un cambio sensible
+      (autenticación, confianza, desafíos, agente, CSP/orígenes, claves, webhooks) que exige security-audit
+    - Incluir una sección "Fuera de alcance"
+    - Señalar cualquier dependencia nueva que requiera confirmación antes de instalarla
+  tasks:
+    - Dividir en tareas de máximo 2 horas
+    - Cada tarea de seguridad (desafíos, validación de confianza, agente local, orígenes, tokens) debe tener su test
+    - Incluir la verificación del área tocada (ruff + pytest; npm run typecheck/lint/test/build en widget/;
+      npm test y build en frontend/) y, para cambios de interfaz o de flujo, verificación manual con make demo
+    - Incluir la actualización de la documentación afectada (docs/documentation-standards.md)
+    - En cambios sensibles, incluir como última tarea correr el skill security-audit antes de archivar
+    - No delegar al usuario los pasos de prueba obligatorios; el agente los ejecuta cuando puede
+
+operations:
+  apply:
+    guidance:
+      - Desarrollar contra SoftHSM o el token de software (make agent) antes de usar un token físico
+      - No ejecutar migraciones destructivas; las tablas append-only no admiten UPDATE/DELETE
+      - No instalar dependencias sin confirmación explícita

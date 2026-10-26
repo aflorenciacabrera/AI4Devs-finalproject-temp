@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+dist/
+.env
+*.db
+.pytest_cache/
+.ruff_cache/
+# material de pruebas con claves privadas
+backend/trust/*.key
+tests/pki/out/
+firmadoc.db
+.venv/
+*.egg-info/
+data/
+agent/dist/
+agent/build/
+*.spec
+
+# agentes de IA: configuración local y contexto de sesiones
+.claude/settings.local.json
+.claude/sessions/

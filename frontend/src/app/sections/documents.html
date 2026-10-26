@@ -1,0 +1,136 @@
+@if (detail(); as d) {
+  <div id="document-detail">
+    <p-button label="← Volver a Documentos" severity="secondary" [text]="true" (onClick)="back()" />
+    <div class="detail-head">
+      <div>
+        <h2>{{ d.document.external_document_id || d.document.id }}</h2>
+        <div class="muted">ID {{ d.document.id }}@if (d.document.integrating_system_name) { · {{ d.document.integrating_system_name }}}</div>
+      </div>
+      <div class="row-actions">
+        <span class="chip" [class.signed]="d.document.signing_status === 'signed'" [class.pending]="d.document.signing_status !== 'signed'">
+          {{ documentStatus(d.document.signing_status) }}
+        </span>
+        @if (currentVersion(); as current) {
+          @if (current.signature_level) {
+            <p-button label="Descargar PDF firmado" size="small" (onClick)="download(d.document.id, current.version_number)" />
+          }
+        }
+      </div>
+    </div>
+    @if (d.document.signature_deadline) {
+      <p class="muted">Vence {{ d.document.signature_deadline | dateOnly }}</p>
+    }
+
+    <div class="detail-grid">
+      <div class="card">
+        <h3>Cadena de custodia</h3>
+        <ol class="timeline">
+          @for (t of d.timeline; track $index) {
+            <li [class]="t.kind">
+              <span class="when">{{ t.at | dateOnly }} {{ t.at | timeOnly }} · {{ t.actor }}</span>
+              <span class="title">{{ t.title }}</span>
+              @if (t.detail) { <span class="detail">{{ t.detail }}</span> }
+            </li>
+          } @empty {
+            <li>Sin eventos registrados.</li>
+          }
+        </ol>
+      </div>
+      <div>
+        <div class="card">
+          <h3>Versiones</h3>
+          @for (v of versionsNewestFirst(); track v.version_number) {
+            <div class="version-row">
+              <span>
+                v{{ v.version_number }} · {{ v.signature_level ? 'firmada (PAdES ' + v.signature_level + ')' : 'original subida' }}
+                · {{ v.created_at | dateOnly }} {{ v.created_at | timeOnly }}
+              </span>
+              <span class="row-actions">
+                @if (v.is_current) { <span class="chip active">Vigente</span> }
+                <p-button label="Descargar" size="small" severity="secondary" [outlined]="true" (onClick)="download(d.document.id, v.version_number)" />
+              </span>
+            </div>
+          }
+        </div>
+        <div class="card">
+          <h3>Detalle técnico</h3>
+          <dl class="kv">
+            @for (row of technicalRows(); track row[0]) {
+              <dt>{{ row[0] }}</dt>
+              <dd>{{ row[1] }}</dd>
+            }
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+} @else {
+  <div id="documents-list">
+    <h2>Documentos firmados</h2>
+    <p class="muted">Historial de documentos procesados por el módulo de firma.</p>
+    <form class="filters" id="requests-filters" (ngSubmit)="filter()">
+      <label>Buscar por documento o firmante
+        <input pInputText name="q" type="search" autocomplete="off" [(ngModel)]="q" />
+      </label>
+      <label>Estado
+        <p-select name="status" [options]="statusOptions" optionLabel="label" optionValue="value" [(ngModel)]="status" />
+      </label>
+      <label>Proveedor
+        <p-select name="provider" [options]="providerOptions" optionLabel="label" optionValue="value" [(ngModel)]="provider" />
+      </label>
+      <label>Origen
+        <p-select name="origin" [options]="originOptions" optionLabel="label" optionValue="value" [(ngModel)]="origin" />
+      </label>
+      <label>Desde <input pInputText name="created_from" type="date" [(ngModel)]="from" /></label>
+      <label>Hasta <input pInputText name="created_to" type="date" [(ngModel)]="to" /></label>
+      <p-button type="submit" label="Filtrar" />
+    </form>
+
+    <p-table id="requests-table" [value]="items()" [loading]="loading()" size="small" [tableStyle]="{ 'min-width': '60rem' }">
+      <ng-template #header>
+        <tr>
+          <th>Documento</th>
+          <th>Firmante</th>
+          <th>Fecha</th>
+          <th>Proveedor</th>
+          <th>Origen</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-r>
+        <tr>
+          <td>
+            <span>{{ r.document.external_document_id || r.document.id }}</span>
+            <small class="cell-sub">v{{ r.document.current_version_number | fmt }}</small>
+          </td>
+          <td>
+            <span>{{ r.signer.name }}</span>
+            <small class="cell-sub">{{ r.signer.identifier }}</small>
+          </td>
+          <td>
+            <span>{{ r.created_at | dateOnly }}</span>
+            <small class="cell-sub">{{ r.created_at | timeOnly }}</small>
+          </td>
+          <td>{{ providerLabel(r.provider) }}</td>
+          <td>{{ originLabel(r) }}</td>
+          <td>
+            <span class="chip" [class]="'chip ' + r.status">{{ statusLabel(r.status) }}</span>
+            @if (r.status === 'pending' && r.document.signature_deadline) {
+              <small class="cell-sub">Vence {{ r.document.signature_deadline | dateOnly }}</small>
+            }
+          </td>
+          <td><p-button label="Ver detalle" size="small" severity="secondary" [outlined]="true" (onClick)="open(r.document.id)" /></td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr><td colspan="7">Sin resultados</td></tr>
+      </ng-template>
+    </p-table>
+    <div class="pager">
+      <p-button label="Anterior" size="small" severity="secondary" [outlined]="true" [disabled]="!hasPrev()" (onClick)="prev()" />
+      <span id="requests-page">{{ pageText() }}</span>
+      <p-button label="Siguiente" size="small" severity="secondary" [outlined]="true" [disabled]="!hasNext()" (onClick)="next()" />
+    </div>
+  </div>
+}

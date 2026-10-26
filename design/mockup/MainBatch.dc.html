@@ -1,0 +1,172 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    :root{
+      --bg: oklch(97.5% 0.006 250);
+      --surface: oklch(100% 0 0);
+      --surface-2: oklch(96% 0.008 250);
+      --border: oklch(89% 0.012 250);
+      --text: oklch(24% 0.02 255);
+      --text-2: oklch(48% 0.018 255);
+      --text-3: oklch(62% 0.014 255);
+      --brand: oklch(35% 0.09 255);
+      --brand-tint: oklch(94% 0.03 255);
+      --teal: oklch(56% 0.12 165);
+      --teal-tint: oklch(94% 0.04 165);
+      --amber: oklch(62% 0.14 75);
+      --amber-tint: oklch(95% 0.05 85);
+      --violet: oklch(50% 0.15 300);
+      --violet-tint: oklch(94% 0.04 300);
+      --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+    }
+    body{ margin:0; font-family: var(--font-ui); }
+    a{ color: var(--brand); text-decoration:none; }
+    a:hover{ color: oklch(27% 0.08 255); }
+    button{ font-family: var(--font-ui); cursor:pointer; }
+  </style>
+</helmet>
+
+<div style="width:440px;background:var(--bg);display:flex;flex-direction:column;color:var(--text);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px oklch(0% 0 0 / 0.04)">
+
+  <div style="background:var(--brand);color:oklch(98% 0.005 255);padding:20px 24px;display:flex;flex-direction:column;gap:6px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:8px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V5z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+        <span style="font-weight:700;font-size:16px;letter-spacing:0.2px">Firmadoc</span>
+      </div>
+      <span style="font-size:11px;padding:4px 9px;border-radius:999px;background:oklch(98% 0.005 255 / 0.14);letter-spacing:0.3px">MÓDULO EMBEBIDO</span>
+    </div>
+    <div style="font-size:12.5px;color:oklch(98% 0.005 255 / 0.75)">Firma en lote — 3 expedientes seleccionados</div>
+  </div>
+
+  <div style="padding:24px;display:flex;flex-direction:column;gap:22px">
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:11px;font-weight:600;letter-spacing:0.6px;color:var(--text-3);text-transform:uppercase">Documentos a firmar (3)</span>
+        <span style="font-size:11.5px;color:var(--text-3)">3 seleccionados</span>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+        <div style="width:18px;height:18px;border-radius:5px;background:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>
+        </div>
+        <div style="width:30px;height:30px;flex-shrink:0;border-radius:7px;background:var(--brand-tint);display:flex;align-items:center;justify-content:center;color:var(--brand)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+          <span style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Providencia_0098-2026.pdf</span>
+          <span style="font-size:11px;color:var(--text-2)">1 página · 190 KB</span>
+        </div>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+        <div style="width:18px;height:18px;border-radius:5px;background:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>
+        </div>
+        <div style="width:30px;height:30px;flex-shrink:0;border-radius:7px;background:var(--brand-tint);display:flex;align-items:center;justify-content:center;color:var(--brand)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+          <span style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Oficio_0231-2026.pdf</span>
+          <span style="font-size:11px;color:var(--text-2)">2 páginas · 265 KB</span>
+        </div>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+        <div style="width:18px;height:18px;border-radius:5px;background:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>
+        </div>
+        <div style="width:30px;height:30px;flex-shrink:0;border-radius:7px;background:var(--brand-tint);display:flex;align-items:center;justify-content:center;color:var(--brand)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+          <span style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Dictamen_0177-2026.pdf</span>
+          <span style="font-size:11px;color:var(--text-2)">4 páginas · 540 KB</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <span style="font-size:11px;font-weight:600;letter-spacing:0.6px;color:var(--text-3);text-transform:uppercase">Elegí el método de firma</span>
+
+      <div style="border:1.5px solid {{accent}};background:var(--brand-tint);border-radius:10px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+        <div style="width:16px;height:16px;border-radius:999px;border:1.5px solid {{accent}};margin-top:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center">
+          <div style="width:8px;height:8px;border-radius:999px;background:{{accent}}"></div>
+        </div>
+        <div style="width:32px;height:32px;flex-shrink:0;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;color:{{accent}}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="8" width="10" height="13" rx="2"/><path d="M9.5 8V3h5v5"/><path d="M10 13h4"/></svg>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:13.5px;font-weight:600">Firma con token</span>
+            <span style="font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--teal-tint);color:oklch(38% 0.1 165)">FIRMA DIGITAL</span>
+          </div>
+          <span style="font-size:12px;color:var(--text-2);line-height:1.4">El PIN se pide una sola vez para los 3 documentos. Se firman todos juntos y la clave nunca sale del token.</span>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+            <span style="width:7px;height:7px;border-radius:999px;background:var(--teal);flex-shrink:0"></span>
+            <span style="font-size:11.5px;color:var(--text-2)">Firmadoc Agent conectado · token detectado</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+        <div style="width:16px;height:16px;border-radius:999px;border:1.5px solid var(--border);margin-top:2px;flex-shrink:0"></div>
+        <div style="width:32px;height:32px;flex-shrink:0;border-radius:8px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--text-2)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.6 12.4 8-8"/><path d="M16 6l2 2"/><path d="M19 3l2 2"/></svg>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:13.5px;font-weight:600">Firma remota</span>
+            <span style="font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--violet-tint);color:var(--violet)">FIRMAR</span>
+          </div>
+          <span style="font-size:12px;color:var(--text-2);line-height:1.4">Confirmás con tu certificado remoto en el servicio externo. Puede limitar la cantidad de documentos por lote.</span>
+        </div>
+      </div>
+
+      <div style="border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+        <div style="width:16px;height:16px;border-radius:999px;border:1.5px solid var(--border);margin-top:2px;flex-shrink:0"></div>
+        <div style="width:32px;height:32px;flex-shrink:0;border-radius:8px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--text-2)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:13.5px;font-weight:600">Firma propia</span>
+            <span style="font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--amber-tint);color:oklch(45% 0.1 75)">DEMOSTRACIÓN</span>
+          </div>
+          <span style="font-size:12px;color:var(--text-2);line-height:1.4">Certificado de demostración, sin token. Es firma electrónica: no tiene la presunción legal de la firma digital (Ley 25.506).</span>
+        </div>
+      </div>
+
+      <span style="font-size:11.5px;color:var(--text-3);line-height:1.4">Con el token, Firmadoc valida tu certificado antes de pedirte el PIN.</span>
+    </div>
+  </div>
+
+  <div style="padding:18px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;background:var(--surface)">
+    <button style="padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-size:13.5px;font-weight:600">Cancelar</button>
+    <button style="padding:10px 18px;border-radius:8px;border:none;background:{{accent}};color:oklch(98% 0.005 255);font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      Firmar 3 documentos
+    </button>
+  </div>
+</div>
+
+</x-dc>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#1c3f6e","options":["#1c3f6e","#0f6e5c","#7c3aed","#0369a1"]}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#1c3f6e' };
+  }
+}
+</script>
+</body>
+</html>

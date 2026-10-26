@@ -1,0 +1,551 @@
+/* Estilos globales del panel. Los colores salen de los tokens del tema de PrimeNG (claro/oscuro por data-theme). */
+:root {
+  --bg: #f6f7f9;
+  --warning: #b7791f;
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  --bg: #14171c;
+  --warning: #e0a94a;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font: 15px/1.45 system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--p-text-color);
+}
+h1 {
+  font-size: 18px;
+  margin: 0;
+}
+h2 {
+  font-size: 16px;
+  margin: 16px 0 8px;
+}
+h3 {
+  font-size: 14px;
+  margin: 12px 0 6px;
+}
+main {
+  padding: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--p-text-muted-color);
+}
+.muted {
+  color: var(--p-text-muted-color);
+  font-size: 13px;
+}
+.mono {
+  font-family: ui-monospace, monospace;
+  word-break: break-all;
+}
+
+/* Encabezado y navegación */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--p-content-background);
+  border-bottom: 1px solid var(--p-content-border-color);
+}
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.sidebar {
+  position: sticky;
+  top: 12px;
+}
+.sidebar .sidebar-menu {
+  width: 100%;
+  min-width: 0;
+}
+/* Ítem activo: se redefinen los tokens de PrimeNG del menú para ese ítem (también en foco y hover). */
+.sidebar .p-menu-item.active {
+  --p-menu-item-color: var(--p-primary-contrast-color);
+  --p-menu-item-icon-color: var(--p-primary-contrast-color);
+  --p-menu-item-focus-color: var(--p-primary-contrast-color);
+  --p-menu-item-icon-focus-color: var(--p-primary-contrast-color);
+  --p-menu-item-focus-background: var(--p-primary-hover-color);
+}
+.sidebar .p-menu-item.active > .p-menu-item-content {
+  background: var(--p-primary-color);
+}
+.sidebar .p-menu-item.active .p-menu-item-label {
+  font-weight: 600;
+}
+.content {
+  min-width: 0;
+}
+@media (max-width: 800px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    position: static;
+  }
+  .sidebar .p-menu-list {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+/* Ingreso */
+.login form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 360px;
+  margin-bottom: 12px;
+}
+
+/* Formularios y tablas */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+.filters label {
+  min-width: 140px;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+textarea.pem {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+}
+.pager {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 10px;
+}
+.card {
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 10px 0;
+}
+.card h3 {
+  margin: 0 0 6px;
+}
+.cell-sub {
+  display: block;
+  font-size: 12px;
+  color: var(--p-text-muted-color);
+}
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.doc-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* Chips de estado */
+.chip {
+  display: inline-block;
+  padding: 1px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--p-content-border-color);
+}
+.chip.signed,
+.chip.ok,
+.chip.active {
+  color: var(--p-green-600);
+  border-color: var(--p-green-600);
+}
+.chip.pending,
+.chip.signing,
+.chip.warning {
+  color: var(--warning);
+  border-color: var(--warning);
+}
+.chip.failed,
+.chip.error,
+.chip.disabled {
+  color: var(--p-red-500);
+  border-color: var(--p-red-500);
+}
+
+/* Firmar documento */
+.sign-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 800px) {
+  .sign-layout {
+    grid-template-columns: 1fr;
+  }
+}
+/* Pasos «Cómo se firma» (p-card + p-timeline) */
+.sign-help .p-card-title {
+  font-size: 15px;
+}
+.sign-help .p-card-body {
+  padding-bottom: 4px;
+}
+.steps-timeline .p-timeline-event-opposite {
+  display: none;
+}
+.steps-timeline .p-timeline-event-content {
+  padding-bottom: 14px;
+}
+.step-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+  font-size: 0.9rem;
+  box-shadow: 0 0 0 4px var(--p-content-background);
+}
+.step-text {
+  margin: 2px 0 0;
+}
+
+/* Carga de documentos (p-fileupload con plantillas propias) */
+.upload.p-fileupload {
+  border-radius: 12px;
+}
+.upload .p-fileupload-header {
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.upload-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.upload-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.upload .p-fileupload-content {
+  margin: 0 16px 16px;
+  padding: 0;
+  border: 2px dashed var(--p-content-border-color);
+  border-radius: 12px;
+  min-height: 220px;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+.upload .p-fileupload-content.p-fileupload-highlight {
+  border-color: var(--p-primary-color);
+  background: var(--p-highlight-background);
+}
+.upload .p-fileupload-content > p-message,
+.upload .p-fileupload-content > .p-message {
+  display: block;
+  margin: 12px 12px 0;
+}
+.dropzone-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  text-align: center;
+  padding: 36px 16px 28px;
+}
+.dropzone-hint strong {
+  font-size: 16px;
+}
+.dropzone-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--p-highlight-background);
+  color: var(--p-primary-color);
+  font-size: 30px;
+  margin-bottom: 4px;
+}
+.dropzone-note {
+  font-size: 12px;
+}
+.upload-list {
+  list-style: none;
+  margin: 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.upload-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 10px;
+  background: var(--p-content-background);
+}
+.upload-item > .pi-file-pdf {
+  font-size: 1.5rem;
+  color: var(--p-red-500);
+}
+.upload-item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.upload-item .file-name {
+  font-weight: 600;
+  word-break: break-all;
+}
+.upload-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 12px 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--p-content-border-color);
+}
+.upload-footer .upload-buttons {
+  margin-left: auto;
+}
+.upload-hint {
+  margin: 0;
+}
+
+/* Tarjeta del documento cargado */
+.doc-card {
+  margin: 8px 0 12px;
+}
+.doc-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-start;
+}
+.doc-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--p-highlight-background);
+  color: var(--p-red-500);
+  font-size: 26px;
+  flex: none;
+}
+.doc-info {
+  flex: 1;
+  min-width: 0;
+}
+.doc-info > strong {
+  display: block;
+  font-size: 16px;
+  word-break: break-all;
+}
+.doc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.doc-info .upload-list {
+  margin: 12px 0 0;
+}
+.doc-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.doc-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--p-content-border-color);
+}
+
+/* Widget de firma en el diálogo dinámico: cabecera separada del cuerpo por una línea, título en mayúsculas */
+.widget-dialog .p-dialog-header {
+  border-bottom: 1px solid var(--p-content-border-color);
+}
+.widget-dialog .p-dialog-title {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 1rem;
+}
+.widget-dialog .p-dialog-content {
+  padding: 0;
+  overflow: hidden;
+}
+.widget-frame {
+  display: block;
+  width: 100%;
+  /* Alto inicial hasta que el widget informa el de su contenido (`firmadoc:resize`). */
+  height: min(760px, 80vh);
+  max-height: min(760px, 80vh);
+  border: 0;
+  background: var(--p-content-background);
+  transition: height 0.15s ease;
+}
+
+/* Detalle del documento */
+.detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 8px 0 12px;
+}
+.detail-head h2 {
+  margin: 0;
+  word-break: break-all;
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.timeline {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  border-left: 2px solid var(--p-content-border-color);
+}
+.timeline li {
+  position: relative;
+  padding: 0 0 14px 16px;
+}
+.timeline li::before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--p-primary-color);
+  border: 2px solid var(--p-content-background);
+}
+.timeline li.ok::before {
+  background: var(--p-green-600);
+}
+.timeline li.error::before {
+  background: var(--p-red-500);
+}
+.timeline li.warning::before {
+  background: var(--warning);
+}
+.timeline .when {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--p-text-muted-color);
+}
+.timeline .title {
+  display: block;
+  font-weight: 600;
+}
+.timeline .detail {
+  display: block;
+  font-size: 13px;
+  color: var(--p-text-muted-color);
+}
+.kv {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.kv dt {
+  color: var(--p-text-muted-color);
+}
+.kv dd {
+  margin: 0;
+  word-break: break-all;
+}
+.version-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--p-content-border-color);
+}
+.version-row:last-child {
+  border-bottom: 0;
+}
+
+/* Integradores */
+.credentials {
+  border: 2px solid var(--p-primary-color);
+  background: var(--p-content-background);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 10px 0;
+}
+.credentials code {
+  display: block;
+  margin: 4px 0 8px;
+  padding: 6px 8px;
+  background: var(--bg);
+  border-radius: 6px;
+  word-break: break-all;
+  font-family: ui-monospace, monospace;
+}

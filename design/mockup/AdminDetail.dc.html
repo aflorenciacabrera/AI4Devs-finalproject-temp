@@ -1,0 +1,297 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    :root{
+      --bg: oklch(97.5% 0.006 250);
+      --surface: oklch(100% 0 0);
+      --surface-2: oklch(96% 0.008 250);
+      --border: oklch(89% 0.012 250);
+      --text: oklch(24% 0.02 255);
+      --text-2: oklch(48% 0.018 255);
+      --text-3: oklch(62% 0.014 255);
+      --brand: oklch(35% 0.09 255);
+      --brand-dark: oklch(27% 0.08 255);
+      --brand-tint: oklch(94% 0.03 255);
+      --teal: oklch(56% 0.12 165);
+      --teal-tint: oklch(94% 0.04 165);
+      --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+    }
+    body{ margin:0; font-family: var(--font-ui); }
+    a{ color: var(--brand); text-decoration:none; }
+    .navitem{ display:flex; align-items:center; gap:11px; padding:9px 12px; border-radius:8px; font-size:13.5px; font-weight:500; color:oklch(98% 0.005 255 / 0.68); }
+    .navitem.active{ background:oklch(98% 0.005 255 / 0.12); color:oklch(98% 0.005 255); font-weight:600; }
+    .meta-row{ display:flex; flex-direction:column; gap:4px; padding:12px 0; border-top:1px solid var(--border); }
+    .meta-row:first-of-type{ border-top:none; padding-top:0; }
+    .step{ display:flex; gap:14px; }
+    .step > div:last-child{ flex:1; }
+    .step-line{ width:1px; background:var(--border); flex:1; margin:6px 0; }
+    .step-icon{ width:30px; height:30px; border-radius:999px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; color:var(--text-2); flex-shrink:0; }
+    .step-meta{ display:flex; gap:14px; margin-top:5px; }
+    .step-meta span{ display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-3); }
+  </style>
+</helmet>
+
+<div style="width:1440px;min-height:1000px;background:var(--bg);display:flex;color:var(--text);font-family:var(--font-ui)">
+
+  <div style="width:240px;flex-shrink:0;background:var(--brand-dark);color:oklch(98% 0.005 255);padding:24px 16px;display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;flex-direction:column;gap:2px;padding:0 8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V5z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+        <span style="font-weight:700;font-size:15.5px">Firmadoc</span>
+      </div>
+      <span style="font-size:11.5px;color:oklch(98% 0.005 255 / 0.55);padding-left:28px">Panel de administración</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <div class="navitem">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        Firmar documento
+      </div>
+      <div class="navitem">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+        Documentos
+      </div>
+      <div class="navitem active">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>
+        Auditoría
+      </div>
+      <div class="navitem">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.6 12.4 8-8"/><path d="M16 6l2 2"/><path d="M19 3l2 2"/></svg>
+        Integradores
+      </div>
+      <div class="navitem">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V5z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+        Confianza
+      </div>
+    </div>
+
+    <div style="margin-top:auto;padding:0 8px;font-size:11px;color:oklch(98% 0.005 255 / 0.4)">v0.1 · entorno demo</div>
+  </div>
+
+  <div style="flex:1;padding:32px 40px;display:flex;flex-direction:column;gap:20px;min-width:0">
+
+    <a href="#" style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--text-3);width:fit-content">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      Volver a Documentos
+    </a>
+
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:46px;height:46px;border-radius:10px;background:var(--brand-tint);display:flex;align-items:center;justify-content:center;color:var(--brand);flex-shrink:0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:19px;font-weight:700">Resolución_0142-2026.pdf</span>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-3)">DOC-2026-00142 · ID externo expediente-2026-00981/doc-7</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:12px;font-weight:600;padding:6px 14px;border-radius:999px;background:var(--teal-tint);color:oklch(38% 0.1 165)">Firmado</span>
+        <button style="padding:10px 16px;border-radius:8px;border:none;background:var(--brand);color:oklch(98% 0.005 255);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;font-family:var(--font-ui)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Descargar PDF firmado
+        </button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:24px;align-items:flex-start">
+
+      <div style="flex:2;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:11px;font-weight:600;letter-spacing:0.6px;color:var(--text-3);text-transform:uppercase;margin-bottom:16px">Cadena de custodia</span>
+
+        <div class="step">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="step-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+            <div class="step-line"></div>
+          </div>
+          <div style="padding-bottom:20px">
+            <div style="font-size:13.5px;font-weight:600">Solicitud creada por el sistema integrador</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:3px">Documento ya existente en el gestor documental (v1, original)</div>
+            <div class="step-meta">
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>14:28:03</span>
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>Gestor documental</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="step-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="8" width="10" height="13" rx="2"/><path d="M9.5 8V3h5v5"/><path d="M10 13h4"/></svg></div>
+            <div class="step-line"></div>
+          </div>
+          <div style="padding-bottom:20px">
+            <div style="font-size:13.5px;font-weight:600">Certificado elegido del token y validado</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:3px">Cadena de confianza, vigencia, revocación (OCSP) y CUIL = firmante</div>
+            <div class="step-meta">
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>14:28:41</span>
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>María Fernanda Ríos</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="step-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7v2c0 3.5-1 5.5-2 7"/><path d="M12 2a7 7 0 0 1 7 7v1"/><path d="M8 21a13 13 0 0 0 2-8v-2a2 2 0 1 1 4 0v6"/></svg></div>
+            <div class="step-line"></div>
+          </div>
+          <div style="padding-bottom:20px">
+            <div style="font-size:13.5px;font-weight:600">Desafío preparado: hash SHA-256 a firmar</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:3px">De un solo uso, vence a los 5 minutos y queda atado a la sesión</div>
+            <div class="step-meta">
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>14:28:42</span>
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>Motor Firmadoc</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="step-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+            <div class="step-line"></div>
+          </div>
+          <div style="padding-bottom:20px">
+            <div style="font-size:13.5px;font-weight:600">Firma recibida del agente local</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:3px">El PIN se ingresó en la PC del firmante; no llega al servidor</div>
+            <div class="step-meta">
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>14:32:05</span>
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>Firmadoc Agent</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="step-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V5z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></div>
+            <div class="step-line"></div>
+          </div>
+          <div style="padding-bottom:20px">
+            <div style="font-size:13.5px;font-weight:600">Firma PAdES incrustada con sello de tiempo y revocación</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:3px">Nivel B-LT, como actualización incremental del PDF</div>
+            <div class="step-meta">
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>14:32:06</span>
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>Motor Firmadoc</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="step-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></div>
+            <div class="step-line"></div>
+          </div>
+          <div style="padding-bottom:20px">
+            <div style="font-size:13.5px;font-weight:600">Nueva versión registrada: v2, vigente</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:3px">La v1 original se conserva sin cambios</div>
+            <div class="step-meta">
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>14:32:07</span>
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>Motor Firmadoc</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="step-icon" style="background:var(--teal-tint);color:var(--teal)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg></div>
+          </div>
+          <div>
+            <div style="font-size:13.5px;font-weight:600">Webhook entregado al sistema integrador</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:3px">Intento 1 · respuesta 200 · incluye descarga y versión</div>
+            <div class="step-meta">
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>14:32:07</span>
+              <span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>Motor Firmadoc</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1;display:flex;flex-direction:column;gap:16px;min-width:0">
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px">
+          <span style="font-size:11px;font-weight:600;letter-spacing:0.6px;color:var(--text-3);text-transform:uppercase">Detalle técnico</span>
+
+          <div class="meta-row">
+            <span style="font-size:11.5px;color:var(--text-3)">ID de transacción</span>
+            <span style="font-family:var(--font-mono);font-size:12.5px;font-weight:500">TX-8841-AF20</span>
+          </div>
+          <div class="meta-row">
+            <span style="font-size:11.5px;color:var(--text-3)">Proveedor</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="pill" style="background:var(--brand-tint);color:var(--brand);font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px">Token</span>
+              <span style="font-size:12px;color:var(--text-2)">Firma digital</span>
+            </div>
+          </div>
+          <div class="meta-row">
+            <span style="font-size:11.5px;color:var(--text-3)">Nivel de firma</span>
+            <span style="font-size:12.5px;font-weight:600">PAdES B-LT</span>
+          </div>
+          <div class="meta-row">
+            <span style="font-size:11.5px;color:var(--text-3)">Certificado</span>
+            <span style="font-family:var(--font-mono);font-size:12px;word-break:break-all">CN=María Fernanda Ríos</span>
+            <span style="font-family:var(--font-mono);font-size:11.5px;color:var(--text-2);word-break:break-all">Emisor CN=AC Demo · SN=3F:A2:9C:11</span>
+          </div>
+          <div class="meta-row">
+            <span style="font-size:11.5px;color:var(--text-3)">Hash original (SHA-256)</span>
+            <span style="font-family:var(--font-mono);font-size:11.5px;word-break:break-all;color:var(--text-2)">a1b8e2…c04f7</span>
+          </div>
+          <div class="meta-row">
+            <span style="font-size:11.5px;color:var(--text-3)">Hash documento firmado</span>
+            <span style="font-family:var(--font-mono);font-size:11.5px;word-break:break-all;color:var(--text-2)">8f14e4…ea9f6</span>
+          </div>
+          <div class="meta-row">
+            <span style="font-size:11.5px;color:var(--text-3)">IP de origen</span>
+            <span style="font-family:var(--font-mono);font-size:12.5px">10.24.6.18</span>
+          </div>
+          <div class="meta-row">
+            <span style="font-size:11.5px;color:var(--text-3)">Firmante</span>
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <span style="font-size:12.5px;font-weight:600">María Fernanda Ríos</span>
+              <span style="font-size:11.5px;color:var(--text-2)">Secretaría — Mesa de Entradas</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px;display:flex;flex-direction:column;gap:14px">
+          <span style="font-size:11px;font-weight:600;letter-spacing:0.6px;color:var(--text-3);text-transform:uppercase">Versiones</span>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:13px;font-weight:600">v2 · firmada</span>
+                <span style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--teal-tint);color:oklch(38% 0.1 165)">VIGENTE</span>
+              </div>
+              <span style="font-size:11.5px;color:var(--text-3)">02/09/2026 14:32 · PAdES B-LT</span>
+            </div>
+            <a href="#" style="font-size:12px;font-weight:600">Descargar</a>
+          </div>
+
+          <div style="height:1px;background:var(--border)"></div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13px;font-weight:600">v1 · original subida</span>
+              <span style="font-size:11.5px;color:var(--text-3)">02/09/2026 14:28</span>
+            </div>
+            <a href="#" style="font-size:12px;font-weight:600">Descargar</a>
+          </div>
+        </div>
+
+        <div style="background:var(--teal-tint);border:1px solid oklch(85% 0.06 165);border-radius:12px;padding:16px 18px">
+          <span style="font-size:12px;line-height:1.5;color:oklch(32% 0.08 165)">Firma digital con certificado de una AC licenciada (Ley 25.506): Firmadoc validó la cadena de confianza, la vigencia y la revocación antes y después de firmar.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>

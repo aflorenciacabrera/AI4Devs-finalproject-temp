@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Firmadoc - Administración</title>
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+  <header>
+    <h1>Firmadoc · Administración</h1>
+    <div class="header-actions">
+      <button id="theme" class="icon-button" type="button" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro"></button>
+      <button id="logout" type="button" hidden>Cerrar sesión</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="login">
+      <h2>Ingreso</h2>
+      <form id="login-form">
+        <label for="token">Token de administración</label>
+        <input id="token" name="token" type="password" autocomplete="off" required>
+        <button type="submit">Ingresar</button>
+      </form>
+      <p id="login-error" class="error" role="alert" hidden></p>
+    </section>
+
+    <div id="app" hidden>
+      <div class="layout">
+      <nav class="sidebar" aria-label="Secciones">
+        <button type="button" data-tab="sign">Firmar documento</button>
+        <button type="button" data-tab="documents">Documentos</button>
+        <button type="button" data-tab="audit">Auditoría</button>
+        <button type="button" data-tab="integrators">Integradores</button>
+        <button type="button" data-tab="trust">Confianza</button>
+      </nav>
+      <div class="content">
+      <p id="message" role="status" hidden></p>
+
+      <section id="tab-sign" hidden>
+        <h2>Firmar documento</h2>
+        <p class="muted">Cargá un PDF y firmalo con tu token. Firmadoc guarda el original y la versión firmada.</p>
+        <div id="sign-upload" class="sign-layout">
+          <div class="sign-main">
+          <label id="sign-drop" class="dropzone" for="sign-file">
+            <strong>Arrastrá un PDF acá</strong>
+            <span>o seleccionalo desde tu PC</span>
+            <span class="button-like">Seleccionar archivo</span>
+          </label>
+          <input id="sign-file" type="file" accept="application/pdf,.pdf" multiple hidden>
+          <p class="muted">Solo archivos PDF. Si cargás varios, se firman en lote con un solo PIN.</p>
+          <div id="sign-staged" hidden>
+            <h3>Documentos a firmar (<span id="sign-staged-count">0</span>)</h3>
+            <ul id="sign-staged-list" class="staged-list"></ul>
+            <div class="doc-actions">
+              <button type="button" id="sign-staged-clear">Cancelar</button>
+              <button type="button" id="sign-staged-go" class="primary">Cargar y firmar</button>
+            </div>
+          </div>
+          </div>
+          <aside class="sign-help" aria-label="Cómo se firma">
+          <h3>Cómo se firma</h3>
+          <ol class="steps">
+            <li><strong>Cargá el PDF</strong> Queda guardado como versión original (v1).</li>
+            <li><strong>Elegí el método de firma</strong> Con token, remota o propia (demostración).</li>
+            <li><strong>Elegí el certificado y confirmá con el PIN</strong> El PIN se ingresa en tu PC, en Firmadoc Agent.</li>
+            <li><strong>Descargá el documento firmado</strong> Queda como nueva versión vigente; el original se conserva.</li>
+          </ol>
+          </aside>
+        </div>
+        <div id="sign-ready" hidden>
+          <div class="card doc-card">
+            <div>
+              <strong id="sign-name"></strong>
+              <div id="sign-meta" class="muted"></div>
+              <ul id="sign-docs" class="staged-list" hidden></ul>
+            </div>
+            <div class="doc-actions">
+              <button type="button" id="sign-replace">Reemplazar</button>
+              <button type="button" id="sign-remove">Quitar</button>
+            </div>
+          </div>
+          <p id="sign-versions" class="muted">Se guarda como versión original (v1). Al firmar, la versión firmada será la v2 y quedará como vigente.</p>
+          <div id="sign-widget"></div>
+          <p id="sign-result" role="status" hidden></p>
+        </div>
+      </section>
+
+      <section id="tab-documents" hidden>
+        <div id="documents-list">
+          <h2>Documentos firmados</h2>
+          <p class="muted">Historial de documentos procesados por el módulo de firma.</p>
+          <form id="requests-filters" class="filters">
+            <label>Buscar por documento o firmante<input name="q" type="search" autocomplete="off"></label>
+            <label>Estado
+              <select name="status">
+                <option value="">Todos</option>
+                <option value="signed">Firmado</option>
+                <option value="pending">Pendiente</option>
+                <option value="signing">Firmando</option>
+                <option value="failed">Fallido</option>
+              </select>
+            </label>
+            <label>Proveedor
+              <select name="provider">
+                <option value="">Todos</option>
+                <option value="token">Token</option>
+                <option value="local">Propio</option>
+                <option value="firmar">FirmAR</option>
+              </select>
+            </label>
+            <label>Origen
+              <select name="origin">
+                <option value="">Todos</option>
+                <option value="individual">Individual</option>
+                <option value="batch">Lote</option>
+              </select>
+            </label>
+            <label>Desde<input name="created_from" type="date"></label>
+            <label>Hasta<input name="created_to" type="date"></label>
+            <button type="submit" class="primary">Filtrar</button>
+          </form>
+          <div id="requests-table"></div>
+          <div class="pager"><button type="button" id="requests-prev">Anterior</button><span id="requests-page"></span><button type="button" id="requests-next">Siguiente</button></div>
+        </div>
+        <div id="document-detail" hidden></div>
+      </section>
+
+      <section id="tab-audit" hidden>
+        <h2>Entregas de webhook</h2>
+        <form id="webhooks-filters" class="filters">
+          <label>Estado
+            <select name="status">
+              <option value="">Todos</option>
+              <option value="pending">pending</option>
+              <option value="delivered">delivered</option>
+              <option value="failed">failed</option>
+            </select>
+          </label>
+          <button type="submit">Filtrar</button>
+        </form>
+        <div id="webhooks-table"></div>
+        <h2>Eventos de administración</h2>
+        <div id="events-table"></div>
+      </section>
+
+      <section id="tab-integrators" hidden>
+        <h2>Integradores</h2>
+        <p class="muted">Sistemas que usan Firmadoc por API. La API key y el secreto de webhook se muestran una sola vez.</p>
+        <div id="credentials" class="credentials" role="alert" hidden></div>
+        <form id="integrator-form" class="filters">
+          <label>Nombre<input name="name" type="text" required maxlength="200"></label>
+          <label>Orígenes permitidos (uno por línea, https://host[:puerto])<textarea name="origins" rows="2"></textarea></label>
+          <button type="submit" class="primary">Crear integrador</button>
+        </form>
+        <form id="origins-form" class="filters" hidden>
+          <label>Orígenes de <strong id="origins-name"></strong> (uno por línea)<textarea name="origins" rows="3"></textarea></label>
+          <button type="submit" class="primary">Guardar orígenes</button>
+          <button type="button" id="origins-cancel">Cancelar</button>
+        </form>
+        <div id="integrators-table"></div>
+      </section>
+
+      <section id="tab-trust" hidden>
+        <h2>Anclas de confianza</h2>
+        <div id="anchors-table"></div>
+        <form id="anchor-form">
+          <label for="anchor-pem">Agregar ancla (certificado PEM)</label>
+          <textarea id="anchor-pem" name="certificate_pem" rows="6" required></textarea>
+          <button type="submit">Agregar ancla</button>
+        </form>
+        <h2>Certificado propio (proveedor local)</h2>
+        <div id="certificate-info"></div>
+        <button type="button" id="rotate" class="danger">Rotar certificado</button>
+      </section>
+      </div>
+      </div>
+    </div>
+  </main>
+  <script src="/admin/admin.js"></script>
+</body>
+</html>

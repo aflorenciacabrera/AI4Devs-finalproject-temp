@@ -28,7 +28,7 @@ Firmadoc es un **servicio de firma digital institucional**: un único componente
 _Pendiente — se completará cuando exista un despliegue (Entrega 3)._
 
 ### 0.5. URL o archivo comprimido del repositorio
-https://github.com/aflorenciacabrera/AI4Devs-finalproject-temp (fork de `LIDR-academy-temp/AI4Devs-finalproject`, rama `feature/entrega-1-AFC`)
+https://github.com/aflorenciacabrera/AI4Devs-finalproject (fork de `LIDR-academy/AI4Devs-finalproject`, rama `feature/entrega-1-AFC`)
 
 ---
 
@@ -66,14 +66,20 @@ Firmadoc resuelve esto con un **widget embebible** (diseñado para integrarse ta
 - **Autenticación de sistemas integradores**: cada sistema que usa Firmadoc se registra y opera con su propia API key / credenciales OAuth2 client-credentials.
 - **Firma en lote**: firmar varios documentos con una sola confirmación. Con el agente de token, el certificado se elige y valida una vez, todos los hashes se envían en una única llamada y el PIN se pide una sola vez; el resultado puede ser parcial («2 de 3 firmados»), con descarga de los firmados (ZIP) y reintento de los fallidos. La firma remota **no** se admite por lote en esta versión (según un relevamiento previo, el servicio limita la cantidad de documentos por operación; valor a verificar).
 - **Verificación de firmas**: endpoint para validar la integridad y la cadena de confianza de un documento firmado (`POST /api/v1/documents/{id}/verify`).
-- **Modo demostración** (planificado): un único comando que levanta el sistema listo para firmar sin token USB, para que un revisor recorra los flujos sin hardware (ver 1.4).
+- **Modo demostración**: `python -m firmadoc.demo` levanta todo listo para firmar sin token USB (ver 1.4).
 
 **Ejemplo de integración desde un sistema host (ej. Angular):** no requiere instalar ningún paquete de Firmadoc — el sistema integrador solo consume la `signing_url` que devuelve la API.
 
 ```html
-<!-- Opción 1: iframe (recomendada, cero configuración extra) -->
-<iframe [src]="signingUrl | safe" width="480" height="760"></iframe>
+<!-- Opción 1: iframe (recomendada) -->
+<iframe [src]="signingUrl | safe" title="Firma de documento (Firmadoc)" width="480" height="760"
+  allow="local-network-access; local-network; loopback-network"
+  sandbox="allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"
+  referrerpolicy="no-referrer"></iframe>
 ```
+El atributo `allow` es **necesario**: delega al iframe el permiso de acceso a la red local para que el widget pueda hablar con el agente en `127.0.0.1` desde Chrome/Edge 142+ (sin él, el navegador bloquea la llamada aunque la política empresarial ya permita el origen). Los nombres de la política cambiaron entre versiones del navegador, por eso se listan varios. Si el sistema host sanea el HTML (algunos gestores de contenido eliminan `allow`), hay que verificarlo en el DOM ya renderizado. La guía completa para Angular está en `widget/README.md`.
+
+**Opción 3: ventana emergente (alternativa implementada):** abrir la `signing_url` con `window.open` en un gesto del usuario. Firmadoc pasa a ser la página principal de esa ventana, así que el permiso de red local se le pide a su propio origen, sin delegarlo con `allow` ni depender de que el anfitrión conserve el atributo, y no queda un módulo dentro de un diálogo; el widget avisa al anfitrión por `window.opener` con los mismos mensajes. Cuesta abrirla en un clic (si no, el navegador la bloquea), salir momentáneamente de la aplicación y que la dirección de la firma quede visible en la barra del navegador (sin el token, que el widget borra antes de dibujar). Por eso el panel de Firmadoc usa el iframe en un diálogo, con el widget sin marco propio y con el tema del panel (`?theme=`); detalle y ejemplo Angular en `widget/README.md`. En cualquier caso el resultado confiable lo consulta el backend del integrador con su API key.
 ```html
 <!-- Opción 2: Web Component in-page -->
 <script src="https://firmadoc.example.org/widget.js"></script> <!-- una sola vez -->
@@ -82,25 +88,94 @@ Firmadoc resuelve esto con un **widget embebible** (diseñado para integrarse ta
 
 ### **1.3. Diseño y experiencia de usuario:**
 
-Al no haber código todavía (esta entrega es 100% documentación), se describe el flujo objetivo — las capturas reales se incorporarán en la Entrega 2. La firma **parte, en general, de cargar un PDF** en la sección «Firmar documento» del panel de administración y se completa con el widget embebido en esa misma página; los sistemas integradores usan el mismo widget dentro de su propia interfaz, con la `signing_url` que devuelve la API.
+La firma **parte, en general, de cargar un PDF** en la sección «Firmar documento» del panel y se completa con el widget embebido en esa misma página. Los sistemas integradores usan el mismo widget dentro de su propia interfaz, con la `signing_url` que devuelve la API. El diseño visual está en `design/mockup/` (canvas con las pantallas) y las capturas de abajo son del **producto real** con datos ficticios (se regeneran con `python docs/img/generar.py`).
 
 1. **Cargar el PDF.** Se arrastra o se elige uno o varios PDF; con varios se arma la lista (se puede quitar alguno) y se firman en lote con un solo PIN. El original queda como versión v1.
+
+   ![Sección Firmar documento](docs/img/01-firmar-documento.png)
+
 2. **Elegir el método de firma.** Tarjetas con su validez: **firma con token** (firma digital; el widget indica si Firmadoc Agent y el token están conectados), **firma remota** (redirige al servicio) y **firma propia** (demostración, inmediata, firma electrónica sin la presunción legal de la firma digital). Se ve el documento (nombre, páginas, tamaño, estado y vencimiento).
+
+   ![Elección del método de firma](docs/img/02-widget-metodo.png)
+
 3. **Validar el certificado antes del PIN.** Con el token se elige el certificado (los vencidos aparecen deshabilitados) y Firmadoc valida la cadena de confianza, la vigencia, la revocación y que el CUIL coincida con el del firmante; si algo falla lo informa **antes** de pedir el PIN. El agente muestra una ventana con el nombre del o los documentos y pide el PIN **una sola vez**, aunque sea un lote.
+
 4. **Firmado.** El widget muestra el resultado, avisa al sistema integrador (`postMessage` y webhook) y el documento queda descargable y como nueva versión vigente, sin descargar ni subir nada a mano.
-5. **Firma en lote.** Lista de documentos, un solo certificado y un solo PIN; si algún documento falla el resultado es parcial («2 de 3 firmados»), con descarga de los firmados y reintento de los fallidos.
+
+   ![Documento firmado](docs/img/03-widget-firmado.png)
+
+5. **Firma en lote.** Lista de documentos, un solo certificado y un solo PIN; si algún documento falla el resultado es parcial, con descarga de los firmados y reintento de los fallidos.
+
+   ![Lote: elección](docs/img/04-widget-lote.png) ![Lote: resultado](docs/img/05-widget-resultado-lote.png)
+
 6. **Panel de administración.** Documentos con su origen (individual o lote), versión y vencimiento; detalle como cadena de custodia con línea de tiempo, versiones descargables y datos técnicos; y gestión de sistemas integradores.
+
+   ![Documentos](docs/img/06-documentos.png)
+   ![Detalle de custodia](docs/img/07-detalle-custodia.png)
+   ![Integradores](docs/img/08-integradores.png)
 
 ### **1.4. Instrucciones de instalación:**
 
-_Objetivo para la Entrega 2 (cuando exista código ejecutable). Se documentará aquí, como mínimo:_
-- Requisitos: Python 3.11 o superior, Node 20+ (para compilar el widget) y Chrome/Edge (desde Chrome 142, una página pública que llama a `127.0.0.1` pide permiso de acceso a la red local; en equipos administrados se evita con la política `LocalNetworkAccessAllowedForUrls`). Docker solo si se quiere PostgreSQL. El agente local solo hace falta para firmar con token.
-- Modo demostración: un único comando que prepara base, carpetas, migraciones y datos semilla, y arranca el sistema listo para firmar sin token USB.
-- Instalación manual: variables de entorno (`.env`: base de datos, secreto de los enlaces del widget, token de administración, URL del servicio de sellado de tiempo), migraciones (`alembic upgrade head`) y script de seed con un sistema integrador y un certificado de demostración.
-- Base de datos: SQLite local por defecto y PostgreSQL (con los PDF almacenados en la base) mediante `docker-compose`.
-- Carpeta de confianza (`backend/trust/`): certificados raíz y de AC en formato `.crt`, descargados de la fuente oficial de la AC; el panel muestra la huella SHA-256 de cada uno para confirmarla por un canal independiente.
-- Agente local (solo para firmar con token): se instala en la PC del firmante (instalador para Windows empaquetado con PyInstaller, distribuible por política de dominio en equipos administrados) y requiere el middleware PKCS#11 del fabricante del token, de la misma arquitectura (32/64 bits) que el agente. En desarrollo se usa SoftHSM en lugar de un token físico. Un comando de diagnóstico lista los certificados del token y verifica que la biblioteca PKCS#11 cargue, sin pedir el PIN.
-- Credenciales de prueba y lista de flujos a probar (firma propia, firma con token de software, lote con fallo parcial, certificado rechazado antes del PIN, agente no detectado, verificación, webhook y gestión de integradores): se incluirán con la Entrega 2.
+**Requisitos:** Python 3.11 o superior, Node 20 o superior (para compilar el widget) y Chrome/Edge (desde la versión 142 una página pública que llama a `127.0.0.1` pide permiso de acceso a la red local; en equipos administrados se evita con la política `LocalNetworkAccessAllowedForUrls`, ver `agent/README.md`). Docker solo si se quiere PostgreSQL. El agente local solo hace falta para firmar con token.
+
+**La forma más rápida: modo demostración (sin token USB).**
+
+```bash
+python -m venv .venv && source .venv/bin/activate        # en Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+(cd widget && npm install && npm run build)               # compila el widget que se embebe en el panel
+python -m firmadoc.demo                                   # prepara data/demo/ y arranca en http://localhost:8000
+```
+
+El comando crea una base y carpetas propias en `data/demo/` (no toca tu configuración), aplica las migraciones, carga el seed, muestra la URL del panel (`/admin`), el token de acceso y la API key de demostración. Los PDF quedan dentro de la base de la demo (tabla `stored_blob`), como en una instalación real. Ofrece los tres métodos de firma: «Firma propia», «Firma con token» (token de software o físico, con el agente) y «Firma remota» contra el servicio simulado del mismo servidor (OTP `123456`, PIN `1234`). Opciones: `--port`, `--reset`, `--prepare-only`, `--database-url` (la misma demo sobre PostgreSQL: `docker compose up -d postgres` y `--database-url postgresql+psycopg://firmadoc:firmadoc@localhost:5432/firmadoc`). Detalle en `docs/demo.md`.
+
+**Instalación manual (desarrollo).**
+
+```bash
+cp .env.example .env                  # configuración; por defecto SQLite local y administración deshabilitada
+alembic upgrade head                  # esquema, restricciones y triggers de inmutabilidad
+python -m firmadoc.seed               # sistema integrador de demostración
+uvicorn firmadoc.main:app             # http://localhost:8000
+```
+
+Para habilitar el panel hay que definir `FIRMADOC_ADMIN_TOKEN` (32 caracteres o más) y `FIRMADOC_SIGNING_SECRET` (secreto de los enlaces del widget); `FIRMADOC_PUBLIC_BASE_URL` debe coincidir con el origen con el que se abre el panel. El resto de las variables `FIRMADOC_*` figura en `.env.example`.
+
+- **PostgreSQL con los PDF en la base:** `docker compose up -d postgres` y las variables de `docs/database.md` (incluye cómo conectarse con DBeaver y migrar a la base institucional).
+- **Carpeta de confianza (`backend/trust/`):** certificados raíz y de AC en formato `.crt`, descargados de la fuente oficial de la AC; el panel («Confianza») muestra la huella SHA-256 de cada ancla para confirmarla por un canal independiente.
+- **Modo real (token físico, sin demostración):** `docs/real-mode.md`.
+- **Sello de tiempo (TSA), webhooks y firma remota simulada:** `docs/timestamping.md`, `docs/webhooks.md` y `docs/firmar.md`.
+- **Agente local (solo para firmar con token):** se compila con PyInstaller (`agent/packaging/build.ps1`) y se instala en la PC del firmante con `agent/packaging/install.ps1`, también por política de dominio; requiere el middleware PKCS#11 del fabricante del token, de la misma arquitectura (32/64 bits) que el agente. En desarrollo se usa SoftHSM en lugar de un token físico. `firmadoc-agent diagnose` lista los certificados del token y verifica que la biblioteca cargue, sin pedir el PIN. Todo en `agent/README.md`.
+
+**Todavía no existe:** imágenes de contenedor del servidor y del widget, `docker compose` para toda la aplicación y el despliegue público (FIRDOC-42). Hoy `docker-compose.yml` solo define PostgreSQL.
+
+### **1.5. Credenciales de prueba y flujos a probar:**
+
+**Credenciales (solo de demostración, nunca reales):**
+
+| Qué | Valor |
+|---|---|
+| Panel de administración | `http://localhost:8000/admin` con el **token que imprime `python -m firmadoc.demo`** (se genera una vez y queda en `data/demo/demo.json`) |
+| Integrador de prueba | sistema «Sistema de demostración», API key `firmadoc-demo-key` (cabecera `X-API-Key`) |
+| Firmante de prueba | Juan Pérez, CUIL `20123456789` (el que usan las pruebas automáticas) |
+
+**Cómo correr todo en limpio:** `python -m firmadoc.demo --reset` (borra y recrea `data/demo/`). Con PostgreSQL: `docker compose up -d postgres` y `python -m firmadoc.demo --database-url postgresql+psycopg://firmadoc:firmadoc@localhost:5432/firmadoc` (para vaciar esa base: `docker compose down -v`); sin la demo, `alembic upgrade head` y `python -m firmadoc.seed` con las variables de `docs/database.md`. Suite completa: `pytest` (las pruebas en navegador real necesitan Chrome y el widget compilado; con `FIRMADOC_E2E_BROWSER=msedge` corren en Edge; las de PostgreSQL, `FIRMADOC_TEST_PG_URL`).
+
+**Flujos a probar** (a mano en el panel, y la prueba automática que cada uno tiene):
+
+| Flujo | Cómo probarlo | Resultado esperado | Prueba automática |
+|---|---|---|---|
+| **Firma electrónica de demostración** | Panel → «Firmar documento» → cargar un PDF → «Firma propia» → «Firmar» | «Documento firmado correctamente»; aparece como v2 vigente en «Documentos»; la v1 original se conserva | `tests/e2e/test_panel_sign_e2e.py::test_cargar_y_firmar_con_el_widget_embebido` |
+| **Firma individual con token de software** | Con la demo arriba, en otra terminal `firmadoc-agent run --software-token data/demo/token/firmante.pem --origin http://localhost:8000` (lo imprime la demo); en el panel cargar un PDF → «Firma con token» → certificado → PIN `1234` en la ventana del agente (`docs/demo.md`) | Firma digital PAdES verificable contra la AC de prueba; el PIN solo se ingresó en el agente | `tests/e2e/test_widget_e2e.py::test_firma_con_token_dentro_del_iframe` (token de software en memoria), `agent/tests/test_agent_software_token.py` y `agent/tests/test_agent_pkcs11.py` (SoftHSM real; ver `agent/README.md`) |
+| **Firma con el token físico** | Middleware del fabricante instalado y `%APPDATA%\FirmadocAgent\config.json` con su DLL; `python -m firmadoc_agent --config ... diagnose` para comprobar que lista el certificado; `python -m firmadoc.demo` (opcional `--cuil <CUIL> --nombre "<Titular>"` para mostrar al titular como firmante del panel); en otra terminal `python -m firmadoc_agent --config ... run --origin http://localhost:8000`; en el panel «Firma con token» → PIN del token en la ventana del agente (`docs/demo.md`, «Firma con el token físico desde la demo») | Firma digital PAdES cuya cadena llega a la AC Raíz de la República Argentina (anclas en `backend/trust/`) | `tests/test_trust_repo.py` (anclas y cadena), `tests/test_demo.py` (firmante real); la firma con el PIN es manual (`agent/README.md`) |
+| **Firma remota con el servicio simulado** | Panel → «Firmar documento» → cargar un PDF → «Firma remota» → «Firmar» → «Continuar en el servicio de firma» (se abre la página del simulado en una ventana emergente) → OTP `123456` y PIN `1234` → «Firmar» (`docs/demo.md`, «Firma remota con el servicio simulado») | La ventana del simulado se cierra sola y el widget pasa a «Documento firmado»; v2 firmada por la AC del simulado, verificable en «Documentos»; con «Rechazar» la solicitud queda fallida (`remote_rejected`) | `tests/test_demo.py::test_firma_remota_de_punta_a_punta_desde_el_panel_de_la_demo` y `tests/test_firmar.py` (página de autorización, bloqueo, rechazo) |
+| **Firma en una ventana propia (sin iframe, para integradores)** | `widget/examples/host.html#signing_url=...&mode=popup` → «Abrir la firma en una ventana» | La página anfitriona recibe los mensajes; «Cerrar» cierra la ventana | `tests/e2e/test_widget_e2e.py::test_firma_local_en_ventana_emergente` |
+| **Widget integrado al diálogo del panel** | Panel Angular (`/panel`) → «Firmar documento» → cargar un PDF, en modo claro y en modo oscuro | El widget se ve como parte del diálogo: sin barra «Firmadoc», sin borde ni fondo propios, con los colores del panel; pantallas sin leyendas de más | `frontend/src/app/sections/widget-dialog.spec.ts` (tema en la URL), `widget/tests/bootstrap.test.ts` (`applyTheme`) |
+| **Firma en lote con fallo parcial** | Cargar 3 PDF → «Firmar 3 documentos» (un solo PIN); si uno falla: «Descargar firmados» y «Reintentar» | «2 de 3 documentos firmados»; ZIP solo con los firmados; el reintento crea otro lote con el fallido | `tests/e2e/test_batch_e2e.py::test_exito_parcial_zip_y_reintento` |
+| **Certificado rechazado antes del PIN** | Con un certificado revocado, vencido o de una AC no confiable → «Validar y continuar». El CUIL del certificado **no** se coteja con el del firmante salvo con `FIRMADOC_REQUIRE_CUIL_MATCH=true` (entonces un certificado de otra persona da `cuil_mismatch`) | Mensaje con el motivo y **sin** pedido de PIN | `tests/e2e/test_widget_e2e.py::test_certificado_revocado_se_rechaza_antes_del_pin` y `tests/test_token_flow.py` |
+| **Agente no detectado** | Elegir «Firma con token» con el agente apagado | «No detectamos Firmadoc Agent» con las comprobaciones y opción de elegir otro método o reintentar | `tests/e2e/test_widget_e2e.py::test_agente_ausente_y_reintento_de_deteccion` |
+| **Verificación de un documento firmado** | `POST /api/v1/documents/{id}/verify` con la API key del integrador | `valid: true`, hash íntegro y cada firma `intact`/`trusted` | `tests/test_documents_api.py::test_verificar_documento_local` y `::test_verificacion_coincide_con_openssl` |
+| **Webhook al integrador** | Crear la solicitud con `callback_url` y firmar | El integrador recibe el aviso firmado (HMAC) con reintentos; se ve en «Auditoría» | `tests/test_webhooks.py` |
+| **Gestión de integradores** | Panel → «Integradores» → crear, rotar la API key, deshabilitar | Credenciales mostradas una sola vez; la clave rotada o deshabilitada deja de autenticar | `tests/e2e/test_panel_views_e2e.py` |
 
 ---
 
@@ -194,7 +269,7 @@ El navegador solo transporta mensajes entre ambos lados: **el agente no tiene cr
 | Servicio de auditoría | FastAPI + PostgreSQL | Registra cada evento del ciclo de vida de una firma, de forma inmutable (append-only) |
 | Despachador de webhooks | FastAPI (background tasks) | Notifica de forma asíncrona al sistema integrador cuando cambia el estado de una solicitud |
 | Widget embebible | React (+ wrapper Web Component) | UI de firma: lista certificados, coordina servidor y agente, muestra el estado |
-| Panel de administración | Angular 21 + PrimeNG 21 | Carga de PDF y widget embebido, consulta de auditoría, gestión de sistemas integradores/API keys, certificados y confianza |
+| Panel de administración | Angular 21 + PrimeNG 21 (`frontend/`), servido por el backend en `/panel`; además una versión estática sin dependencias en `/admin` | Carga de PDF y widget embebido, consulta de auditoría, gestión de sistemas integradores/API keys, certificados y confianza |
 | Base de datos | PostgreSQL | Persistencia relacional de todo el dominio |
 
 ### **2.3. Descripción de alto nivel del proyecto y estructura de ficheros**
@@ -247,12 +322,13 @@ flowchart LR
     CI -.-> AgentPkg["Instalador del agente (Windows)\ndistribuido por política de dominio"]
 ```
 
-Para la entrega del máster: contenedores Docker para los 3 servicios (backend, widget, admin) + PostgreSQL, desplegados en un PaaS de contenedores económico (a confirmar en la Entrega 2/3, candidatos: Render o Fly.io) con URL pública. La demo pública usa el proveedor `local` y un token de software (SoftHSM) para que cualquier revisor pueda recorrer los flujos sin token físico. Para un uso institucional real, dado que se procesan documentos sensibles, el objetivo sería un despliegue **on-premise o en infraestructura propia** del organismo adoptante, donde además el agente se distribuye junto con el middleware del token mediante política de dominio — a validar en cada caso. CI: pipeline de GitHub Actions que corre la suite de tests y construye las imágenes en cada Pull Request.
+Para la entrega del máster: **hoy** hay un `docker-compose.yml` con PostgreSQL y el modo demostración (`python -m firmadoc.demo`); **a futuro** (FIRDOC-42), contenedores Docker del servidor y del widget desplegados en un PaaS de contenedores económico (candidatos: Render o Fly.io) con URL pública. La demo pública usa el proveedor `local` y un token de software (SoftHSM) para que cualquier revisor pueda recorrer los flujos sin token físico. Para un uso institucional real, dado que se procesan documentos sensibles, el objetivo sería un despliegue **on-premise o en infraestructura propia** del organismo adoptante, donde además el agente se distribuye junto con el middleware del token mediante política de dominio — a validar en cada caso. CI: pipeline de GitHub Actions que corre la suite de tests y construye las imágenes en cada Pull Request.
 
 ### **2.5. Seguridad**
 
 - **Autenticación de sistemas integradores**: cada sistema que use Firmadoc se registra y opera con API key / OAuth2 client-credentials; el widget no acepta solicitudes de un sistema no registrado.
-- **Aislamiento del iframe**: cabecera `Content-Security-Policy: frame-ancestors` con lista explícita de orígenes permitidos por sistema integrador (evita clickjacking).
+- **Aislamiento del iframe**: cabecera `Content-Security-Policy: frame-ancestors` con lista explícita de orígenes permitidos por sistema integrador (evita clickjacking); atributos `sandbox` y `referrerpolicy="no-referrer"` en el iframe; `postMessage` siempre con `targetOrigin` explícito (nunca `"*"`) y validación del emisor en la página anfitriona.
+- **Sin dependencia de cookies de terceros**: Safari las bloquea y Firefox las particiona, así que el widget no usa cookies para identificar a la persona. La `signing_url` lleva un token de corta duración, acotado a esa solicitud, en el fragmento (`#t=`), que el navegador no envía al servidor; el widget lo guarda solo en memoria y lo quita de la barra de direcciones.
 - **Firma diferida**: el PDF no viaja a la PC del usuario y la clave privada del token nunca toca el servidor.
 - **Validación de confianza en el servidor**, al firmar y al recibir documentos de terceros: cadena hasta las anclas de `backend/trust/`, vigencia, revocación (CRL/OCSP) e integridad. Las anclas se descargan siempre de la fuente oficial de la AC y su huella SHA-256 se confirma por un canal independiente (una raíz de origen dudoso invalidaría toda la validación).
 - **Vinculación de identidad**: el CUIL del certificado debe coincidir con el del usuario autenticado en el sistema integrador.
@@ -273,7 +349,7 @@ Para la entrega del máster: contenedores Docker para los 3 servicios (backend, 
 - **Integración**: API + PostgreSQL (con testcontainers), flujo completo crear solicitud → preparar → completar → versión nueva → auditoría → webhook.
 - **Agente sin hardware**: pruebas del agente y del `TokenAgentProvider` con SoftHSM (PKCS#11 por software), ejecutables en CI.
 - **End-to-end**: un sistema integrador de prueba embebe el widget, firma un documento (con SoftHSM) y recibe el webhook de confirmación.
-- **Prueba manual documentada** con un token criptográfico USB de referencia : carga de la biblioteca PKCS#11, lectura del certificado, firma de un lote con un solo PIN.
+- **Prueba manual documentada** con un token criptográfico USB de referencia (`agent/README.md`): carga de la biblioteca PKCS#11, lectura del certificado, firma de un lote con un solo PIN. Pendiente de ejecutar con el dispositivo.
 
 ### **2.7. Supuestos y puntos a confirmar**
 
@@ -284,7 +360,8 @@ Decisiones que dependen de datos del organismo o que no pude verificar en fuente
 4. **Reglas de negocio:** quién firma cada tipo de acto, si hay firma múltiple o secuencial, y qué documentos admiten firma electrónica en lugar de digital.
 5. **Firma remota:** requiere un convenio de integración con la autoridad nacional y las credenciales no son de acceso público; el límite de documentos por operación citado en el relevamiento previo no está verificado.
 6. **Hardware:** la política de la AC exige dispositivos criptográficos FIPS 140-2 nivel 2 o superior; el agente debe probarse contra los modelos de token realmente entregados. La biblioteca PKCS#11 del fabricante debe coincidir en arquitectura con el Python del agente.
-7. **Componentes existentes:** si el organismo ya cuenta con un firmador invocable desde otras aplicaciones, convendría evaluarlo; Firmadoc se propone justamente como servicio neutral y reutilizable por cualquier sistema.
+7. **Compatibilidad del iframe con el agente local:** el atributo `allow` de delegación del permiso de red local y sus nombres de política cambiaron entre versiones de Chrome/Edge, y se conoce por fuentes secundarias (no por documentación oficial verificada) que algunas plataformas lo eliminan al sanear el HTML. Se verifica con el navegador instalado en los equipos del organismo. Se verificó en Chrome y en Edge (la suite en navegador real corre en ambos con `FIRMADOC_E2E_BROWSER`); el comportamiento en Firefox y Safari al llamar a `127.0.0.1` no está verificado. La alternativa de ventana emergente (ver 1.2) está implementada para integradores; el panel usa el iframe porque en la ventana la dirección queda visible.
+8. **Componentes existentes:** si el organismo ya cuenta con un firmador invocable desde otras aplicaciones, convendría evaluarlo; Firmadoc se propone justamente como servicio neutral y reutilizable por cualquier sistema.
 
 ---
 
@@ -483,7 +560,7 @@ Primer paso de la firma diferida. Recibe el certificado elegido del token (solo 
   "expires_at": "2026-09-02T18:05:00Z"
 }
 ```
-**Errores:** `401` integrador no autenticado; `403` el CUIL del certificado no coincide con el del firmante; `422` certificado vencido, revocado o de una cadena no confiable (con el motivo en el cuerpo; se informa antes de que el usuario ingrese el PIN).
+**Errores:** `401` integrador no autenticado; `403` el CUIL del certificado no coincide con el del firmante (solo con `FIRMADOC_REQUIRE_CUIL_MATCH=true`; por defecto no se coteja: firma quien tiene el token y su PIN, y la firma registra el certificado usado); `422` certificado vencido, revocado o de una cadena no confiable (con el motivo en el cuerpo; se informa antes de que el usuario ingrese el PIN).
 
 ### `POST /api/v1/signature-requests/{id}/complete`
 Segundo paso. Recibe las firmas producidas por el token, las incrusta en el PDF, valida el resultado y registra la nueva versión.
@@ -556,7 +633,7 @@ Criterios de aceptación:
 
 Criterios de aceptación:
 - **Dado** un firmante con el agente instalado y su token conectado, **cuando** abre la `signing_url` y elige su certificado, **entonces** Firmadoc valida la cadena de confianza, la vigencia, la revocación y que el CUIL del certificado coincida con el del firmante, y si algo falla lo informa **antes** de pedir el PIN.
-- **Dado** un certificado válido, **cuando** el firmante confirma en el diálogo del agente (que muestra el nombre del documento) e ingresa el PIN, **entonces** el agente firma solo el hash recibido y el servidor incrusta la firma PAdES; el PDF nunca viaja a la PC ni la clave sale del token.
+- **Dado** un certificado válido, **cuando** el firmante confirma en el diálogo del agente (que muestra el nombre del titular del certificado; los documentos se ven en el widget) e ingresa el PIN, **entonces** el agente firma solo el hash recibido y el servidor incrusta la firma PAdES; el PDF nunca viaja a la PC ni la clave sale del token.
 - **Dado** un hash firmado que no corresponde a un desafío vigente (vencido, ya usado o de otra sesión), **cuando** se intenta completar la firma, **entonces** se rechaza con `409`.
 - **Dado** una firma completada, **cuando** el servidor la valida, **entonces** se crea una nueva `DocumentVersion` (`origin: signed`) marcada como vigente, la versión anterior **no se modifica ni se elimina**, y el documento queda descargable inmediatamente (`download_url` o `signed_document_base64`).
 - **Dado** un PDF que ya tiene la firma de otra persona, **cuando** un segundo funcionario lo firma, **entonces** su firma se agrega como actualización incremental y la anterior sigue siendo válida.
@@ -589,6 +666,8 @@ Criterios de aceptación:
 
 ## 6. Tickets de Trabajo
 
+_Estado al 08/10/2026: los tres tickets están **implementados** (Jira: FIRDOC-29, FIRDOC-30 y FIRDOC-28; el agente, FIRDOC-21) y se detallan los commits en la sección 7. Las estimaciones son las originales._
+
 **Ticket 1 — Backend: flujo de firma diferida (`create` / `prepare` / `complete`)**
 
 - **Descripción**: implementar los endpoints del flujo principal con el motor PAdES de `pyHanko` (firma interrumpida), la validación de confianza y la creación/vinculación de `Document` y `DocumentVersion`.
@@ -611,6 +690,7 @@ Criterios de aceptación:
   - Orquestación: `prepare` → agente `/sign` → `complete`, con estados "validando", "firmando", "firmado", "error".
   - Comunicación `postMessage` con la ventana padre al completar.
   - Cabeceras de seguridad (`frame-ancestors`) validadas contra `allowed_origins` del integrador.
+  - Ejemplo de iframe con `allow` (red local), `sandbox` y `referrerpolicy`, con prueba que verifica los atributos.
 - **Criterios de aceptación**: embebido en una página Angular de prueba, el flujo completo (elegir certificado → confirmar → estado firmado) funciona dentro del iframe sin recargar la página padre, usando un token de software.
 - **Estimación**: 10h.
 
@@ -631,4 +711,25 @@ Criterios de aceptación:
 
 ## 7. Pull Requests
 
-_Pendiente — la Entrega 1 es 100% documentación, sin código. Se completará a partir de la Entrega 2._
+Todo el trabajo se hizo con OpenSpec (propuesta, especificación, diseño y tareas por cambio, archivados en `openspec/changes/archive/`) y se registró en Jira (proyecto FIRDOC). El **pull request de entrega** se abre desde la rama de trabajo hacia el repositorio de la entrega (FIRDOC-43); hasta entonces, estos son los cambios con su commit:
+
+| Cambio | Jira | Commit |
+|---|---|---|
+| Esquema inicial de la base y estructura del backend | FIRDOC-28 | `88b98dc` |
+| Flujo de firma diferida con proveedor propio | FIRDOC-29, 6, 23 | `c0e5ecb` |
+| Proveedor token, validación de certificados y contrato con el agente | FIRDOC-20 | `d3612ee` |
+| Firmadoc Agent (PKCS#11) | FIRDOC-21 | `dc6f29b` |
+| Widget de firma embebible (React) | FIRDOC-30 | `6b92c35`, `3f1f73c` |
+| Webhooks al integrador | FIRDOC-24 | `5e75c0d` |
+| Firma en lote (servidor) | FIRDOC-22 | `604ba67` |
+| Estados, firmantes y verificación de documentos | FIRDOC-25, 26, 13 | `672f00f` |
+| Panel de administración, anclas de confianza y rotación de certificado | FIRDOC-14, 15, 27 | `1cb10cc` |
+| Sello de tiempo PAdES con TSA configurable | FIRDOC-7 | `6dd475f` |
+| Firma remota con servicio simulado | FIRDOC-9, 10 | `2bb8854` |
+| Elección del método de firma desde el widget | FIRDOC-12 | `effd440` |
+| Base de datos real PostgreSQL con los PDF en la base | FIRDOC-31 | `4a96c1a` |
+| Modo real para operar con token físico | FIRDOC-32 | `bf8c107` |
+| Carga de PDF y sección «Firmar documento» | FIRDOC-44, 45 | `f045048` |
+| Firma en lote y selección de método en el widget | FIRDOC-34, 35 | `9325430` |
+| Modo demostración | FIRDOC-46 | `de0ec36` |
+| Panel: origen, custodia como historia e integradores | FIRDOC-36, 37, 38 | `2ee61d0` |

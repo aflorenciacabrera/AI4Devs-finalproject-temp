@@ -1,0 +1,42 @@
+import { Button } from "../components/Notice";
+import { Screen } from "../components/Screen";
+
+interface Props {
+  documentName: string;
+  signerName: string;
+  working: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+  onChangeProvider?: () => void;
+}
+
+export function ConfirmLocal({ documentName, signerName, working, onConfirm, onCancel, onChangeProvider }: Props) {
+  return (
+    <Screen
+      title="Firmar el documento"
+      subtitle="Firma electrónica de demostración"
+      actions={
+        <>
+          <Button variant="secondary" onClick={onCancel} disabled={working}>
+            Cancelar
+          </Button>
+          {onChangeProvider ? (
+            <Button variant="secondary" onClick={onChangeProvider} disabled={working}>
+              Elegir otro método
+            </Button>
+          ) : null}
+          <Button onClick={onConfirm} disabled={working}>
+            {working ? "Firmando…" : "Firmar"}
+          </Button>
+        </>
+      }
+    >
+      <dl className="kv">
+        <dt>Documento</dt>
+        <dd>{documentName}</dd>
+        <dt>Firmante</dt>
+        <dd>{signerName}</dd>
+      </dl>
+    </Screen>
+  );
+}

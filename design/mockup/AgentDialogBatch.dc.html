@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    :root{
+      --bg: oklch(97.5% 0.006 250);
+      --surface: oklch(100% 0 0);
+      --surface-2: oklch(96% 0.008 250);
+      --border: oklch(89% 0.012 250);
+      --text: oklch(24% 0.02 255);
+      --text-2: oklch(48% 0.018 255);
+      --text-3: oklch(62% 0.014 255);
+      --brand: oklch(35% 0.09 255);
+      --brand-tint: oklch(94% 0.03 255);
+      --teal: oklch(56% 0.12 165);
+      --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+    }
+    body{ margin:0; font-family: var(--font-ui); }
+    button{ font-family: var(--font-ui); cursor:pointer; }
+  </style>
+</helmet>
+
+<div style="width:400px;background:var(--surface);color:var(--text);border:1px solid oklch(80% 0.012 250);border-radius:10px;overflow:hidden;box-shadow:0 10px 30px oklch(0% 0 0 / 0.14), 0 1px 3px oklch(0% 0 0 / 0.1)">
+
+  <div style="height:38px;background:var(--surface-2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 14px">
+    <div style="display:flex;align-items:center;gap:8px;color:var(--brand)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V5z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+      <span style="font-size:12.5px;font-weight:600;color:var(--text)">Firmadoc Agent</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;color:var(--text-3)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="1"/></svg>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12"/><path d="M18 6 6 18"/></svg>
+    </div>
+  </div>
+
+  <div style="padding:22px 22px 20px;display:flex;flex-direction:column;gap:18px">
+
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <span style="font-size:16px;font-weight:700">Confirmá la firma de 3 documentos</span>
+      <span style="font-size:12px;color:var(--text-2);line-height:1.4">Pedido de <span style="font-family:var(--font-mono);font-size:11.5px;color:var(--text)">gestor-documental.example.org</span></span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:11px;font-weight:600;letter-spacing:0.6px;color:var(--text-3);text-transform:uppercase">Documentos a firmar (3)</span>
+      <div style="border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column">
+        <div style="padding:9px 12px;display:flex;align-items:center;gap:10px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="color:var(--brand);flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          <span style="font-size:12.5px;font-weight:600">Providencia_0098-2026.pdf</span>
+        </div>
+        <div style="padding:9px 12px;display:flex;align-items:center;gap:10px;border-top:1px solid var(--border)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="color:var(--brand);flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          <span style="font-size:12.5px;font-weight:600">Oficio_0231-2026.pdf</span>
+        </div>
+        <div style="padding:9px 12px;display:flex;align-items:center;gap:10px;border-top:1px solid var(--border)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="color:var(--brand);flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          <span style="font-size:12.5px;font-weight:600">Dictamen_0177-2026.pdf</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:11px;font-weight:600;letter-spacing:0.6px;color:var(--text-3);text-transform:uppercase">Certificado</span>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:13px;font-weight:600">Carlos Alberto Gómez</span>
+        <span style="font-size:12px;color:var(--text-2)">Vigente hasta 21/07/2027 · AC Demo</span>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:11px;font-weight:600;letter-spacing:0.6px;color:var(--text-3);text-transform:uppercase">PIN del token</span>
+      <div style="border:1.5px solid var(--brand);border-radius:8px;padding:11px 14px;display:flex;align-items:center;gap:7px;box-shadow:0 0 0 3px var(--brand-tint)">
+        <span style="width:9px;height:9px;border-radius:999px;background:var(--text)"></span>
+        <span style="width:9px;height:9px;border-radius:999px;background:var(--text)"></span>
+        <span style="width:9px;height:9px;border-radius:999px;background:var(--text)"></span>
+        <span style="width:9px;height:9px;border-radius:999px;background:var(--text)"></span>
+        <span style="width:1.5px;height:16px;background:var(--brand);margin-left:2px"></span>
+      </div>
+      <span style="font-size:11.5px;color:var(--text-3);line-height:1.4">Un solo PIN firma los 3 documentos. Se usa solo en esta PC para desbloquear el token.</span>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:2px">
+      <button style="padding:9px 16px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-size:13px;font-weight:600">Cancelar</button>
+      <button style="padding:9px 20px;border-radius:7px;border:none;background:var(--brand);color:oklch(98% 0.005 255);font-size:13px;font-weight:600">Firmar 3 documentos</button>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    :root{
+      --bg: oklch(97.5% 0.006 250);
+      --surface: oklch(100% 0 0);
+      --surface-2: oklch(96% 0.008 250);
+      --border: oklch(89% 0.012 250);
+      --text: oklch(24% 0.02 255);
+      --text-2: oklch(48% 0.018 255);
+      --text-3: oklch(62% 0.014 255);
+      --brand: oklch(35% 0.09 255);
+      --brand-dark: oklch(27% 0.08 255);
+      --brand-tint: oklch(94% 0.03 255);
+      --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+    }
+    body{ margin:0; font-family: var(--font-ui); }
+    a{ color: var(--brand); text-decoration:none; }
+    button{ font-family: var(--font-ui); cursor:pointer; }
+    .navitem{ display:flex; align-items:center; gap:11px; padding:9px 12px; border-radius:8px; font-size:13.5px; font-weight:500; color:oklch(98% 0.005 255 / 0.68); }
+    .navitem.active{ background:oklch(98% 0.005 255 / 0.12); color:oklch(98% 0.005 255); font-weight:600; }
+  </style>
+</helmet>
+
+<div style="width:1440px;min-height:860px;background:var(--bg);display:flex;color:var(--text);font-family:var(--font-ui)">
+
+  <div style="width:240px;flex-shrink:0;background:var(--brand-dark);color:oklch(98% 0.005 255);padding:24px 16px;display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;flex-direction:column;gap:2px;padding:0 8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V5z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+        <span style="font-weight:700;font-size:15.5px">Firmadoc</span>
+      </div>
+      <span style="font-size:11.5px;color:oklch(98% 0.005 255 / 0.55);padding-left:28px">Panel de administración</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <div class="navitem active">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        Firmar documento
+      </div>
+      <div class="navitem">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+        Documentos
+      </div>
+      <div class="navitem">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>
+        Auditoría
+      </div>
+      <div class="navitem">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.6 12.4 8-8"/><path d="M16 6l2 2"/><path d="M19 3l2 2"/></svg>
+        Integradores
+      </div>
+      <div class="navitem">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V5z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+        Confianza
+      </div>
+    </div>
+
+    <div style="margin-top:auto;padding:0 8px;font-size:11px;color:oklch(98% 0.005 255 / 0.4)">v0.1 · entorno demo</div>
+  </div>
+
+  <div style="flex:1;padding:32px 40px;display:flex;flex-direction:column;gap:24px;min-width:0">
+
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <span style="font-size:20px;font-weight:700">Firmar documento</span>
+      <span style="font-size:13px;color:var(--text-2)">Cargá un PDF y firmalo con tu token. Firmadoc guarda el original y la versión firmada.</span>
+    </div>
+
+    <div style="display:flex;gap:24px;align-items:flex-start">
+
+      <div style="flex:1;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:14px">
+        <span style="font-size:11px;font-weight:600;letter-spacing:0.6px;color:var(--text-3);text-transform:uppercase">Documento</span>
+
+        <div style="border:2px dashed oklch(80% 0.02 255);border-radius:12px;background:oklch(98.5% 0.004 250);height:380px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px">
+          <div style="width:56px;height:56px;border-radius:999px;background:var(--brand-tint);color:var(--brand);display:flex;align-items:center;justify-content:center">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-size:16px;font-weight:600">Arrastrá un PDF acá</span>
+            <span style="font-size:13px;color:var(--text-2)">o seleccionalo desde tu PC</span>
+          </div>
+          <button style="padding:10px 18px;border-radius:8px;border:none;background:var(--brand);color:oklch(98% 0.005 255);font-size:13.5px;font-weight:600">Seleccionar archivo</button>
+          <span style="font-size:12px;color:var(--text-3);line-height:1.45;max-width:340px">Solo archivos PDF. Si cargás varios, se firman en lote con un solo PIN.</span>
+        </div>
+      </div>
+
+      <div style="width:440px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:18px">
+        <span style="font-size:11px;font-weight:600;letter-spacing:0.6px;color:var(--text-3);text-transform:uppercase">Cómo se firma</span>
+
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:26px;height:26px;border-radius:999px;background:var(--brand);color:oklch(98% 0.005 255);font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:13.5px;font-weight:600">Cargá el PDF</span>
+            <span style="font-size:12px;color:var(--text-2);line-height:1.4">Queda guardado como versión original (v1).</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:26px;height:26px;border-radius:999px;border:1.5px solid var(--border);color:var(--text-3);font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-sizing:border-box">2</div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:13.5px;font-weight:600;color:var(--text-2)">Elegí el método de firma</span>
+            <span style="font-size:12px;color:var(--text-3);line-height:1.4">Con token, remota o propia (demostración).</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:26px;height:26px;border-radius:999px;border:1.5px solid var(--border);color:var(--text-3);font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-sizing:border-box">3</div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:13.5px;font-weight:600;color:var(--text-2)">Elegí el certificado y confirmá con el PIN</span>
+            <span style="font-size:12px;color:var(--text-3);line-height:1.4">El PIN se ingresa en tu PC, en Firmadoc Agent.</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:26px;height:26px;border-radius:999px;border:1.5px solid var(--border);color:var(--text-3);font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-sizing:border-box">4</div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:13.5px;font-weight:600;color:var(--text-2)">Descargá el documento firmado</span>
+            <span style="font-size:12px;color:var(--text-3);line-height:1.4">Queda como nueva versión vigente; el original se conserva.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,23 @@
+## 1. Anclas de la infraestructura de firma digital argentina
+
+- [x] 1.1 Convertir a PEM y guardar `backend/trust/ac-raiz-republica-argentina-2016.crt` (raíz, huella SHA-256 `975c6635…8ba4`) y `backend/trust/ac-firma-digital-onti-2026.crt` (intermedia, huella `b3c367a4…2510`), un certificado por archivo, descargados de `http://acraiz.gov.ar/acraizca.cer` (AIA) / `https://acraiz.gov.ar/acraizra.crt` (enlace oficial) y `http://pki.jgm.gov.ar/aia/cafdONTI(2).crt` (AIA del certificado de usuario).
+- [x] 1.2 Actualizar `backend/trust/README.md`: tabla con archivo, sujeto, vigencia, huella SHA-256 y URL oficial de cada ancla; comando `openssl x509 -in <archivo> -noout -fingerprint -sha256` para recalcularlas; nota sobre cómo renovar la intermedia.
+- [x] 1.3 Test `tests/test_trust_repo.py` (validación de confianza, sin red): `load_trust_store("backend/trust")` tiene exactamente una raíz y una intermedia con las huellas esperadas; la intermedia está firmada por la raíz (verificación de firma con `cryptography`); un `CertificateValidator` de pyHanko con esas anclas, `allow_fetching=False` y sin revocación construye la cadena intermedia → raíz; y el README contiene ambas huellas.
+
+## 2. Firmante real en la demo
+
+- [x] 2.1 `demo.py`: dataclass `PanelSigner(name, cuil, email)` con `from_args(nombre, cuil, email)` que normaliza el CUIL (quita guiones), exige 11 dígitos y `--cuil`/`--nombre` juntos, y lanza `DemoError` con el mensaje del parámetro faltante o inválido; correo por defecto `<cuil>@invalid`.
+- [x] 2.2 `demo.py`: `prepare(directory, port, signer=None)` fija `FIRMADOC_PANEL_SIGNER_*` con el `PanelSigner` recibido o con el del token de prueba; `DemoEnv` guarda `signer` y `real_signer: bool`; `main()` agrega `--cuil`, `--nombre`, `--email`, construye el `PanelSigner` antes de `prepare` y devuelve `1` con el error en stderr si es inválido (sin crear `data/demo`).
+- [x] 2.3 `demo.py`: `guide()` imprime el bloque «Firmante del panel: <nombre> (CUIL <cuil>) — token de prueba | token físico», mantiene el comando con token de software y agrega «Para firmar con un token físico» con `python -m firmadoc_agent --config "%APPDATA%\FirmadocAgent\config.json" run --origin <public_base_url>`, aclarando que el PIN es el del token y que el CUIL debe ser el que muestra `diagnose`.
+- [x] 2.4 Tests en `tests/test_demo.py`: firmante real configurado (variables de entorno y guía), CUIL con guiones normalizado, correo por defecto, `--cuil` sin `--nombre` y CUIL de 10 dígitos terminan en `DemoError`/`main()==1` sin crear la carpeta, sin flags sigue `20000000001`, y la guía muestra el comando PKCS#11 con el puerto de la demo. Ajustar el test existente de la guía si cambia el texto.
+- [x] 2.5 Correr `pytest tests/test_demo.py tests/test_trust_repo.py tests/test_panel_upload.py -q` y `ruff check backend tests` (o el linter del proyecto) y dejar todo en verde.
+
+## 3. Documentación
+
+- [x] 3.1 `docs/demo.md`: nueva sección «Firma con el token físico desde la demo» con los pasos: middleware del fabricante (64 bits) y `config.json` con `allowed_origins` = origen de la demo; `python -m firmadoc_agent --config ... diagnose` para leer el CUIL; `python -m firmadoc.demo --cuil ... --nombre ...`; agente con `--config ... run`; permiso de red local en Chrome; `FIRMADOC_REVOCATION_FETCH=false` si la red no deja descargar la CRL. Sin nombres de fabricante, titular ni organismo.
+- [x] 3.2 `docs/real-mode.md`: en «Lo que todavía no está probado con hardware» marcar como probado la carga de la biblioteca del token de referencia, el listado del certificado y el formato del CUIL (`CUIL nnnnnnnnnnn`); indicar que las anclas de la AC Raíz y la AC ONTI ya vienen en `backend/trust/`; dejar pendiente la firma con PIN del titular, la revocación en `hard-fail` y el instalador firmado.
+- [x] 3.3 `agent/README.md` («Prueba manual con un token físico») y `docs/agent-contract.md`: actualizar el estado (pasos 1 y 2 ejecutados con el token de referencia; `--config` va antes del subcomando: `python -m firmadoc_agent --config <ruta> diagnose`), y dejar los pasos 3 a 5 como pendientes de ejecutar con el PIN del titular.
+
+## 4. Verificación con el token (manual, la ejecuta la titular del token)
+
+- [ ] 4.1 Con el middleware instalado y `config.json` creado: `python -m firmadoc.demo --cuil <CUIL del diagnose> --nombre "<Titular>"` en una terminal y `python -m firmadoc_agent --config "%APPDATA%\FirmadocAgent\config.json" run` en otra; en el panel cargar un PDF → «Firma con token» → PIN del token en la ventana del agente; verificar el PDF con `POST /api/v1/documents/{id}/verify`. Registrar el resultado en `docs/real-mode.md`.
