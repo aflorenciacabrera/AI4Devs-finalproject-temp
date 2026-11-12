@@ -10,7 +10,18 @@ Puedes añadir adicionalmente la conversación completa como link o archivo adju
 | Jira (vía MCP de Atlassian) | — | Carga del backlog en el proyecto `FIRDOC` y mantenimiento de estados y asignaciones durante el desarrollo |
 | Claude Code + OpenSpec (comandos `/opsx:propose`, `/opsx:apply`, `/opsx:archive`) | Sonnet 5.5 | Implementación: cada cambio se propone (propuesta, diseño, especificaciones y tareas), se aplica, se prueba y se archiva sincronizando las especificaciones; ver `openspec/` |
 
-No se usaron subagentes ni comandos personalizados en esta fase; el trabajo fue conversacional directo con Claude Code, más búsqueda y lectura web para la investigación de antecedentes y conectores MCP (GitHub, Atlassian).
+En el análisis y el diseño el trabajo fue conversacional directo con Claude Code, más búsqueda y lectura web para la investigación de antecedentes y conectores MCP (GitHub, Atlassian). Desde la implementación, la IA trabaja con un **archivo de contexto** (`CLAUDE.md` / `AGENTS.md`, idénticos: stack, estructura de carpetas, comandos de verificación e invariantes que no se negocian) y con skills y agentes propios del repositorio (`ai-specs/`).
+
+## La IA en cada fase del ciclo
+
+| Fase | Cómo interviene la IA | Dónde se ve |
+|---|---|---|
+| **Análisis** | Investigación de la documentación de la firma remota y de antecedentes académicos; estructuración del problema que aportó la usuaria. | Secciones 1 y 8 de este archivo; README 1 y 2.7 |
+| **Diseño** | Arquitectura, diagramas Mermaid, modelo de datos, API, historias y tickets, corregidos por la usuaria. | Secciones 2 a 6 |
+| **Implementación** | Desarrollo guiado por especificaciones: cada cambio se propone, se aplica y se archiva con OpenSpec, con las reglas de `CLAUDE.md` (el PIN solo se ingresa en el agente, la clave privada nunca toca el servidor, los desafíos son de un solo uso). Dos agentes planifican (`backend-developer`, `frontend-developer`). | `CLAUDE.md`, `AGENTS.md`, `ai-specs/`, `openspec/changes/archive/` |
+| **Pruebas** | La IA escribe las pruebas a partir de los criterios de aceptación de cada historia y de los escenarios de las especificaciones, **empezando por los casos de rechazo** (certificado vencido, revocado o de otra AC, CUIL distinto, desafío reutilizado o vencido, origen no permitido en el agente), y las ejecuta antes de dar una tarea por cerrada. La verificación independiente compara con OpenSSL. La usuaria revisa a mano los flujos en la demo. | `tests/test_certificate_validation.py`, `tests/test_token_flow.py`, `tests/test_flow.py::test_desafio_reutilizado`, `agent/tests/`, `tests/e2e/` |
+| **Despliegue** | La IA escribió el pipeline de GitHub Actions (backend con PostgreSQL, agente con SoftHSM en Linux y empaquetado en Windows, widget, panel y pruebas en Chrome real), el `docker-compose.yml` y el modo demostración de un comando. Las imágenes del servidor y el despliegue público quedan para la entrega final (FIRDOC-42) y se harán con el mismo flujo. | `.github/workflows/ci.yml`, `docker-compose.yml`, `docs/demo.md` |
+| **Mantenimiento** | Documentación viva: `docs/documentation-standards.md` dice qué documento se actualiza con cada tipo de cambio y el skill `update-docs` lo aplica; el contrato OpenAPI se regenera desde el código y una prueba avisa si queda atrás. Revisión asistida antes de archivar un cambio: skills `security-audit` (obligatorio en cambios sensibles), `adversarial-review` y `code-auditing`. Trazabilidad: Jira por MCP y un commit por ticket. | `ai-specs/skills/`, `docs/documentation-standards.md`, `docs/openapi.json` |
 
 ## Índice
 
@@ -67,7 +78,7 @@ Sin prompt dedicado: derivada de la conversación de 2.1. La usuaria eligió el 
 
 ### **2.3. Descripción de alto nivel del proyecto y estructura de ficheros**
 
-Sin prompt dedicado: derivada de la arquitectura de 2.1 (separación `backend/`, `widget/`, `admin-panel/`).
+Sin prompt dedicado: derivada de la arquitectura de 2.1 (separación `backend/`, `agent/`, `widget/` y `frontend/`, el panel).
 
 ### **2.4. Infraestructura y despliegue**
 
@@ -130,6 +141,9 @@ No se usaron Pull Requests: el trabajo se hizo en commits sobre el repositorio d
 **Prompt 1 (migración a la entrega):**
 "Seguiremos con la entrega 2 sobre la carpeta entregable del proyecto, basándonos en el proyecto Firmadoc que ya aplicamos: ver la forma de migrar a la carpeta de entrega y seguir las consignas que solicitan y las formas de entrega." Claude propuso traer el código con *merge* conservando el historial (en vez de una copia en un solo commit), para que los commits con su ticket `FIRDOC-N` sirvan de evidencia del flujo de trabajo. La usuaria eligió la rama de desarrollo más reciente y el repositorio de la Entrega 1 como destino, y pidió **no abrir pull request ni publicar** hasta revisarlo ella (la consigna tampoco lo exige: se envía el enlace a la rama). Antes de publicar, Claude revisó el estado actual y el historial completo en busca de claves, bases de datos, tokens y menciones al organismo.
 
+**Prompt 2 (revisión de la Entrega 1):**
+"Tuve este feedback de la primera entrega: leer, analizar y realizar los cambios que se requieran." Claude leyó la devolución y la contrastó con el código antes de tocar nada. Varias observaciones de diseño ya estaban resueltas en la implementación y solo faltaba **documentarlas**: la referencia circular entre documento y versión vigente (FK diferida), el consumo atómico del desafío y la restricción de «una solicitud o un lote» en la auditoría. Se cerraron las discrepancias del README (el almacenamiento de los PDF no es de objetos; la `signing_url` lleva el token de la solicitud en el fragmento; cómo se autentican el widget, el panel y el callback de la firma remota), se documentó el endpoint de carga del panel, se exportó el contrato OpenAPI (`docs/openapi.json`, con una prueba que avisa si queda atrás), se subió el mockup como captura, se detalló el ticket del agente y se dejó explícito cuál es el **núcleo del MVP** y cuáles son ampliaciones. No se quitó código: la decisión de qué recortar es de la usuaria.
+
 ---
 
 ## 8. Ajustes humanos sobre el output de la IA
@@ -144,7 +158,7 @@ No se usaron Pull Requests: el trabajo se hizo en commits sobre el repositorio d
 - La firma **en lote** fue pedido de la usuaria; la priorización como *should-have* fue decisión de la IA y la usuaria no la corrigió.
 - Por confidencialidad, el README cita el paper académico utilizado como antecedente pero no nombra al organismo, a la provincia ni al proveedor comercial de referencia.
 - La usuaria preguntó si el widget podía instalarse en un proyecto Angular y, después, si `<iframe>` estaba deprecado o traía riesgos a futuro. Claude contrastó con fuentes (MDN y artículos técnicos): el elemento no está deprecado (solo atributos de presentación), y detectó tres riesgos reales — delegación del permiso de red local con `allow`, cookies de terceros y cabeceras de embebido — marcando como secundarias las fuentes sobre el atributo `allow`. Al revisar el código del proyecto comprobó que la implementación ya aplicaba el atributo y que el token va en el fragmento de la URL (sin cookies), por lo que el cambio quedó limitado a corregir el ejemplo del README, documentar la alternativa de ventana emergente como **no implementada** y agregar el supuesto a verificar (Firefox/Safari no verificados). Claude propuso una librería Angular envoltorio del iframe como opción; no se implementó.
-- Pendiente de revisión humana antes de cerrar la Entrega 1: validar que las estimaciones de horas por ticket sean realistas y confirmar la viabilidad del despliegue on-premise.
+- Las **estimaciones de horas** por ticket quedaron sin validar en la Entrega 1 y la revisión las señaló como optimistas; resultaron cortas (el backend se repartió en varios cambios propios; ver README, sección 6). Sigue pendiente confirmar la viabilidad del despliegue on-premise.
 - La usuaria **decidió la arquitectura de firma**: el agente local en Python (no en otro lenguaje), el criterio de Angular cubierto con una página anfitriona y una guía (no con una app Angular), y que el widget no incluyera al principio la elección del método, el lote ni la administración (se agregaron después como cambios propios).
 - La usuaria **pidió la base de datos real** (con los PDF dentro de la base, conectable con DBeaver y pensada para migrar a la base institucional) y que quedara documentada con su propia tarea de Jira y su cambio de OpenSpec.
 - La IA **detectó y corrigió errores propios al verificar**: por ejemplo, un orden de operaciones en `complete` que gastaba la firma del token si fallaba la autoridad de sellado de tiempo, y restricciones duplicadas en la migración inicial que SQLite toleraba y PostgreSQL no (apareció al ejecutar por primera vez la suite contra PostgreSQL).

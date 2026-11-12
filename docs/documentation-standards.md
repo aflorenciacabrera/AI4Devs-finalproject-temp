@@ -8,6 +8,7 @@ Cómo se mantiene la documentación de Firmadoc y la capa de OpenSpec / `ai-spec
 |-----------|-----------|---------------------|
 | `README.md` | Fuente de verdad del diseño (formato oficial de la entrega): producto, arquitectura, seguridad, modelo de datos, API, historias, tickets, PRs | Cambia el alcance, la arquitectura, el modelo, un endpoint principal o se cierra un ticket/PR |
 | `prompts.md` | Registro del uso de IA por fase | Una fase nueva usa prompts relevantes; se agregan agentes o skills al flujo |
+| `docs/openapi.json` | Contrato OpenAPI exportado desde la aplicación (`python docs/openapi.py`); no se edita a mano | Se agrega, quita o cambia un endpoint o un esquema (`tests/test_openapi_contract.py` falla si falta una ruta) |
 | `AGENTS.md` / `CLAUDE.md` | Reglas para los agentes de IA (idénticos) | Cambian convenciones, invariantes, comandos de verificación o el flujo OpenSpec |
 | `docs/documentation-standards.md` | Este archivo | Se agrega o renombra un documento |
 | `docs/documents-api.md` | Endpoints de documentos y versiones | Cambia el contrato de `/api/v1/documents` |
