@@ -719,7 +719,7 @@ Criterios de aceptación:
 
 ## 6. Tickets de Trabajo
 
-**Backlog en Jira (fuente de los tickets).** Todo el trabajo se planificó y se siguió en el proyecto `FIRDOC` de Jira ([tablero](https://aflorenciacabrera.atlassian.net/jira/software/projects/FIRDOC/boards/35/backlog), privado): 8 épicas y 51 historias, tareas y errores. Cada cambio de OpenSpec y cada commit citan la clave `FIRDOC-N` que implementan (tabla de la sección 7). Estado en Jira al 18/11/2026: 43 de 51 en «Listo».
+**Backlog en Jira (fuente de los tickets).** Todo el trabajo se planificó y se siguió en el proyecto `FIRDOC` de Jira ([tablero](https://aflorenciacabrera.atlassian.net/jira/software/projects/FIRDOC/boards/35/backlog), privado): 8 épicas y 51 historias, tareas y errores. Cada cambio de OpenSpec y cada commit citan la clave `FIRDOC-N` que implementan (tabla de la sección 7). Estado en Jira al 18/11/2026: 48 de 51 en «Listo».
 
 | Épica | Tickets | Estado en Jira |
 |---|---|---|
@@ -727,10 +727,10 @@ Criterios de aceptación:
 | FIRDOC-2 · Firma remota simulada | 9, 10 | Listo |
 | FIRDOC-3 · Widget de firma embebible | 11, 12, 13, 30, 34, 35 | Listo |
 | FIRDOC-4 · Panel de administración y auditoría | 14, 15, 27, 36, 37, 38, 47 · 39 | Listo, salvo 39 (pantallas del panel que faltan en el mockup) |
-| FIRDOC-18 · Proveedor token y Firmadoc Agent | 20, 21, 22 · 49, 50, 51, 52 | 20 a 22 en Listo. 49 a 52 (token físico en la demo, firma sin cotejar el CUIL, ventana de PIN reducida y el error de la CRL de gran tamaño) tienen el código en el repositorio y siguen abiertos en Jira |
+| FIRDOC-18 · Proveedor token y Firmadoc Agent | 20, 21, 22, 49, 50, 51, 52 | Listo |
 | FIRDOC-19 · API de integración y versionado | 23, 24, 25, 26, 28 | Listo |
 | FIRDOC-33 · Carga de PDF y sección «Firmar documento» | 44, 45 | Listo |
-| FIRDOC-5 · Documentación y entrega académica | 16, 17, 40, 41, 48, 54 a 59 · 42, 43, 53 | Abierta: falta el despliegue público (42) y siguen abiertos en Jira el trámite de la Entrega 1 (43) y la descarga con el nombre original (53, con el código en el repositorio) |
+| FIRDOC-5 · Documentación y entrega académica | 16, 17, 40, 41, 48, 53 a 59 · 42, 43 | Abierta: falta el despliegue público (42) y sigue abierto en Jira el trámite de la Entrega 1 (43) |
 | Sin épica | 31 (PostgreSQL), 32 (modo real), 46 (modo demostración) | Listo |
 
 De ese backlog, la plantilla pide detallar tres tickets (backend, frontend y base de datos); se agrega el del agente local.
