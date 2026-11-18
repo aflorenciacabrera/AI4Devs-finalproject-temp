@@ -91,8 +91,9 @@ firmadoc.seed` se niega (los integradores reales se crean con `firmadoc.integrat
 
 ## Lo que todavía no está probado con hardware
 
-- La **firma con la clave del token** (`CKM_RSA_PKCS` con `DigestInfo` SHA-256) con el PIN del titular, y el PDF
-  resultante de punta a punta. El procedimiento está en `agent/README.md` («Prueba manual con un token físico»).
+- La **firma en lote con la clave del token**. La firma individual desde el panel de la demo ya se hizo con el PIN
+  del titular (FIRDOC-49); el lote falló por la descarga repetida de la CRL y, tras la caché de CRL (FIRDOC-52), no
+  se repitió con el dispositivo. El procedimiento está en `agent/README.md` («Prueba manual con un token físico»).
 - La **consulta de revocación** de la AC ONTI en `hard-fail` (CRL `http://pki.jgm.gov.ar/crl/FD.crl` y OCSP
   `http://pki.jgm.gov.ar/ocsp`, según la AIA del certificado).
 - El **instalador** del agente no está firmado y no se desplegó por política de dominio.

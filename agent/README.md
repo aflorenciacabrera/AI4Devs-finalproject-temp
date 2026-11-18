@@ -112,7 +112,10 @@ registro de actividad del agente. El PIN se ingresa solo ahí: nunca en el naveg
 Estado (octubre de 2026, token criptográfico USB de referencia): los pasos 1 y 2 están **ejecutados**: la
 biblioteca del fabricante (64 bits) carga, `diagnose` lista el certificado de usuario emitido por la AC de Firma
 Digital de la ONTI y el `serialNumber` trae el CUIL como `CUIL nnnnnnnnnnn`, el formato que espera el servidor. Las
-anclas de esa AC ya están en `backend/trust/`. Los pasos 3 a 6 requieren el PIN del titular y quedan pendientes.
+anclas de esa AC ya están en `backend/trust/`. El paso 5 también está **ejecutado**: se firmaron documentos
+individuales desde el panel de la demo con el PIN del titular (FIRDOC-49). Un lote de 4 no se completó porque cada
+validación descargaba de nuevo la CRL de la AC (9 MB) y vencía la espera del widget; se corrigió con una caché de
+CRL (FIRDOC-52) y **falta repetir el lote con el dispositivo**. Los pasos 3, 4 y 6 quedan pendientes.
 
 1. Instalar el middleware del fabricante y ubicar su DLL PKCS#11.
 2. `firmadoc-agent.exe --config <config.json> diagnose` (o `python -m firmadoc_agent --config <config.json> diagnose`): debe cargar la biblioteca y listar el certificado de usuario. **Anotar el valor de `serialNumber`**: confirma si el CUIL tiene el formato `CUIL 20123456789` que espera el servidor y qué AC emitió el certificado (para cargar las anclas en `backend/trust/` si no están).

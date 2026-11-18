@@ -354,7 +354,7 @@ Para la entrega del máster: **hoy** hay un `docker-compose.yml` con PostgreSQL 
 - **Integración**: API + PostgreSQL (con testcontainers), flujo completo crear solicitud → preparar → completar → versión nueva → auditoría → webhook.
 - **Agente sin hardware**: pruebas del agente y del `TokenAgentProvider` con SoftHSM (PKCS#11 por software), ejecutables en CI.
 - **End-to-end**: un sistema integrador de prueba embebe el widget, firma un documento (con SoftHSM) y recibe el webhook de confirmación.
-- **Prueba manual documentada** con un token criptográfico USB de referencia (`agent/README.md`): carga de la biblioteca PKCS#11, lectura del certificado, firma de un lote con un solo PIN. Pendiente de ejecutar con el dispositivo.
+- **Prueba manual documentada** con un token criptográfico USB de referencia (`agent/README.md`): carga de la biblioteca PKCS#11, lectura del certificado, firma de un lote con un solo PIN. **Ejecutado en parte:** con el token físico la biblioteca carga, `diagnose` lista el certificado y se firmaron documentos individuales desde el panel de la demo (FIRDOC-49). Esa prueba destapó un error real: la lista de revocación de la AC pesa 9 MB y cada validación la descargaba de nuevo, lo que hacía vencer la espera del widget en un lote; se corrigió con una caché de CRL (FIRDOC-52). **Falta repetir con el dispositivo** la firma en lote después de esa corrección y la consulta de revocación en modo estricto.
 
 ### **2.7. Supuestos y puntos a confirmar**
 
