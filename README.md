@@ -719,14 +719,14 @@ Criterios de aceptación:
 
 ## 6. Tickets de Trabajo
 
-**Backlog en Jira (fuente de los tickets).** Todo el trabajo se planificó y se siguió en el proyecto `FIRDOC` de Jira ([tablero](https://aflorenciacabrera.atlassian.net/jira/software/projects/FIRDOC/boards/35/backlog), privado): 8 épicas y 55 historias, tareas y errores. Cada cambio de OpenSpec y cada commit citan la clave `FIRDOC-N` que implementan (tabla de la sección 7). Estado en Jira al 18/11/2026: 51 de 55 en «Listo».
+**Backlog en Jira (fuente de los tickets).** Todo el trabajo se planificó y se siguió en el proyecto `FIRDOC` de Jira ([tablero](https://aflorenciacabrera.atlassian.net/jira/software/projects/FIRDOC/boards/35/backlog), privado): 8 épicas y 56 historias, tareas y errores. Cada cambio de OpenSpec y cada commit citan la clave `FIRDOC-N` que implementan (tabla de la sección 7). Estado en Jira al 18/11/2026: 52 de 56 en «Listo».
 
 | Épica | Tickets | Estado en Jira |
 |---|---|---|
 | FIRDOC-1 · Motor PAdES y firma diferida | 6, 7, 8, 29 | Listo |
 | FIRDOC-2 · Firma remota simulada | 9, 10 | Listo |
 | FIRDOC-3 · Widget de firma embebible | 11, 12, 13, 30, 34, 35 | Listo |
-| FIRDOC-4 · Panel de administración y auditoría | 14, 15, 27, 36, 37, 38, 47 · 39 | Listo, salvo 39 (pantallas del panel que faltan en el mockup) |
+| FIRDOC-4 · Panel de administración y auditoría | 14, 15, 27, 36, 37, 38, 47, 64 · 39 | Listo, salvo 39 (pantallas del panel que faltan en el mockup) |
 | FIRDOC-18 · Proveedor token y Firmadoc Agent | 20, 21, 22, 49, 50, 51, 52 | Listo |
 | FIRDOC-19 · API de integración y versionado | 23, 24, 25, 26, 28, 61 | Listo |
 | FIRDOC-33 · Carga de PDF y sección «Firmar documento» | 44, 45 | Listo |
@@ -828,3 +828,4 @@ Todo el trabajo se hizo con OpenSpec (propuesta, especificación, diseño y tare
 | Migración del código al repositorio de entrega (Entrega 2) | FIRDOC-60 | `628b5c4`, `31ba622` |
 | Contrato OpenAPI versionado y prueba de cobertura de rutas | FIRDOC-61 | `9776fbc` |
 | README y prompts.md: ajustes tras la revisión de la Entrega 1 y backlog de Jira | FIRDOC-62 | `9776fbc`, `c52b205`, `ec63ad1` |
+| Panel Angular: menú lateral responsive, tablas y widget de firma como tarjeta | FIRDOC-64 | `8dee0ad` |
