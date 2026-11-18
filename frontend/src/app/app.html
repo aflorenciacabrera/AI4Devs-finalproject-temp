@@ -1,22 +1,38 @@
-<header class="topbar">
-  <h1>Firmadoc · Administración</h1>
-  <div class="header-actions">
-    <p-button [icon]="theme.icon()" [text]="true" [rounded]="true" severity="secondary" [ariaLabel]="theme.label()" [title]="theme.label()" (onClick)="theme.toggle()" />
-    @if (api.loggedIn()) {
-      <p-button label="Cerrar sesión" severity="secondary" [outlined]="true" size="small" (onClick)="api.logout()" />
-    }
+<!-- Contenido del menú lateral: se dibuja fijo en pantallas anchas y dentro de un p-drawer en las angostas. -->
+<ng-template #nav>
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"><i class="pi pi-verified"></i></span>
+    <span>
+      <strong class="brand-name">Firmadoc</strong>
+      <span class="brand-sub">Panel de administración</span>
+    </span>
   </div>
-</header>
+  <p-menu [model]="menu()" styleClass="sidebar-menu" ariaLabel="Secciones" />
+  <div class="sidebar-footer">
+    <p-button [icon]="theme.icon()" [label]="theme.label()" [text]="true" severity="secondary" size="small" styleClass="sidebar-action" (onClick)="theme.toggle()" />
+    <p-button icon="pi pi-sign-out" label="Cerrar sesión" [text]="true" severity="secondary" size="small" styleClass="sidebar-action" (onClick)="logout()" />
+  </div>
+</ng-template>
 
-<main>
-  @if (!api.loggedIn()) {
+@if (!api.loggedIn()) {
+  <main class="login-page">
+    <p-button class="login-theme" [icon]="theme.icon()" [text]="true" [rounded]="true" severity="secondary" [ariaLabel]="theme.label()" [title]="theme.label()" (onClick)="theme.toggle()" />
     <app-login />
-  } @else {
-    <div class="layout">
-      <nav class="sidebar" aria-label="Secciones">
-        <p-menu [model]="menu()" styleClass="sidebar-menu" ariaLabel="Secciones" />
-      </nav>
-      <div class="content">
+  </main>
+} @else {
+  <div class="shell">
+    <aside class="sidebar" aria-label="Secciones">
+      <ng-container [ngTemplateOutlet]="nav" />
+    </aside>
+
+    <div class="shell-main">
+      <header class="topbar">
+        <p-button id="menu-toggle" icon="pi pi-bars" [text]="true" [rounded]="true" severity="secondary" ariaLabel="Abrir el menú" (onClick)="drawer.set(true)" />
+        <h1>Firmadoc</h1>
+        <p-button [icon]="theme.icon()" [text]="true" [rounded]="true" severity="secondary" [ariaLabel]="theme.label()" [title]="theme.label()" (onClick)="theme.toggle()" />
+      </header>
+
+      <main class="content">
         @switch (tab()) {
           @case ('sign') { <app-sign /> }
           @case ('documents') { <app-documents /> }
@@ -24,10 +40,18 @@
           @case ('integrators') { <app-integrators /> }
           @case ('trust') { <app-trust /> }
         }
-      </div>
+      </main>
     </div>
-  }
-</main>
+  </div>
+
+  <p-drawer [visible]="drawer()" (visibleChange)="drawer.set($event)" position="left" styleClass="sidebar-drawer" ariaCloseLabel="Cerrar el menú" [blockScroll]="true">
+    <ng-template #headless>
+      <nav class="sidebar-inner" aria-label="Secciones">
+        <ng-container [ngTemplateOutlet]="nav" />
+      </nav>
+    </ng-template>
+  </p-drawer>
+}
 
 <p-toast position="top-center" />
 <p-confirmdialog header="Confirmar" acceptLabel="Sí" rejectLabel="No" rejectButtonStyleClass="p-button-text" />

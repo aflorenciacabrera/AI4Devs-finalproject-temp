@@ -119,7 +119,7 @@ Auditar **todas** las categorías; si una no aplica, dejar "N/A" con justificaci
 | Sin modo debug ni documentación automática expuesta en producción | `main.py`: `/docs` y `/redoc` según `real_mode` | Media |
 | Credenciales de demostración solo en demo | `seed.py`, `demo.py`: `firmadoc-demo-key` nunca en `real_mode` | Alta |
 | Variables obligatorias validadas al arrancar | `preflight.py` | Media |
-| Iframe del panel con `sandbox` mínimo y `referrerpolicy="no-referrer"` | `widget-dialog.ts` | Media |
+| Iframe del panel con `sandbox` mínimo y `referrerpolicy="no-referrer"` | `widget-frame.ts` | Media |
 | Agente: puerto fijo y configuración validada | `agent/.../config.py` rechaza claves desconocidas y puertos fuera de rango | Media |
 
 ### A06: Componentes vulnerables o desactualizados

@@ -4,14 +4,15 @@ import { ConfirmationService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { AdminApi } from '../core/admin-api';
 import { AdminEvent, Page, WebhookDelivery } from '../core/api-types';
-import { FmtPipe } from '../core/format';
+import { FmtPipe, deliveryStatusLabel, statusSeverity } from '../core/format';
 
 /** Auditoría: entregas de webhook (con reenvío de las fallidas) y eventos de administración. */
 @Component({
   selector: 'app-audit',
-  imports: [FormsModule, Button, Select, TableModule, FmtPipe],
+  imports: [FormsModule, Button, Select, TableModule, Tag, FmtPipe],
   templateUrl: './audit.html',
 })
 export class Audit implements OnInit {
@@ -20,14 +21,17 @@ export class Audit implements OnInit {
 
   readonly statusOptions = [
     { label: 'Todos', value: '' },
-    { label: 'pending', value: 'pending' },
-    { label: 'delivered', value: 'delivered' },
-    { label: 'failed', value: 'failed' },
+    { label: 'Pendiente', value: 'pending' },
+    { label: 'Entregado', value: 'delivered' },
+    { label: 'Fallido', value: 'failed' },
   ];
   readonly status = signal('');
   readonly deliveries = signal<WebhookDelivery[]>([]);
   readonly events = signal<AdminEvent[]>([]);
   readonly loading = signal(false);
+
+  statusLabel = deliveryStatusLabel;
+  severity = statusSeverity;
 
   ngOnInit(): void {
     void Promise.all([this.loadDeliveries(), this.loadEvents()]);

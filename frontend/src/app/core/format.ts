@@ -14,6 +14,35 @@ export const DOCUMENT_STATUS_LABELS: Record<string, string> = {
   signed: 'Firmado',
 };
 export const PROVIDER_LABELS: Record<string, string> = { token: 'Token', local: 'Propio', firmar: 'FirmAR' };
+export const DELIVERY_STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendiente',
+  delivered: 'Entregado',
+  failed: 'Fallido',
+};
+
+/** Severidad de `p-tag` para cada estado (solicitud, documento, entrega de webhook, integrador, evento). */
+export type TagSeverity = 'success' | 'info' | 'warn' | 'danger' | 'secondary';
+const STATUS_SEVERITY: Record<string, TagSeverity> = {
+  signed: 'success',
+  delivered: 'success',
+  active: 'success',
+  ok: 'success',
+  pending: 'warn',
+  signing: 'warn',
+  pending_signature: 'warn',
+  warning: 'warn',
+  failed: 'danger',
+  error: 'danger',
+  disabled: 'danger',
+};
+
+export function statusSeverity(status: string): TagSeverity {
+  return STATUS_SEVERITY[status] ?? 'secondary';
+}
+
+export function deliveryStatusLabel(status: string): string {
+  return DELIVERY_STATUS_LABELS[status] ?? status;
+}
 
 const ISO_DATE = /^\d{4}-\d\d-\d\dT/;
 

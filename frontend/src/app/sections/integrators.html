@@ -1,5 +1,7 @@
-<h2>Integradores</h2>
-<p class="muted">Sistemas que usan Firmadoc por API. La API key y el secreto de webhook se muestran una sola vez.</p>
+<header class="page-head">
+  <h2>Integradores</h2>
+  <p class="muted">Sistemas que usan Firmadoc por API. La API key y el secreto de webhook se muestran una sola vez.</p>
+</header>
 
 @if (credentials(); as c) {
   <div class="credentials" role="alert" id="credentials">
@@ -8,54 +10,78 @@
     @for (entry of c.entries; track entry[0]) {
       <div>{{ entry[0] }}</div>
       <code>{{ entry[1] }}</code>
-      <p-button [label]="'Copiar ' + entry[0]" size="small" severity="secondary" [outlined]="true" (onClick)="copy(entry[0], entry[1])" />
+      <p-button [label]="'Copiar ' + entry[0]" icon="pi pi-copy" size="small" severity="secondary" [outlined]="true" (onClick)="copy(entry[0], entry[1])" />
     }
     <div class="doc-actions">
-      <p-button label="Ya las guardé" (onClick)="hideCredentials()" />
+      <p-button label="Ya las guardé" icon="pi pi-check" (onClick)="hideCredentials()" />
     </div>
   </div>
 }
 
-<form class="filters" id="integrator-form" (ngSubmit)="create()">
-  <label>Nombre <input pInputText name="name" type="text" required maxlength="200" [(ngModel)]="name" /></label>
-  <label>Orígenes permitidos (uno por línea, https://host[:puerto])
-    <textarea pTextarea name="origins" rows="2" [(ngModel)]="origins"></textarea>
-  </label>
-  <p-button type="submit" label="Crear integrador" />
-</form>
+<section class="table-card" aria-labelledby="integrator-new-title">
+  <div class="table-card-head">
+    <h3 id="integrator-new-title">Nuevo integrador</h3>
+  </div>
+  <form class="filters" id="integrator-form" (ngSubmit)="create()">
+    <label>Nombre <input pInputText name="name" type="text" required maxlength="200" placeholder="Sistema de expedientes" [(ngModel)]="name" /></label>
+    <label class="filter-wide">Orígenes permitidos (uno por línea, https://host[:puerto])
+      <textarea pTextarea name="origins" rows="2" placeholder="https://sistema.example.org" [(ngModel)]="origins"></textarea>
+    </label>
+    <div class="filter-actions">
+      <p-button type="submit" label="Crear integrador" icon="pi pi-plus" />
+    </div>
+  </form>
+</section>
 
 @if (editing(); as target) {
-  <form class="filters" id="origins-form" (ngSubmit)="saveOrigins()">
-    <label>Orígenes de <strong>{{ target.name }}</strong> (uno por línea)
-      <textarea pTextarea name="origins" rows="3" [(ngModel)]="editingOrigins"></textarea>
-    </label>
-    <p-button type="submit" label="Guardar orígenes" />
-    <p-button type="button" label="Cancelar" severity="secondary" [outlined]="true" (onClick)="cancelEdit()" />
-  </form>
+  <section class="table-card" aria-label="Editar orígenes">
+    <form class="filters" id="origins-form" (ngSubmit)="saveOrigins()">
+      <label class="filter-wide">Orígenes de <strong>{{ target.name }}</strong> (uno por línea)
+        <textarea pTextarea name="origins" rows="3" [(ngModel)]="editingOrigins"></textarea>
+      </label>
+      <div class="filter-actions">
+        <p-button type="submit" label="Guardar orígenes" icon="pi pi-check" />
+        <p-button type="button" label="Cancelar" severity="secondary" [text]="true" (onClick)="cancelEdit()" />
+      </div>
+    </form>
+  </section>
 }
 
-<p-table id="integrators-table" [value]="items()" [loading]="loading()" size="small">
-  <ng-template #header>
-    <tr><th>Nombre</th><th>Orígenes permitidos</th><th>Estado</th><th>Acciones</th></tr>
-  </ng-template>
-  <ng-template #body let-i>
-    <tr>
-      <td>{{ i.name }}@if (i.internal) { (interno)}</td>
-      <td>{{ i.allowed_origins.length ? i.allowed_origins.join(', ') : '-' }}</td>
-      <td><span class="chip" [class]="'chip ' + i.status">{{ i.status === 'active' ? 'Activo' : 'Deshabilitado' }}</span></td>
-      <td>
-        @if (!i.internal) {
-          <span class="row-actions">
-            <p-button label="Editar orígenes" size="small" severity="secondary" [outlined]="true" (onClick)="edit(i)" />
-            <p-button label="Rotar secreto de webhook" size="small" severity="secondary" [outlined]="true" (onClick)="rotateWebhookSecret(i)" />
-            <p-button label="Rotar API key" size="small" severity="danger" [outlined]="true" (onClick)="rotateApiKey(i)" />
-            <p-button [label]="i.status === 'active' ? 'Deshabilitar' : 'Habilitar'" size="small" [severity]="i.status === 'active' ? 'danger' : 'secondary'" [outlined]="true" (onClick)="toggle(i)" />
-          </span>
-        }
-      </td>
-    </tr>
-  </ng-template>
-  <ng-template #emptymessage>
-    <tr><td colspan="4">Sin resultados</td></tr>
-  </ng-template>
-</p-table>
+<section class="table-card" aria-label="Integradores registrados">
+  <p-table id="integrators-table" [value]="items()" [loading]="loading()" [stripedRows]="true" [rowHover]="true" [scrollable]="true" [tableStyle]="{ 'min-width': '52rem' }">
+    <ng-template #header>
+      <tr><th>Nombre</th><th>Orígenes permitidos</th><th>Estado</th><th>Acciones</th></tr>
+    </ng-template>
+    <ng-template #body let-i>
+      <tr>
+        <td>
+          <span class="cell-main">{{ i.name }}</span>
+          @if (i.internal) { <small class="cell-sub">interno</small> }
+        </td>
+        <td class="mono">{{ i.allowed_origins.length ? i.allowed_origins.join(', ') : '-' }}</td>
+        <td><p-tag [value]="i.status === 'active' ? 'Activo' : 'Deshabilitado'" [severity]="i.status === 'active' ? 'success' : 'danger'" [rounded]="true" /></td>
+        <td>
+          @if (!i.internal) {
+            <span class="row-actions">
+              <p-button label="Editar orígenes" icon="pi pi-pencil" size="small" severity="secondary" [text]="true" (onClick)="edit(i)" />
+              <p-button label="Rotar secreto de webhook" icon="pi pi-refresh" size="small" severity="secondary" [text]="true" (onClick)="rotateWebhookSecret(i)" />
+              <p-button label="Rotar API key" icon="pi pi-key" size="small" severity="danger" [text]="true" (onClick)="rotateApiKey(i)" />
+              <p-button [label]="i.status === 'active' ? 'Deshabilitar' : 'Habilitar'" [icon]="i.status === 'active' ? 'pi pi-ban' : 'pi pi-check-circle'" size="small" [severity]="i.status === 'active' ? 'danger' : 'secondary'" [outlined]="true" (onClick)="toggle(i)" />
+            </span>
+          }
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="4">
+          <div class="empty-state">
+            <i class="pi pi-sitemap" aria-hidden="true"></i>
+            <strong>Todavía no hay integradores</strong>
+            <span class="muted">Creá el primero con el formulario de arriba.</span>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</section>

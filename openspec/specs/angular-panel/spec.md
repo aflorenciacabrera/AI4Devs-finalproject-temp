@@ -6,7 +6,7 @@ TBD - created by archiving change panel-angular-primeng. Update Purpose after ar
 ## Requirements
 
 ### Requirement: Panel Angular con PrimeNG
-El repositorio SHALL incluir en `frontend/` una aplicación Angular (componentes standalone, sin zone.js, sin enrutador) con PrimeNG, en español, que consuma la API de administración y ofrezca, en un menú lateral de PrimeNG, las mismas secciones que el panel estático: ingreso con token, Firmar documento, Documentos (listado con búsqueda, filtros, paginación, origen, versión y vencimiento; detalle con línea de tiempo, versiones descargables y detalle técnico), Auditoría (entregas de webhook con reenvío y eventos de administración), Integradores (alta con credenciales mostradas una sola vez, edición de orígenes, rotación de secreto y de API key, habilitar y deshabilitar) y Confianza (anclas: agregar y quitar; certificado propio: rotar). SHALL pedir confirmación en un diálogo antes de reenviar un webhook, quitar un ancla, rotar el certificado, rotar claves de un integrador o deshabilitarlo. El token SHALL guardarse solo en memoria y en `sessionStorage` y enviarse en `Authorization: Bearer`; una respuesta `401` SHALL cerrar la sesión con un mensaje claro. El modo claro/oscuro SHALL seguir al sistema hasta que la persona elija y la elección SHALL recordarse en el navegador.
+El repositorio SHALL incluir en `frontend/` una aplicación Angular (componentes standalone, sin zone.js, sin enrutador) con PrimeNG, en español, que consuma la API de administración y ofrezca, en un menú lateral vertical de PrimeNG (fijo a la izquierda en pantallas anchas; en las angostas, dentro de un panel deslizante de PrimeNG que se abre desde la barra superior y se cierra al elegir una sección), las mismas secciones que el panel estático: ingreso con token, Firmar documento, Documentos (listado con búsqueda, filtros, paginación, origen, versión y vencimiento; detalle con línea de tiempo, versiones descargables y detalle técnico), Auditoría (entregas de webhook con reenvío y eventos de administración), Integradores (alta con credenciales mostradas una sola vez, edición de orígenes, rotación de secreto y de API key, habilitar y deshabilitar) y Confianza (anclas: agregar y quitar; certificado propio: rotar). SHALL pedir confirmación en un diálogo antes de reenviar un webhook, quitar un ancla, rotar el certificado, rotar claves de un integrador o deshabilitarlo. El token SHALL guardarse solo en memoria y en `sessionStorage` y enviarse en `Authorization: Bearer`; una respuesta `401` SHALL cerrar la sesión con un mensaje claro. El modo claro/oscuro SHALL seguir al sistema hasta que la persona elija y la elección SHALL recordarse en el navegador.
 
 #### Scenario: Ingreso y secciones
 - **WHEN** la persona ingresa un token válido
@@ -39,12 +39,12 @@ El repositorio SHALL incluir en `frontend/` una aplicación Angular (componentes
 - **WHEN** no hay token configurado, o se pide un archivo inexistente o con `..`
 - **THEN** responde `404`
 
-### Requirement: Carga de documentos y widget en el diálogo de Angular
-La sección «Firmar documento» SHALL usar el componente de carga de PrimeNG para elegir o arrastrar uno o varios PDF, rechazar en el navegador los archivos que no sean PDF o superen el tamaño máximo (sin enviar nada), listar los archivos elegidos con «Quitar» por archivo y ofrecer «Cargar y firmar» (con la cantidad cuando hay varios). Al confirmar SHALL enviar un archivo a `POST /api/v1/admin/signing-uploads` o varios a `POST /api/v1/admin/signing-batch-uploads`, mostrar la tarjeta del documento (nombre, páginas, tamaño) o la lista del lote, el aviso de versiones y el widget en un diálogo con un `iframe` con la `signing_url` devuelta más `?theme=<tema del panel>` antes del fragmento (para que el widget use los mismos colores), con `sandbox="allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"`, `allow="local-network-access; local-network; loopback-network"` y `referrerpolicy="no-referrer"`. SHALL NOT abrir el widget en una ventana propia (la dirección quedaría visible en el navegador). SHALL aceptar los mensajes del widget solo si vienen de la ventana del iframe y del origen de la `signing_url`, mostrar el resultado (firmado, lote «N de M», fallido, cancelado) y, si el diálogo se cierra sin firmar, avisarlo. «Quitar» y «Reemplazar» SHALL volver a la carga sin widget.
+### Requirement: Carga de documentos y widget en una tarjeta de la página
+La sección «Firmar documento» SHALL usar el componente de carga de PrimeNG para elegir o arrastrar uno o varios PDF, rechazar en el navegador los archivos que no sean PDF o superen el tamaño máximo (sin enviar nada), listar los archivos elegidos con «Quitar» por archivo y ofrecer «Cargar y firmar» (con la cantidad cuando hay varios). Al confirmar SHALL enviar un archivo a `POST /api/v1/admin/signing-uploads` o varios a `POST /api/v1/admin/signing-batch-uploads`, mostrar la tarjeta del documento (nombre, páginas, tamaño) o la lista del lote, el aviso de versiones y el widget en una tarjeta de la misma página (al lado de la del documento en pantallas anchas y debajo en las angostas; no en un diálogo) con un `iframe` con la `signing_url` devuelta más `?theme=<tema del panel>&accent=emerald` antes del fragmento (para que el widget use los mismos colores), que ocupa el ancho de la tarjeta y toma el alto que informa el widget, con `sandbox="allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"`, `allow="local-network-access; local-network; loopback-network"` y `referrerpolicy="no-referrer"`. SHALL NOT abrir el widget en una ventana propia (la dirección quedaría visible en el navegador). SHALL aceptar los mensajes del widget solo si vienen de la ventana del iframe y del origen de la `signing_url`, mostrar el resultado (firmado, lote «N de M», fallido, cancelado) y, si el módulo de firma se cierra sin firmar, avisarlo. «Quitar» y «Reemplazar» SHALL volver a la carga sin widget.
 
 #### Scenario: Un PDF
 - **WHEN** elige un PDF válido y pulsa «Cargar y firmar»
-- **THEN** se muestra la tarjeta del documento y el diálogo con el widget y la `signing_url` (con el tema del panel)
+- **THEN** se muestra la tarjeta del documento y, en otra tarjeta de la misma página, el widget con la `signing_url` (con el tema y el acento del panel)
 
 #### Scenario: Varios PDF
 - **WHEN** elige tres PDF válidos y confirma
@@ -58,6 +58,10 @@ La sección «Firmar documento» SHALL usar el componente de carga de PrimeNG pa
 - **WHEN** llega un `message` que no proviene de la ventana del iframe o de su origen
 - **THEN** se ignora
 
-#### Scenario: Diálogo cerrado sin firmar
-- **WHEN** la persona cierra el diálogo sin haber firmado
+#### Scenario: Módulo de firma cerrado sin firmar
+- **WHEN** la persona cierra el módulo de firma sin haber firmado
 - **THEN** la tarjeta avisa que el documento quedó sin firmar y permite abrir el módulo de nuevo
+
+#### Scenario: Menú en una pantalla angosta
+- **WHEN** la persona abre el menú desde la barra superior y elige una sección
+- **THEN** se muestra esa sección y el menú se cierra

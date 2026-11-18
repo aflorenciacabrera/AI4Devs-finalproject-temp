@@ -154,6 +154,10 @@ El widget SHALL verse como parte del diálogo o la página que lo embebe: SHALL 
 - **WHEN** la URL de firma lleva `?theme=dark`
 - **THEN** el widget usa sus colores oscuros; con `?theme=light`, los claros; sin el parámetro, los del sistema
 
+#### Scenario: Acento del anfitrión
+- **WHEN** la URL de firma lleva `?accent=emerald`
+- **THEN** el widget usa ese color de marca y sus neutros en lugar del azul propio; con un valor que no está en la lista cerrada de acentos, lo ignora
+
 #### Scenario: Sin aclaraciones de más
 - **WHEN** se recorre la elección del método, la confirmación, la espera del PIN y el resultado
 - **THEN** no hay leyendas al pie ni avisos que repitan lo que ya dicen el título, el subtítulo o los datos visibles

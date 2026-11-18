@@ -1,7 +1,6 @@
-import { Component, DestroyRef, Injector, afterNextRender, inject, signal, viewChild } from '@angular/core';
+import { Component, Injector, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
-import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { FileUpload } from 'primeng/fileupload';
 import { Message } from 'primeng/message';
 import { Tag } from 'primeng/tag';
@@ -10,7 +9,7 @@ import { AdminApi } from '../core/admin-api';
 import { BatchDocument, SigningBatchUpload, SigningUpload } from '../core/api-types';
 import { MAX_PDF_BYTES, SizePipe, formatSize, isPdf, pagesLabel } from '../core/format';
 import { SignResult } from '../core/widget-messages';
-import { WidgetDialog, WidgetDialogData } from './widget-dialog';
+import { WidgetFrame } from './widget-frame';
 
 export interface Ready {
   name: string;
@@ -54,18 +53,17 @@ function readBase64(file: File): Promise<string> {
   });
 }
 
-/** Carga de uno o varios PDF (p-fileupload con plantillas propias) y widget de firma en un diálogo dinámico. */
+/** Carga de uno o varios PDF (p-fileupload con plantillas propias) y widget de firma en una tarjeta de la misma página. */
 @Component({
   selector: 'app-sign',
-  imports: [FileUpload, Button, Card, Tag, Timeline, Message, SizePipe],
-  providers: [DialogService],
+  imports: [FileUpload, Button, Card, Tag, Timeline, Message, SizePipe, WidgetFrame],
   templateUrl: './sign.html',
 })
 export class Sign {
   private readonly api = inject(AdminApi);
-  private readonly dialog = inject(DialogService);
   private readonly injector = inject(Injector);
-  private dialogRef: DynamicDialogRef | null = null;
+  /** El widget ya informó un resultado desde que se abrió: cerrarlo no es «cerrar sin firmar». */
+  private reported = false;
 
   readonly uploader = viewChild<FileUpload>('uploader');
 
@@ -75,12 +73,10 @@ export class Sign {
   readonly ready = signal<Ready | null>(null);
   readonly result = signal<SignResult | null>(null);
   readonly widgetOpen = signal(false);
+  /** El nombre del PDF ya está en la tarjeta del documento. */
+  readonly widgetTitle = computed(() => (this.ready()?.documents ? 'Firma de documentos' : 'Firma de documento'));
 
   pages = pagesLabel;
-
-  constructor() {
-    inject(DestroyRef).onDestroy(() => this.closeWidget());
-  }
 
   uploadLabel(count: number): string {
     return count > 1 ? `Cargar y firmar ${count} documentos` : 'Cargar y firmar documento';
@@ -123,52 +119,27 @@ export class Sign {
     }
   }
 
-  /** Abre el widget en un diálogo dinámico de PrimeNG; los resultados se reflejan en la tarjeta. */
+  /** Muestra el widget en la tarjeta de firma; los resultados se reflejan en la tarjeta del documento. */
   openWidget(): void {
-    const ready = this.ready();
-    if (!ready || this.dialogRef) return;
-    let reported = false;
-    const data: WidgetDialogData = {
-      signingUrl: ready.signingUrl,
-      onResult: (result) => {
-        reported = true;
-        this.result.set(result);
-      },
-    };
+    if (!this.ready() || this.widgetOpen()) return;
+    this.reported = false;
     this.widgetOpen.set(true);
-    const ref = this.dialog.open(WidgetDialog, {
-      header: ready.documents ? 'Firma de documentos' : 'Firma de documento', // el nombre del PDF ya está en la tarjeta
-      data,
-      modal: true,
-      closable: true,
-      dismissableMask: false,
-      closeOnEscape: false,
-      focusOnShow: false,
-      styleClass: 'widget-dialog',
-      width: '560px',
-      style: { 'max-width': '96vw' },
-      contentStyle: { padding: '0' },
-    });
-    if (!ref) {
-      this.widgetOpen.set(false);
-      return;
-    }
-    this.dialogRef = ref;
-    ref.onClose.subscribe(() => {
-      if (this.dialogRef === ref) this.dialogRef = null;
-      this.widgetOpen.set(false);
-      if (!reported) this.result.set(CLOSED_WITHOUT_SIGNING);
-    });
   }
 
+  onResult(result: SignResult): void {
+    this.reported = true;
+    this.result.set(result);
+  }
+
+  /** Cierra el módulo de firma (botón de la tarjeta o pantalla final del widget). */
   closeWidget(): void {
-    this.dialogRef?.close();
-    this.dialogRef = null;
+    if (!this.widgetOpen()) return;
     this.widgetOpen.set(false);
+    if (!this.reported) this.result.set(CLOSED_WITHOUT_SIGNING);
   }
 
   reset(): void {
-    this.closeWidget();
+    this.widgetOpen.set(false); // se descarta el documento: no hay nada que avisar
     this.ready.set(null);
     this.result.set(null);
   }
@@ -179,7 +150,7 @@ export class Sign {
   }
 
   private show(name: string, meta: string, signingUrl: string, documents: BatchDocument[] | null): void {
-    this.closeWidget();
+    this.widgetOpen.set(false);
     this.result.set(null);
     this.ready.set({ name, meta, signingUrl, documents });
     this.openWidget();

@@ -1,4 +1,4 @@
-import { fmt, formatSize, isPdf, pagesLabel, providerLabel, statusLabel } from './format';
+import { deliveryStatusLabel, fmt, formatSize, isPdf, pagesLabel, providerLabel, statusLabel, statusSeverity } from './format';
 
 describe('format', () => {
   it('fmt muestra vacíos como guion, fechas en es-AR y objetos como JSON', () => {
@@ -29,5 +29,15 @@ describe('format', () => {
     expect(statusLabel('signed')).toBe('Firmado');
     expect(statusLabel('otro')).toBe('otro');
     expect(providerLabel('local')).toBe('Propio');
+    expect(deliveryStatusLabel('delivered')).toBe('Entregado');
+    expect(deliveryStatusLabel('otro')).toBe('otro');
+  });
+
+  it('cada estado tiene la severidad de su etiqueta, y los desconocidos quedan neutros', () => {
+    expect(statusSeverity('signed')).toBe('success');
+    expect(statusSeverity('pending_signature')).toBe('warn');
+    expect(statusSeverity('failed')).toBe('danger');
+    expect(statusSeverity('draft')).toBe('secondary');
+    expect(statusSeverity('otro')).toBe('secondary');
   });
 });

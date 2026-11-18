@@ -4,6 +4,7 @@ import { ConfirmationService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { AdminApi } from '../core/admin-api';
 import { Integrator } from '../core/api-types';
@@ -23,7 +24,7 @@ export function originsList(text: string): string[] {
 
 @Component({
   selector: 'app-integrators',
-  imports: [FormsModule, Button, InputText, Textarea, TableModule],
+  imports: [FormsModule, Button, InputText, Textarea, TableModule, Tag],
   templateUrl: './integrators.html',
 })
 export class Integrators implements OnInit {

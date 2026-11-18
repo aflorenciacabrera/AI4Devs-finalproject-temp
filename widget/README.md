@@ -36,7 +36,7 @@ Interfaz de firma que un sistema integrador **embebe** en su propia pantalla. Co
 - `allow`: delega el permiso de **acceso a la red local** al iframe, necesario para que el widget hable con el agente en `127.0.0.1` desde Chrome/Edge 142+. El nombre de la política cambió entre versiones del navegador; los desconocidos se ignoran, por eso se listan todos. Verificarlo con el navegador instalado.
 - Si el sistema anfitrión pasa el HTML por un sanitizador o gestor de contenido, comprobá en el DOM ya renderizado que el atributo `allow` siga presente: según fuentes secundarias, algunas plataformas lo eliminan y entonces el widget no puede hablar con el agente. Firefox y Safari no están verificados.
 - `sandbox`: `allow-same-origin` es necesario para que el widget llame a su propio servidor; `allow-downloads` para el botón "Descargar PDF firmado"; `allow-popups allow-popups-to-escape-sandbox` para que la firma remota abra el servicio en una ventana emergente.
-- **Apariencia:** el widget no dibuja marco propio (ni marca, ni borde, ni fondo): se ve como parte del diálogo o la página que lo embebe. Para que use el tema del anfitrión, agregá `?theme=light` o `?theme=dark` a la `signing_url` **antes** del `#` (por ejemplo `.../sign/{id}?theme=dark#t=...`); sin el parámetro sigue el esquema de colores del sistema.
+- **Apariencia:** el widget no dibuja marco propio (ni marca, ni borde, ni fondo): se ve como parte del diálogo o la página que lo embebe. Para que use el tema del anfitrión, agregá `?theme=light` o `?theme=dark` a la `signing_url` **antes** del `#` (por ejemplo `.../sign/{id}?theme=dark#t=...`); sin el parámetro sigue el esquema de colores del sistema. Con `&accent=emerald` (lista cerrada; hoy solo ese valor) el widget usa además el color de marca y los neutros del panel de Firmadoc, en lugar del azul propio.
 - Solo se puede embeber desde los orígenes del integrador (`allowed_origins`): el servidor responde `Content-Security-Policy: frame-ancestors <orígenes>`. Desde cualquier otro origen el navegador bloquea el marco.
 
 ### Opción 2: Web Component
@@ -206,7 +206,7 @@ export class FirmarEnVentanaComponent {
 ```
 
 El ejemplo completo, con detección de la ventana cerrada, está en la página anfitriona de ejemplo
-(`widget/examples/host.js`, `mode=popup`). El panel de Firmadoc usa el iframe en un diálogo (`frontend/src/app/sections/widget-dialog.ts`).
+(`widget/examples/host.js`, `mode=popup`). El panel de Firmadoc usa el iframe dentro de una tarjeta de la misma página (`frontend/src/app/sections/widget-frame.ts`).
 
 ## Configuración del servidor
 

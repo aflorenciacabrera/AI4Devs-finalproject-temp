@@ -1,39 +1,34 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SignResult } from '../core/widget-messages';
-import { WidgetDialog, WidgetDialogData, withTheme } from './widget-dialog';
+import { WidgetFrame, withTheme } from './widget-frame';
 
 const SIGNING_URL = 'http://firmadoc.test:8000/sign/0f3c7f5e-1111-2222-3333-444444444444#t=abc';
 const ORIGIN = 'http://firmadoc.test:8000';
 
 describe('withTheme', () => {
-  it('agrega el tema a la consulta, antes del fragmento con el token', () => {
-    expect(withTheme(SIGNING_URL, 'dark')).toBe('http://firmadoc.test:8000/sign/0f3c7f5e-1111-2222-3333-444444444444?theme=dark#t=abc');
-    expect(withTheme('http://f.test/sign/x?a=1#t=abc', 'light')).toBe('http://f.test/sign/x?a=1&theme=light#t=abc');
-    expect(withTheme('http://f.test/sign/x', 'light')).toBe('http://f.test/sign/x?theme=light');
+  it('agrega el tema y el acento del panel a la consulta, antes del fragmento con el token', () => {
+    expect(withTheme(SIGNING_URL, 'dark')).toBe('http://firmadoc.test:8000/sign/0f3c7f5e-1111-2222-3333-444444444444?theme=dark&accent=emerald#t=abc');
+    expect(withTheme('http://f.test/sign/x?a=1#t=abc', 'light')).toBe('http://f.test/sign/x?a=1&theme=light&accent=emerald#t=abc');
+    expect(withTheme('http://f.test/sign/x', 'light')).toBe('http://f.test/sign/x?theme=light&accent=emerald');
   });
 });
 
-describe('WidgetDialog', () => {
-  let fixture: ComponentFixture<WidgetDialog>;
-  let component: WidgetDialog;
+describe('WidgetFrame', () => {
+  let fixture: ComponentFixture<WidgetFrame>;
+  let component: WidgetFrame;
   let results: SignResult[];
-  let close: ReturnType<typeof vi.fn>;
+  let close: ReturnType<typeof vi.fn<() => void>>;
   let source: Window;
 
   beforeEach(async () => {
     results = [];
     close = vi.fn();
-    const data: WidgetDialogData = { signingUrl: SIGNING_URL, onResult: (r) => results.push(r) };
-    TestBed.configureTestingModule({
-      imports: [WidgetDialog],
-      providers: [
-        { provide: DynamicDialogConfig, useValue: { data } },
-        { provide: DynamicDialogRef, useValue: { close } },
-      ],
-    });
-    fixture = TestBed.createComponent(WidgetDialog);
+    TestBed.configureTestingModule({ imports: [WidgetFrame] });
+    fixture = TestBed.createComponent(WidgetFrame);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('signingUrl', SIGNING_URL);
+    component.result.subscribe((r) => results.push(r));
+    component.closed.subscribe(() => close());
     await fixture.whenStable();
     source = (fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement).contentWindow!;
   });
@@ -47,7 +42,7 @@ describe('WidgetDialog', () => {
     expect(iframe.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox');
     expect(iframe.getAttribute('allow')).toContain('local-network-access');
     expect(iframe.getAttribute('referrerpolicy')).toBe('no-referrer');
-    expect(component.origin).toBe(ORIGIN);
+    expect(component.origin()).toBe(ORIGIN);
   });
 
   it('informa firmadoc:signed desde la ventana del iframe y su origen', () => {
@@ -89,7 +84,7 @@ describe('WidgetDialog', () => {
     expect(component.frameHeight()).toBe(4000);
   });
 
-  it('se cierra cuando la persona cierra la pantalla final del widget', () => {
+  it('avisa cuando la persona cierra la pantalla final del widget', () => {
     message({ source: 'firmadoc', type: 'firmadoc:closed' });
     expect(close).toHaveBeenCalledTimes(1);
   });

@@ -1,50 +1,66 @@
-<h2>Firmar documento</h2>
-<p class="muted">Cargá un PDF y firmalo con tu token. Firmadoc guarda el original y la versión firmada.</p>
+<header class="page-head">
+  <h2>Firmar documento</h2>
+  <p class="muted">Cargá un PDF y firmalo con tu token. Firmadoc guarda el original y la versión firmada.</p>
+</header>
 
 @if (ready(); as r) {
-  <p-card id="sign-ready" styleClass="doc-card">
-    <div class="doc-row">
-      <span class="doc-icon" aria-hidden="true"><i class="pi pi-file-pdf"></i></span>
-      <div class="doc-info">
-        <strong id="sign-name">{{ r.name }}</strong>
-        <div class="doc-tags">
-          <p-tag [value]="r.meta" severity="secondary" [rounded]="true" />
-          <p-tag value="Versión original (v1)" severity="info" icon="pi pi-clock" [rounded]="true" />
-        </div>
-        @if (r.documents; as docs) {
-          <ul class="upload-list" id="sign-docs">
-            @for (d of docs; track d.document_id) {
-              <li class="upload-item">
-                <i class="pi pi-file-pdf" aria-hidden="true"></i>
-                <div class="upload-item-info">
-                  <span class="file-name">{{ d.filename }}</span>
-                  <span class="muted">{{ pages(d.page_count) }} · {{ d.size_bytes | size }}</span>
-                </div>
-              </li>
+  <div class="sign-ready" [class.with-widget]="widgetOpen()">
+    <div class="sign-doc">
+      <p-card id="sign-ready" styleClass="doc-card">
+        <div class="doc-row">
+          <span class="doc-icon" aria-hidden="true"><i class="pi pi-file-pdf"></i></span>
+          <div class="doc-info">
+            <strong id="sign-name">{{ r.name }}</strong>
+            <div class="doc-tags">
+              <p-tag [value]="r.meta" severity="secondary" [rounded]="true" />
+              <p-tag value="Versión original (v1)" severity="info" icon="pi pi-clock" [rounded]="true" />
+            </div>
+            @if (r.documents; as docs) {
+              <ul class="upload-list" id="sign-docs">
+                @for (d of docs; track d.document_id) {
+                  <li class="upload-item">
+                    <i class="pi pi-file-pdf" aria-hidden="true"></i>
+                    <div class="upload-item-info">
+                      <span class="file-name">{{ d.filename }}</span>
+                      <span class="muted">{{ pages(d.page_count) }} · {{ d.size_bytes | size }}</span>
+                    </div>
+                  </li>
+                }
+              </ul>
             }
-          </ul>
-        }
-      </div>
-      <div class="doc-actions">
-        <p-button label="Reemplazar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="replace()" />
-        <p-button label="Quitar" icon="pi pi-times" severity="secondary" [text]="true" (onClick)="reset()" />
-      </div>
+          </div>
+        </div>
+        <div class="doc-actions">
+          <p-button label="Reemplazar" icon="pi pi-refresh" severity="secondary" [outlined]="true" size="small" (onClick)="replace()" />
+          <p-button label="Quitar" icon="pi pi-times" severity="secondary" [text]="true" size="small" (onClick)="reset()" />
+        </div>
+        <div class="doc-footer">
+          <p-message severity="secondary" variant="simple" icon="pi pi-info-circle">
+            Al firmar, la versión firmada será la v2 y quedará como vigente; el original se conserva.
+          </p-message>
+          @if (!widgetOpen()) {
+            <p-button id="sign-open" label="Abrir módulo de firma" icon="pi pi-pen-to-square" (onClick)="openWidget()" />
+          }
+        </div>
+      </p-card>
+      @if (result(); as res) {
+        <p-message [severity]="res.severity" role="status" id="sign-result">{{ res.text }}</p-message>
+      }
     </div>
-    <div class="doc-footer">
-      <p-message severity="secondary" variant="simple" icon="pi pi-info-circle">
-        Al firmar, la versión firmada será la v2 y quedará como vigente; el original se conserva.
-      </p-message>
-      <p-button
-        id="sign-open"
-        [label]="widgetOpen() ? 'Módulo de firma abierto' : 'Abrir módulo de firma'"
-        icon="pi pi-pen-to-square"
-        [disabled]="widgetOpen()"
-        (onClick)="openWidget()" />
-    </div>
-  </p-card>
-  @if (result(); as res) {
-    <p-message [severity]="res.severity" role="status" id="sign-result">{{ res.text }}</p-message>
-  }
+
+    @if (widgetOpen()) {
+      <!-- El widget de firma como una tarjeta más de la página: ocupa su columna y ajusta el alto a su contenido -->
+      <p-card id="sign-widget" styleClass="sign-widget">
+        <ng-template #header>
+          <div class="sign-widget-head">
+            <span class="sign-widget-title"><i class="pi pi-pen-to-square" aria-hidden="true"></i> {{ widgetTitle() }}</span>
+            <p-button icon="pi pi-times" [text]="true" [rounded]="true" severity="secondary" size="small" ariaLabel="Cerrar el módulo de firma" title="Cerrar el módulo de firma" (onClick)="closeWidget()" />
+          </div>
+        </ng-template>
+        <app-widget-frame [signingUrl]="r.signingUrl" (result)="onResult($event)" (closed)="closeWidget()" />
+      </p-card>
+    }
+  </div>
 } @else {
   <div class="sign-layout" id="sign-upload">
     <div class="sign-main">

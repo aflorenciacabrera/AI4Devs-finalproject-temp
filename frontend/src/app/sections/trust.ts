@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ConfirmationService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { AdminApi } from '../core/admin-api';
 import { LocalCertificate, TrustAnchor } from '../core/api-types';
@@ -11,7 +12,7 @@ import { FmtPipe } from '../core/format';
 /** Confianza: anclas (agregar y quitar) y certificado propio del proveedor local (rotar). */
 @Component({
   selector: 'app-trust',
-  imports: [FormsModule, Button, Textarea, TableModule, FmtPipe],
+  imports: [FormsModule, Button, Textarea, TableModule, Tag, FmtPipe],
   templateUrl: './trust.html',
 })
 export class Trust implements OnInit {

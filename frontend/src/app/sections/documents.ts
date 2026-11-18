@@ -1,9 +1,13 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
+import { Card } from 'primeng/card';
+import { IconField } from 'primeng/iconfield';
+import { InputIcon } from 'primeng/inputicon';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { AdminApi } from '../core/admin-api';
 import { Custody, Page, RequestItem } from '../core/api-types';
 import {
@@ -14,6 +18,7 @@ import {
   fmt,
   providerLabel,
   statusLabel,
+  statusSeverity,
 } from '../core/format';
 
 export const PAGE = 50;
@@ -26,7 +31,7 @@ interface Option {
 /** Listado de documentos (solicitudes de firma) y detalle como cadena de custodia. */
 @Component({
   selector: 'app-documents',
-  imports: [FormsModule, Button, InputText, Select, TableModule, FmtPipe, DateOnlyPipe, TimeOnlyPipe],
+  imports: [FormsModule, Button, Card, IconField, InputIcon, InputText, Select, TableModule, Tag, FmtPipe, DateOnlyPipe, TimeOnlyPipe],
   templateUrl: './documents.html',
 })
 export class Documents implements OnInit {
@@ -69,6 +74,7 @@ export class Documents implements OnInit {
     const from = total ? this.offset() + 1 : 0;
     return `${from}-${Math.min(this.offset() + PAGE, total)} de ${total}`;
   });
+  readonly hasFilters = computed(() => !!(this.q() || this.status() || this.provider() || this.origin() || this.from() || this.to()));
   readonly hasPrev = computed(() => this.offset() > 0);
   readonly hasNext = computed(() => this.offset() + PAGE < this.total());
   readonly currentVersion = computed(() => this.detail()?.versions.find((v) => v.is_current) ?? null);
@@ -90,6 +96,7 @@ export class Documents implements OnInit {
 
   statusLabel = statusLabel;
   providerLabel = providerLabel;
+  severity = statusSeverity;
 
   ngOnInit(): void {
     void this.load();
@@ -132,6 +139,11 @@ export class Documents implements OnInit {
   filter(): void {
     this.offset.set(0);
     void this.load();
+  }
+
+  clear(): void {
+    for (const field of [this.q, this.status, this.provider, this.origin, this.from, this.to]) field.set('');
+    this.filter();
   }
 
   prev(): void {

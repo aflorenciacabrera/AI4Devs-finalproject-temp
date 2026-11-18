@@ -1,7 +1,9 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { ConfirmDialog } from 'primeng/confirmdialog';
+import { Drawer } from 'primeng/drawer';
 import { Menu } from 'primeng/menu';
 import { Toast } from 'primeng/toast';
 import { AdminApi } from './core/admin-api';
@@ -25,13 +27,15 @@ export const TABS: { id: Tab; label: string; icon: string }[] = [
 
 @Component({
   selector: 'app-root',
-  imports: [Button, Menu, Toast, ConfirmDialog, Login, Sign, Documents, Audit, Integrators, Trust],
+  imports: [NgTemplateOutlet, Button, Drawer, Menu, Toast, ConfirmDialog, Login, Sign, Documents, Audit, Integrators, Trust],
   templateUrl: './app.html',
 })
 export class App {
   readonly api = inject(AdminApi);
   readonly theme = inject(Theme);
   readonly tab = signal<Tab>('sign');
+  /** Menú lateral abierto como panel deslizante (pantallas angostas; en las anchas el menú está siempre visible). */
+  readonly drawer = signal(false);
   /** Menú lateral de PrimeNG: la sección activa lleva la clase `active`; `automationId` identifica cada ítem. */
   readonly menu = computed<MenuItem[]>(() =>
     TABS.map((t) => ({
@@ -39,14 +43,27 @@ export class App {
       icon: t.icon,
       automationId: t.id,
       styleClass: this.tab() === t.id ? 'active' : undefined,
-      command: () => this.tab.set(t.id),
+      command: () => this.go(t.id),
     })),
   );
 
   constructor() {
     effect(() => {
-      if (!this.api.loggedIn()) this.tab.set('sign'); // la próxima sesión arranca en «Firmar documento»
+      if (!this.api.loggedIn()) {
+        this.tab.set('sign'); // la próxima sesión arranca en «Firmar documento»
+        this.drawer.set(false);
+      }
     });
     void this.api.resume();
+  }
+
+  go(tab: Tab): void {
+    this.tab.set(tab);
+    this.drawer.set(false);
+  }
+
+  logout(): void {
+    this.drawer.set(false);
+    this.api.logout();
   }
 }

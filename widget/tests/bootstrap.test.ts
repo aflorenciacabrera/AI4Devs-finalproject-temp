@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { applyTheme, newSessionRef, requestIdFromPath, takeToken } from "../src/bootstrap/token";
+import { applyAccent, applyTheme, newSessionRef, requestIdFromPath, takeToken } from "../src/bootstrap/token";
 
 const ID = "11111111-2222-4333-8444-555555555555";
 
@@ -84,5 +84,18 @@ describe("applyTheme", () => {
     expect(root.dataset.theme).toBeUndefined();
     expect(applyTheme(root, "")).toBeNull();
     expect(root.dataset.theme).toBeUndefined();
+  });
+});
+
+describe("applyAccent", () => {
+  it("acepta solo los acentos de la lista cerrada", () => {
+    const root = { dataset: {} as DOMStringMap };
+    expect(applyAccent(root, "?theme=dark&accent=emerald")).toBe("emerald");
+    expect(root.dataset.accent).toBe("emerald");
+    expect(applyAccent(root, "?accent=%23ff0000")).toBeNull();
+    expect(root.dataset.accent).toBeUndefined();
+    expect(applyAccent(root, "?accent=red;background:url(x)")).toBeNull();
+    expect(applyAccent(root, "")).toBeNull();
+    expect(root.dataset.accent).toBeUndefined();
   });
 });

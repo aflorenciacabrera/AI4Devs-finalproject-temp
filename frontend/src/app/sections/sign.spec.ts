@@ -22,13 +22,13 @@ async function expectRequest(http: HttpTestingController, url: string) {
   throw new Error('no se envió ' + url);
 }
 
-const dialogIframe = () => document.querySelector('.widget-dialog iframe') as HTMLIFrameElement | null;
-
 describe('Sign', () => {
   let fixture: ComponentFixture<Sign>;
   let component: Sign;
   let http: HttpTestingController;
   let toast: MessageService;
+
+  const widgetIframe = () => fixture.nativeElement.querySelector('#sign-widget iframe') as HTMLIFrameElement | null;
 
   beforeEach(async () => {
     TestBed.configureTestingModule({
@@ -42,15 +42,13 @@ describe('Sign', () => {
     await fixture.whenStable();
   });
 
-  afterEach(async () => {
-    component.closeWidget();
-    await fixture.whenStable();
+  afterEach(() => {
     http.verify();
   });
 
   it('arranca en la carga, sin widget', () => {
     expect(fixture.nativeElement.querySelector('p-fileupload')).not.toBeNull();
-    expect(dialogIframe()).toBeNull();
+    expect(widgetIframe()).toBeNull();
   });
 
   it('rechaza en el navegador un archivo que no es PDF sin enviar nada', async () => {
@@ -61,7 +59,7 @@ describe('Sign', () => {
     http.expectNone(`${API}/signing-batch-uploads`);
   });
 
-  it('un PDF se carga como individual, muestra la tarjeta y abre el widget en un diálogo', async () => {
+  it('un PDF se carga como individual, muestra la tarjeta y abre el widget en otra tarjeta de la página', async () => {
     const pending = component.upload([pdf('Resolucion.pdf')]);
     const request = await expectRequest(http, `${API}/signing-uploads`);
     expect(request.request.body).toEqual({ filename: 'Resolucion.pdf', document_base64: expect.any(String) });
@@ -80,11 +78,13 @@ describe('Sign', () => {
     expect(root.querySelector('#sign-name')?.textContent).toBe('Resolucion.pdf');
     expect(root.textContent).toContain('2 páginas · 2 KB');
     expect(component.widgetOpen()).toBe(true);
-    const iframe = dialogIframe();
-    expect(iframe?.getAttribute('src')).toBe(SIGNING_URL.replace('#', '?theme=light#'));
+    const iframe = widgetIframe();
+    expect(iframe?.getAttribute('src')).toBe(SIGNING_URL.replace('#', '?theme=light&accent=emerald#'));
     expect(iframe?.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox');
-    // el nombre del PDF va en la tarjeta, no en la cabecera
-    expect(document.querySelector('.widget-dialog .p-dialog-title')?.textContent).toBe('Firma de documento');
+    // el nombre del PDF va en la tarjeta del documento, no en la del widget
+    expect(root.querySelector('.sign-widget-title')?.textContent?.trim()).toBe('Firma de documento');
+    // el widget está dentro de la página, no en un diálogo aparte
+    expect(document.querySelector('.p-dialog')).toBeNull();
   });
 
   it('varios PDF se cargan como lote', async () => {
@@ -103,7 +103,8 @@ describe('Sign', () => {
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelector('#sign-name')?.textContent).toBe('2 documentos');
     expect(fixture.nativeElement.querySelectorAll('#sign-docs li')).toHaveLength(2);
-    expect(dialogIframe()).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.sign-widget-title')?.textContent?.trim()).toBe('Firma de documentos');
+    expect(widgetIframe()).not.toBeNull();
   });
 
   describe('con un documento cargado', () => {
@@ -113,17 +114,20 @@ describe('Sign', () => {
       await fixture.whenStable();
     });
 
-    it('cerrar el diálogo sin firmar deja el aviso y permite reabrirlo', async () => {
-      expect(dialogIframe()).not.toBeNull();
+    it('cerrar el módulo sin firmar deja el aviso y permite reabrirlo', async () => {
+      expect(widgetIframe()).not.toBeNull();
       component.closeWidget();
       await fixture.whenStable();
       expect(component.widgetOpen()).toBe(false);
       expect(component.result()).toEqual(CLOSED_WITHOUT_SIGNING);
-      expect(fixture.nativeElement.querySelector('#sign-open')).not.toBeNull();
+      expect(widgetIframe()).toBeNull();
+      (fixture.nativeElement.querySelector('#sign-open button') as HTMLElement).click();
+      await fixture.whenStable();
+      expect(widgetIframe()).not.toBeNull();
     });
 
-    it('el resultado del widget se refleja en la tarjeta sin cerrar el diálogo', async () => {
-      const iframe = dialogIframe()!;
+    it('el resultado del widget se refleja en la tarjeta sin cerrar el módulo', async () => {
+      const iframe = widgetIframe()!;
       window.dispatchEvent(
         new MessageEvent('message', {
           data: { source: 'firmadoc', type: 'firmadoc:signed', requestId: 'r1' },
@@ -135,12 +139,17 @@ describe('Sign', () => {
       expect(component.result()?.severity).toBe('success');
       expect(component.widgetOpen()).toBe(true);
       expect(fixture.nativeElement.querySelector('#sign-result')?.textContent).toContain('Documento firmado');
+      // cerrar después de firmar no pisa el resultado con «cerraste sin firmar»
+      component.closeWidget();
+      await fixture.whenStable();
+      expect(component.result()?.severity).toBe('success');
     });
 
-    it('«Quitar» vuelve a la carga y cierra el widget', async () => {
+    it('«Quitar» vuelve a la carga y cierra el widget sin avisos', async () => {
       component.reset();
       await fixture.whenStable();
       expect(component.widgetOpen()).toBe(false);
+      expect(component.result()).toBeNull();
       expect(fixture.nativeElement.querySelector('p-fileupload')).not.toBeNull();
     });
   });

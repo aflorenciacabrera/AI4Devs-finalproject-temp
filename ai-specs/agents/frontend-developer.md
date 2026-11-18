@@ -40,8 +40,8 @@ core/
 └── widget-messages.ts      # validación de los mensajes del widget (ventana y origen)
 sections/
 ├── login.ts
-├── sign.ts / sign.html     # p-fileupload con plantillas propias; abre el widget en un DynamicDialog
-├── widget-dialog.ts        # iframe del widget dentro del diálogo; único bypass del sanitizador (src)
+├── sign.ts / sign.html     # p-fileupload con plantillas propias; documento y widget en dos tarjetas
+├── widget-frame.ts         # iframe del widget dentro de una p-card; único bypass del sanitizador (src)
 ├── documents.*             # listado con filtros y detalle (custodia, versiones, detalle técnico)
 ├── audit.*                 # entregas de webhook y eventos
 ├── integrators.*           # alta, orígenes, rotación de claves, habilitar/deshabilitar

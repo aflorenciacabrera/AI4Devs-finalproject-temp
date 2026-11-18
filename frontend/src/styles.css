@@ -2,6 +2,7 @@
 :root {
   --bg: #f6f7f9;
   --warning: #b7791f;
+  --sidebar-width: 264px;
   color-scheme: light;
 }
 :root[data-theme='dark'] {
@@ -20,21 +21,16 @@ body {
   color: var(--p-text-color);
 }
 h1 {
-  font-size: 18px;
+  font-size: 16px;
   margin: 0;
 }
 h2 {
-  font-size: 16px;
-  margin: 16px 0 8px;
+  font-size: 20px;
+  margin: 0 0 8px;
 }
 h3 {
-  font-size: 14px;
+  font-size: 15px;
   margin: 12px 0 6px;
-}
-main {
-  padding: 16px;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 label {
   display: flex;
@@ -49,86 +45,231 @@ label {
 }
 .mono {
   font-family: ui-monospace, monospace;
+  font-size: 12.5px;
   word-break: break-all;
 }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.page-head {
+  margin-bottom: 18px;
+}
+.page-head h2 {
+  margin: 0 0 2px;
+}
+.page-head p {
+  margin: 0;
+}
+/* Tarjetas planas, con el mismo borde que las tablas (PrimeNG las trae con sombra). */
+.p-card {
+  border: 1px solid var(--p-content-border-color);
+  box-shadow: none;
+}
 
-/* Encabezado y navegación */
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  background: var(--p-content-background);
-  border-bottom: 1px solid var(--p-content-border-color);
-}
-.header-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.layout {
+/* Estructura: menú lateral fijo en pantallas anchas; en las angostas, barra superior y menú en un p-drawer */
+.shell {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  min-height: 100vh;
+}
+.sidebar,
+.sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 12px;
+  background: var(--p-content-background);
 }
 .sidebar {
   position: sticky;
-  top: 12px;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--p-content-border-color);
 }
-.sidebar .sidebar-menu {
+.sidebar-inner {
+  height: 100%;
+}
+.sidebar-drawer.p-drawer {
+  width: min(300px, 86vw);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px 14px;
+}
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+  font-size: 18px;
+  flex: none;
+}
+.brand-name {
+  display: block;
+  font-size: 16px;
+  line-height: 1.2;
+}
+.brand-sub {
+  display: block;
+  font-size: 12px;
+  color: var(--p-text-muted-color);
+}
+.sidebar-menu.p-menu {
   width: 100%;
   min-width: 0;
+  border: 0;
+  background: transparent;
+}
+.sidebar-menu .p-menu-item-content {
+  border-radius: 8px;
+}
+.sidebar-menu .p-menu-item-link {
+  padding: 10px 12px;
 }
 /* Ítem activo: se redefinen los tokens de PrimeNG del menú para ese ítem (también en foco y hover). */
-.sidebar .p-menu-item.active {
+.sidebar-menu .p-menu-item.active {
   --p-menu-item-color: var(--p-primary-contrast-color);
   --p-menu-item-icon-color: var(--p-primary-contrast-color);
   --p-menu-item-focus-color: var(--p-primary-contrast-color);
   --p-menu-item-icon-focus-color: var(--p-primary-contrast-color);
   --p-menu-item-focus-background: var(--p-primary-hover-color);
 }
-.sidebar .p-menu-item.active > .p-menu-item-content {
+.sidebar-menu .p-menu-item.active > .p-menu-item-content {
   background: var(--p-primary-color);
 }
-.sidebar .p-menu-item.active .p-menu-item-label {
+.sidebar-menu .p-menu-item.active .p-menu-item-label {
   font-weight: 600;
 }
-.content {
+.sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--p-content-border-color);
+}
+.sidebar-footer .p-button {
+  width: 100%;
+  justify-content: flex-start;
+}
+.shell-main {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
-@media (max-width: 800px) {
-  .layout {
+.topbar {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--p-content-background);
+  border-bottom: 1px solid var(--p-content-border-color);
+}
+.topbar h1 {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.content {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 24px 28px 48px;
+}
+@media (max-width: 960px) {
+  .shell {
     grid-template-columns: 1fr;
   }
   .sidebar {
-    position: static;
+    display: none;
   }
-  .sidebar .p-menu-list {
+  .topbar {
     display: flex;
-    flex-wrap: wrap;
+  }
+  .content {
+    padding: 16px 14px 40px;
   }
 }
 
 /* Ingreso */
+.login-page {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 16px;
+}
+.login-theme {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+.login {
+  width: min(400px, 100%);
+}
+.login .brand {
+  padding: 0 0 8px;
+}
+.login h2 {
+  margin: 8px 0 12px;
+}
 .login form {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-width: 360px;
   margin-bottom: 12px;
+}
+.login form .p-button {
+  margin-top: 8px;
 }
 
 /* Formularios y tablas */
 .filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
   align-items: flex-end;
   margin-bottom: 12px;
 }
 .filters label {
+  flex: 0 1 150px;
   min-width: 140px;
+}
+.filters label.filter-wide {
+  flex: 1 1 260px;
+}
+.filters input,
+.filters textarea,
+.filters .p-select,
+.filters .p-iconfield {
+  width: 100%;
+}
+.filter-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+@media (max-width: 640px) {
+  .filters label {
+    flex: 1 1 100%;
+  }
 }
 .stack {
   display: flex;
@@ -140,26 +281,103 @@ textarea.pem {
   width: 100%;
   font-family: ui-monospace, monospace;
 }
-.pager {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-top: 10px;
-}
-.card {
+/* Contenedor de una tabla con su título, sus filtros y su pie */
+.table-card {
+  margin-bottom: 20px;
+  overflow: hidden;
   background: var(--p-content-background);
   border: 1px solid var(--p-content-border-color);
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin: 10px 0;
+  border-radius: 12px;
 }
-.card h3 {
-  margin: 0 0 6px;
+.table-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--p-content-border-color);
+}
+.table-card-head h3 {
+  margin: 0;
+}
+.table-card-head .filters {
+  flex-wrap: nowrap;
+  margin: 0;
+}
+.table-card-head .filters label {
+  flex: 0 0 170px;
+}
+.table-card > .filters {
+  margin: 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--p-content-border-color);
+}
+.table-card-form {
+  margin: 0;
+  padding: 14px 16px;
+}
+.table-card-sub {
+  margin: 0;
+  padding: 12px 16px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--p-text-muted-color);
+  border-top: 1px solid var(--p-content-border-color);
+}
+.table-card .p-datatable-thead > tr > th {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--p-text-muted-color);
+}
+.table-card .p-datatable-tbody > tr > td {
+  vertical-align: middle;
+}
+.cell-main {
+  font-weight: 600;
 }
 .cell-sub {
   display: block;
   font-size: 12px;
   color: var(--p-text-muted-color);
+}
+.cell-detail {
+  max-width: 30rem;
+}
+.col-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 28px 12px;
+  text-align: center;
+}
+.empty-state .pi {
+  margin-bottom: 4px;
+  font-size: 28px;
+  color: var(--p-text-muted-color);
+}
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid var(--p-content-border-color);
+}
+.pager-buttons {
+  display: flex;
+  gap: 8px;
+}
+.cert-current {
+  margin-top: 8px;
 }
 .row-actions {
   display: flex;
@@ -169,36 +387,9 @@ textarea.pem {
 }
 .doc-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  margin-top: 8px;
-}
-
-/* Chips de estado */
-.chip {
-  display: inline-block;
-  padding: 1px 9px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid var(--p-content-border-color);
-}
-.chip.signed,
-.chip.ok,
-.chip.active {
-  color: var(--p-green-600);
-  border-color: var(--p-green-600);
-}
-.chip.pending,
-.chip.signing,
-.chip.warning {
-  color: var(--warning);
-  border-color: var(--warning);
-}
-.chip.failed,
-.chip.error,
-.chip.disabled {
-  color: var(--p-red-500);
-  border-color: var(--p-red-500);
+  margin-top: 12px;
 }
 
 /* Firmar documento */
@@ -357,9 +548,26 @@ textarea.pem {
   margin: 0;
 }
 
-/* Tarjeta del documento cargado */
-.doc-card {
-  margin: 8px 0 12px;
+/* Documento cargado y, a su lado, el widget de firma como una tarjeta más (debajo en pantallas angostas) */
+.sign-ready {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.sign-ready.with-widget {
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 540px);
+}
+@media (max-width: 1180px) {
+  .sign-ready.with-widget {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.sign-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
 }
 .doc-row {
   display: flex;
@@ -397,11 +605,6 @@ textarea.pem {
 .doc-info .upload-list {
   margin: 12px 0 0;
 }
-.doc-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
 .doc-footer {
   display: flex;
   flex-wrap: wrap;
@@ -413,25 +616,35 @@ textarea.pem {
   border-top: 1px solid var(--p-content-border-color);
 }
 
-/* Widget de firma en el diálogo dinámico: cabecera separada del cuerpo por una línea, título en mayúsculas */
-.widget-dialog .p-dialog-header {
+/* Tarjeta del widget de firma: el iframe ocupa todo el ancho y toma el alto que informa el widget */
+.sign-widget.p-card {
+  overflow: hidden;
+}
+.sign-widget .p-card-body {
+  padding: 0;
+}
+.sign-widget-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 10px 10px 18px;
   border-bottom: 1px solid var(--p-content-border-color);
 }
-.widget-dialog .p-dialog-title {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 1rem;
+.sign-widget-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
 }
-.widget-dialog .p-dialog-content {
-  padding: 0;
-  overflow: hidden;
+.sign-widget-title .pi {
+  color: var(--p-primary-color);
 }
 .widget-frame {
   display: block;
   width: 100%;
   /* Alto inicial hasta que el widget informa el de su contenido (`firmadoc:resize`). */
-  height: min(760px, 80vh);
-  max-height: min(760px, 80vh);
+  height: 560px;
   border: 0;
   background: var(--p-content-background);
   transition: height 0.15s ease;
@@ -449,6 +662,12 @@ textarea.pem {
 .detail-head h2 {
   margin: 0;
   word-break: break-all;
+}
+.panel-card {
+  margin-bottom: 16px;
+}
+.panel-card .p-card-title {
+  font-size: 15px;
 }
 .detail-grid {
   display: grid;

@@ -44,4 +44,30 @@ describe('App', () => {
     expect(root.querySelector('app-sign')).toBeNull();
     expect(root.querySelector('.sidebar .p-menu-item.active [data-automationid]')?.getAttribute('data-automationid')).toBe('documents');
   });
+
+  it('en pantallas angostas el menú se abre como panel lateral y se cierra al elegir una sección', async () => {
+    const fixture = TestBed.createComponent(App);
+    const http = TestBed.inject(HttpTestingController);
+    const pending = TestBed.inject(AdminApi).login('t0ken-de-administracion-' + 'x'.repeat(20));
+    http.expectOne(`${API}/events?limit=1`).flush({ items: [], total: 0 });
+    await pending;
+    await fixture.whenStable();
+    const app = fixture.componentInstance;
+    expect(app.drawer()).toBe(false);
+    expect(document.querySelector('.sidebar-drawer')).toBeNull();
+
+    (fixture.nativeElement.querySelector('#menu-toggle button') as HTMLElement).click();
+    await fixture.whenStable();
+    expect(app.drawer()).toBe(true);
+    const item = document.querySelector('.sidebar-drawer [data-automationid="trust"]') as HTMLElement;
+    expect(item).not.toBeNull();
+
+    item.click();
+    await fixture.whenStable();
+    http.match(() => true).forEach((r) => r.flush(r.request.url.includes('local-certificate') ? { current: null, archived: [] } : []));
+    await fixture.whenStable();
+    expect(app.tab()).toBe('trust');
+    expect(app.drawer()).toBe(false);
+    expect(fixture.nativeElement.querySelector('app-trust')).not.toBeNull();
+  });
 });

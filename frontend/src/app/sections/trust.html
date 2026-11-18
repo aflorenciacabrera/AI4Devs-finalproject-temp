@@ -1,54 +1,73 @@
-<h2>Anclas de confianza</h2>
-<p-table id="anchors-table" [value]="anchors()" [loading]="loading()" size="small">
-  <ng-template #header>
-    <tr><th>Tipo</th><th>Sujeto</th><th>Vence</th><th>Huella SHA-256</th><th>Acciones</th></tr>
-  </ng-template>
-  <ng-template #body let-a>
-    <tr>
-      <td>{{ a.is_root ? 'Raíz' : 'Intermedia' }}</td>
-      <td>{{ a.subject }}</td>
-      <td>{{ a.not_after | fmt }}</td>
-      <td class="mono">{{ a.fingerprint }}</td>
-      <td><p-button label="Quitar" size="small" severity="danger" [outlined]="true" (onClick)="removeAnchor(a)" /></td>
-    </tr>
-  </ng-template>
-  <ng-template #emptymessage>
-    <tr><td colspan="5">Sin resultados</td></tr>
-  </ng-template>
-</p-table>
-<form class="stack" id="anchor-form" (ngSubmit)="addAnchor()">
-  <label for="anchor-pem">Agregar ancla (certificado PEM)</label>
-  <textarea pTextarea id="anchor-pem" name="certificate_pem" rows="6" required class="pem" [(ngModel)]="pem"></textarea>
-  <div><p-button type="submit" label="Agregar ancla" /></div>
-</form>
+<header class="page-head">
+  <h2>Confianza</h2>
+  <p class="muted">Autoridades certificantes en las que confía Firmadoc y certificado propio de la firma de demostración.</p>
+</header>
 
-<h2>Certificado propio (proveedor local)</h2>
-@if (certificate(); as c) {
-  <div class="card" id="certificate-info">
-    <h3>Vigente</h3>
-    @if (c.current; as current) {
-      <div>{{ current.subject }} · serie {{ current.serial_number }} · vence {{ current.not_after | fmt }}</div>
-    } @else {
-      <div>Todavía no se generó (se crea con la primera firma).</div>
-    }
+<section class="table-card" aria-labelledby="anchors-title">
+  <div class="table-card-head">
+    <h3 id="anchors-title">Anclas de confianza</h3>
   </div>
-  <h3>Archivados (siguen sirviendo para verificar firmas anteriores)</h3>
-  <p-table [value]="c.archived" size="small">
+  <p-table id="anchors-table" [value]="anchors()" [loading]="loading()" [stripedRows]="true" [rowHover]="true" [scrollable]="true" [tableStyle]="{ 'min-width': '52rem' }">
     <ng-template #header>
-      <tr><th>Serie</th><th>Huella</th><th>Vencía</th></tr>
+      <tr><th>Tipo</th><th>Sujeto</th><th>Vence</th><th>Huella SHA-256</th><th class="col-actions"><span class="sr-only">Acciones</span></th></tr>
     </ng-template>
     <ng-template #body let-a>
       <tr>
-        <td>{{ a.serial_number }}</td>
-        <td class="mono">{{ a.fingerprint }}</td>
+        <td><p-tag [value]="a.is_root ? 'Raíz' : 'Intermedia'" [severity]="a.is_root ? 'info' : 'secondary'" [rounded]="true" /></td>
+        <td>{{ a.subject }}</td>
         <td>{{ a.not_after | fmt }}</td>
+        <td class="mono">{{ a.fingerprint }}</td>
+        <td class="col-actions"><p-button label="Quitar" icon="pi pi-trash" size="small" severity="danger" [text]="true" (onClick)="removeAnchor(a)" /></td>
       </tr>
     </ng-template>
     <ng-template #emptymessage>
-      <tr><td colspan="3">Sin resultados</td></tr>
+      <tr>
+        <td colspan="5">
+          <div class="empty-state">
+            <i class="pi pi-shield" aria-hidden="true"></i>
+            <strong>Sin anclas de confianza</strong>
+            <span class="muted">Sin anclas no se puede validar ningún certificado de token.</span>
+          </div>
+        </td>
+      </tr>
     </ng-template>
   </p-table>
-}
-<div class="doc-actions">
-  <p-button id="rotate" label="Rotar certificado" severity="danger" [outlined]="true" (onClick)="rotate()" />
-</div>
+  <form class="stack table-card-form" id="anchor-form" (ngSubmit)="addAnchor()">
+    <label for="anchor-pem">Agregar ancla (certificado PEM)</label>
+    <textarea pTextarea id="anchor-pem" name="certificate_pem" rows="5" required class="pem" placeholder="-----BEGIN CERTIFICATE-----" [(ngModel)]="pem"></textarea>
+    <div><p-button type="submit" label="Agregar ancla" icon="pi pi-plus" /></div>
+  </form>
+</section>
+
+<section class="table-card" aria-labelledby="certificate-title">
+  <div class="table-card-head">
+    <h3 id="certificate-title">Certificado propio (proveedor local)</h3>
+    <p-button id="rotate" label="Rotar certificado" icon="pi pi-refresh" size="small" severity="danger" [outlined]="true" (onClick)="rotate()" />
+  </div>
+  @if (certificate(); as c) {
+    <div class="table-card-form" id="certificate-info">
+      <p-tag value="Vigente" severity="success" [rounded]="true" />
+      @if (c.current; as current) {
+        <div class="cert-current">{{ current.subject }} · serie {{ current.serial_number }} · vence {{ current.not_after | fmt }}</div>
+      } @else {
+        <div class="cert-current muted">Todavía no se generó (se crea con la primera firma).</div>
+      }
+    </div>
+    <h4 class="table-card-sub">Archivados (siguen sirviendo para verificar firmas anteriores)</h4>
+    <p-table [value]="c.archived" [stripedRows]="true" [rowHover]="true" [scrollable]="true" [tableStyle]="{ 'min-width': '40rem' }">
+      <ng-template #header>
+        <tr><th>Serie</th><th>Huella</th><th>Vencía</th></tr>
+      </ng-template>
+      <ng-template #body let-a>
+        <tr>
+          <td>{{ a.serial_number }}</td>
+          <td class="mono">{{ a.fingerprint }}</td>
+          <td>{{ a.not_after | fmt }}</td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr><td colspan="3"><span class="muted">Ningún certificado archivado.</span></td></tr>
+      </ng-template>
+    </p-table>
+  }
+</section>
