@@ -26,10 +26,24 @@ lleva lo necesario para ejecutar.
 - El agente local no va en la imagen: corre en la PC de quien firma (`agent/README.md`).
 
 ```bash
-make image        # construye firmadoc:local desde cero
+make image        # construye firmadoc:local desde cero (unos 390 MB)
 make image-run    # PostgreSQL + Firmadoc en modo demostración, en contenedores; muestra el token
 make image-stop   # los detiene (los datos quedan en los volúmenes)
 ```
+
+Conviene correr `make image` antes de `make image-run`: si la imagen no existe, compose la construye por su
+cuenta y sin el certificado de la red (ver abajo).
+
+**En una red que inspecciona HTTPS** (proxy institucional con su propia AC), `npm` y `pip` rechazan el
+certificado al construir (`SELF_SIGNED_CERT_IN_CHAIN`). No se desactiva la verificación: se le pasa a la
+construcción el certificado de esa AC, en formato PEM, como un secreto de BuildKit que se monta solo durante
+la instalación de dependencias y no queda en ninguna capa de la imagen:
+
+```bash
+make image CA_BUNDLE=ruta/al/certificado-de-la-ac.pem
+```
+
+En una red común (y en el pipeline) no hace falta.
 
 `make image-run` usa el perfil `demo` de `docker-compose.yml`. El modo demostración genera su propio token
 de administración y sus secretos dentro del volumen `firmadoc-demo-data`, así que el archivo de compose no
@@ -44,7 +58,8 @@ Para una instalación real, la misma imagen se arranca con su configuración:
 docker run --rm -p 8000:8000 --env-file .env -v firmadoc-data:/app/data firmadoc:local
 ```
 
-con, como mínimo, `FIRMADOC_DATABASE_URL`, `FIRMADOC_PUBLIC_BASE_URL`, `FIRMADOC_SIGNING_SECRET` y
+con, como mínimo, `FIRMADOC_DATABASE_URL` (sin ella la imagen intenta crear una base SQLite donde no puede
+escribir, la migración falla y el contenedor termina sin servir nada), `FIRMADOC_PUBLIC_BASE_URL`, `FIRMADOC_SIGNING_SECRET` y
 `FIRMADOC_ADMIN_TOKEN` (y `FIRMADOC_REAL_MODE=true`, que rehúsa arrancar con una configuración insegura;
 `docs/real-mode.md`). Se despliega una etiqueta concreta de la imagen, no `latest`.
 
