@@ -1,5 +1,8 @@
 # Base de datos real de Firmadoc (PostgreSQL). Credenciales por defecto SOLO DE DESARROLLO.
 # Guía de conexión (DBeaver) y de migración a la base institucional: docs/database.md
+#
+#   docker compose up -d postgres            solo la base (el servidor corre en tu PC)
+#   docker compose --profile demo up -d      la base y Firmadoc en modo demostración, en contenedores
 services:
   postgres:
     image: postgres:16
@@ -18,5 +21,40 @@ services:
       timeout: 3s
       retries: 10
 
+  # Toda la aplicación en modo demostración (docs/demo.md), para probarla sin instalar Python ni Node.
+  # El modo demo genera su propio token de administración y sus secretos en el volumen de datos: no hay
+  # ninguno escrito acá. El token se lee con `docker compose logs demo`.
+  # El puerto del contenedor y el publicado son el mismo a propósito: el widget solo se embebe desde el
+  # origen con el que se abre el panel (http://localhost:<puerto>).
+  demo:
+    profiles: [demo]
+    build: .
+    image: firmadoc:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - python
+      - -m
+      - firmadoc.demo
+      - --host
+      - 0.0.0.0
+      - --port
+      - "${FIRMADOC_DEMO_PORT:-8000}"
+      - --database-url
+      - postgresql+psycopg://${FIRMADOC_DB_USER:-firmadoc}:${FIRMADOC_DB_PASSWORD:-firmadoc}@postgres:5432/${FIRMADOC_DB_NAME:-firmadoc}
+    ports:
+      - "127.0.0.1:${FIRMADOC_DEMO_PORT:-8000}:${FIRMADOC_DEMO_PORT:-8000}" # solo accesible desde esta PC
+    volumes:
+      - firmadoc-demo-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('FIRMADOC_DEMO_PORT', '8000') + '/health', timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+    environment:
+      FIRMADOC_DEMO_PORT: ${FIRMADOC_DEMO_PORT:-8000}
+
 volumes:
   firmadoc-pgdata:
+  firmadoc-demo-data:

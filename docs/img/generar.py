@@ -23,9 +23,9 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "backend" / "src"))
 
-from firmadoc import demo  # noqa: E402
-from firmadoc.main import app  # noqa: E402
-from firmadoc.seed import demo_pdf  # noqa: E402
+from firmadoc import demo
+from firmadoc.main import app
+from firmadoc.seed import demo_pdf
 
 
 def free_port() -> int:

@@ -1,13 +1,30 @@
 name: CI
 
+# Cada trabajo responde a una pregunta y no a las demás; lo que el pipeline NO comprueba está en docs/ci.md.
+# Los trabajos llaman a los mismos atajos de `make` que se usan en una PC (con PYTHON=python).
+# Las acciones de terceros van fijadas al commit completo, con la versión en el comentario; Dependabot
+# (.github/dependabot.yml) avisa cuando hay que moverlas.
+
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+# Sin permisos por defecto: cada trabajo declara los mínimos que necesita.
+permissions: {}
+
+# Un push nuevo a la misma rama cancela la ejecución anterior.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  # ¿La suite del backend pasa en una máquina limpia, contra un PostgreSQL real?
   backend:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     services:
       postgres:
         image: postgres:16
@@ -20,49 +37,62 @@ jobs:
           --health-cmd "pg_isready -U firmadoc" --health-interval 5s
           --health-timeout 5s --health-retries 10
     env:
-      # Los tests de esquema recrean el esquema `public`: base descartable.
+      # Los tests de esquema recrean el esquema `public`: base descartable (no es un secreto).
       FIRMADOC_TEST_PG_URL: postgresql+psycopg://firmadoc:firmadoc@localhost:5432/firmadoc
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with: { python-version: "3.12" }
       - run: pip install -e ".[dev]" -e "agent[dev]"
-      - run: ruff check .
-      - run: pytest tests
+      - run: make lint PYTHON=python
+      - run: make test-backend PYTHON=python ARGS="--junitxml=pytest-backend.xml"
+      - if: always()
+        run: python .github/scripts/pytest_summary.py "Backend" pytest-backend.xml >> "$GITHUB_STEP_SUMMARY"
 
+  # ¿El agente firma con un token PKCS#11 real por software (SoftHSM) y su diálogo funciona?
   agent:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       SOFTHSM2_MODULE: /usr/lib/softhsm/libsofthsm2.so
       SOFTHSM2_UTIL: /usr/bin/softhsm2-util
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with: { python-version: "3.12" }
       - run: sudo apt-get update && sudo apt-get install -y softhsm2 python3-tk xvfb
       - run: pip install -e "agent[dev]"
-      - run: ruff check agent
+      - run: python -m ruff check agent
       # xvfb: pantalla virtual para las pruebas del diálogo tkinter
-      - run: xvfb-run -a pytest agent/tests
+      - run: xvfb-run -a make test-agent PYTHON=python ARGS="--junitxml=pytest-agent.xml"
+      - if: always()
+        run: python .github/scripts/pytest_summary.py "Agente (SoftHSM)" pytest-agent.xml >> "$GITHUB_STEP_SUMMARY"
 
+  # ¿El agente se puede probar y empaquetar en Windows, que es donde corre? (sin SoftHSM ni token físico)
   agent-windows:
     runs-on: windows-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with: { python-version: "3.13" }
       - run: pip install -e "agent[dev,build]"
-      - run: pytest agent/tests
+      - run: python -m pytest agent/tests
       - run: powershell -File agent/packaging/build.ps1
 
+  # ¿El widget compila con tipos estrictos, pasa su lint y sus pruebas (incluida accesibilidad)?
   widget:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: widget
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
           cache: npm
@@ -72,19 +102,22 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: widget-dist
           path: widget/dist
 
+  # ¿El panel Angular pasa sus pruebas y compila?
   frontend:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
           cache: npm
@@ -93,17 +126,42 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  # ¿Los recorridos críticos funcionan en un Chrome real? (servidor y agente reales, página anfitriona en
+  # otro origen; usa el Chrome del runner y el widget que compiló el trabajo `widget`)
   e2e:
-    # Chrome real: servidor y agente reales, página anfitriona en otro origen (usa el Chrome del runner).
     needs: widget
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with: { python-version: "3.12" }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: widget-dist
           path: widget/dist
       - run: pip install -e ".[dev]" -e "agent[dev]"
-      - run: pytest tests/e2e -v
+      - run: make test-e2e PYTHON=python ARGS="--junitxml=pytest-e2e.xml"
+      - if: always()
+        run: python .github/scripts/pytest_summary.py "Navegador (e2e)" pytest-e2e.xml >> "$GITHUB_STEP_SUMMARY"
+
+  # ¿La imagen del servidor se puede fabricar desde cero?
+  # Límite: este trabajo afirma que la imagen SE CONSTRUYE, no que arranque ni que firme. Arrancarla se
+  # prueba en una PC con `make image-run` (docs/ci.md).
+  image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - run: make image
+
+  # ¿Los propios archivos del pipeline son válidos?
+  lint-workflows:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - run: make ci-lint

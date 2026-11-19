@@ -1,0 +1,33 @@
+# Lo que no entra al contexto de construcción de la imagen (ver Dockerfile).
+.git
+.github
+.venv
+**/node_modules
+**/dist
+**/build
+**/__pycache__
+**/*.pyc
+**/*.egg-info
+.pytest_cache
+.ruff_cache
+frontend/.angular
+
+# Configuración y datos locales: la imagen no lleva secretos ni bases
+.env
+.env.*
+!.env.example
+*.db
+data
+backend/trust/*.key
+tests/pki/out
+
+# No hacen falta para ejecutar el servidor
+agent
+tests
+docs
+design
+openspec
+ai-specs
+.claude
+.cursor
+**/*.md

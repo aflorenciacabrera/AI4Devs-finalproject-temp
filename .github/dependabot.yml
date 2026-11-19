@@ -1,0 +1,23 @@
+# Avisos automáticos de actualizaciones. Las acciones del pipeline van fijadas a un commit (ci.yml):
+# esto es lo que avisa cuando hay que moverlas, y lo mismo para las dependencias de cada subproyecto.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+  - package-ecosystem: pip
+    directory: /
+    schedule: { interval: monthly }
+  - package-ecosystem: pip
+    directory: /agent
+    schedule: { interval: monthly }
+  - package-ecosystem: npm
+    directory: /widget
+    schedule: { interval: monthly }
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: monthly }
+    ignore:
+      # PrimeNG se queda en la 21 (la 22 cambia de licencia; ver frontend/README.md)
+      - dependency-name: primeng
+        update-types: ["version-update:semver-major"]
