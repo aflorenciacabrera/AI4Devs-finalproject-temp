@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     webhook_timeout_seconds: float = 5.0
     webhook_worker_enabled: bool = True
     webhook_poll_seconds: float = 5.0
+    # Registros estructurados (docs/observability.md): json (una línea por evento) | text (desarrollo)
+    log_format: str = "json"
+    log_level: str = "INFO"
 
     @field_validator("storage_backend")
     @classmethod
@@ -61,6 +64,20 @@ class Settings(BaseSettings):
         if value not in ("files", "database"):
             raise ValueError("FIRMADOC_STORAGE_BACKEND debe ser 'files' o 'database'")
         return value
+
+    @field_validator("log_format")
+    @classmethod
+    def _check_log_format(cls, value):
+        if value not in ("json", "text"):
+            raise ValueError("FIRMADOC_LOG_FORMAT debe ser 'json' o 'text'")
+        return value
+
+    @field_validator("log_level")
+    @classmethod
+    def _check_log_level(cls, value):
+        if str(value).upper() not in ("DEBUG", "INFO", "WARNING", "ERROR"):
+            raise ValueError("FIRMADOC_LOG_LEVEL debe ser DEBUG, INFO, WARNING o ERROR")
+        return str(value).upper()
 
     @field_validator("tsa_url", "firmar_base_url", mode="before")
     @classmethod

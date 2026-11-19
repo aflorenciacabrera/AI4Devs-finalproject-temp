@@ -39,6 +39,7 @@ alwaysApply: true
 - La **API key del integrador nunca llega al navegador**; el widget usa el token acotado del fragmento `#t=`, que vive solo en memoria.
 - `postMessage` siempre con `targetOrigin` explícito (nunca `"*"`) y validación del emisor; `frame-ancestors` por integrador.
 - El agente escucha solo en `127.0.0.1`, acepta solo `allowed_origins`, expone dos operaciones (listar certificados, firmar hashes) y confirma con el nombre del documento antes de firmar.
+- Los **registros** llevan identificadores, nunca datos personales del firmante, tokens, claves ni contenido de documentos (`docs/observability.md`).
 - Panel: CSP estricta con nonce por pedido; sin `innerHTML`; el único `bypass` del sanitizador es el `src` del iframe con la `signing_url` del backend.
 
 ## 3. Idioma
@@ -49,7 +50,7 @@ alwaysApply: true
 ## 4. Documentación de referencia
 
 - [README.md](./README.md): §1 producto, §2 arquitectura y §2.5 seguridad, §3 modelo de datos, §4 API, §5 historias de usuario, §6 tickets.
-- [docs/](./docs/): `admin.md`, `agent-contract.md`, `database.md`, `demo.md`, `documents-api.md`, `firmar.md`, `real-mode.md`, `signature-batches.md`, `timestamping.md`, `webhooks.md`; `prototipo-referencia-firmadoc.md` y `design/mockup/` como referencia visual.
+- [docs/](./docs/): `admin.md`, `agent-contract.md`, `ci.md`, `database.md`, `demo.md`, `documents-api.md`, `firmar.md`, `real-mode.md`, `signature-batches.md`, `observability.md`, `slo/api.md`, `timestamping.md`, `webhooks.md`; `prototipo-referencia-firmadoc.md` y `design/mockup/` como referencia visual.
 - [docs/documentation-standards.md](./docs/documentation-standards.md): qué documento se actualiza con cada tipo de cambio.
 - READMEs de cada subproyecto: `backend/README.md`, `agent/README.md`, `widget/README.md`, `frontend/README.md`.
 - `prompts.md`: registro del uso de IA (formato oficial de la entrega); se actualiza cuando una fase nueva usa prompts relevantes.

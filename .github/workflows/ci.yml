@@ -10,6 +10,9 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Una vez por semana aunque nadie haga push: una vulnerabilidad nueva no espera a un cambio de código.
+  schedule:
+    - cron: "17 6 * * 1"
 
 # Sin permisos por defecto: cada trabajo declara los mínimos que necesita.
 permissions: {}
@@ -165,3 +168,47 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - run: make ci-lint
+
+  # ¿Alguna dependencia de EJECUCIÓN tiene una vulnerabilidad conocida?
+  # Bloquea: Python (cualquier severidad) y npm de ejecución (severidad alta o crítica).
+  # Solo informa: las dependencias de desarrollo de npm (herramientas de build y de pruebas, que no viajan
+  # a la imagen); su resultado va al resumen y no pone el trabajo en rojo.
+  # Qué sale de la máquina: nombres y versiones de los paquetes, hacia PyPI/OSV y hacia el registro de npm.
+  # Límite: solo vulnerabilidades ya publicadas en dependencias; no analiza el código propio ni la imagen.
+  deps-audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version: "22" }
+      - name: Dependencias de Python tal como se resuelven hoy (instalación limpia)
+        run: |
+          python -m venv /tmp/audit
+          /tmp/audit/bin/pip install --quiet .
+          /tmp/audit/bin/pip freeze --exclude firmadoc > /tmp/requirements-audit.txt
+          pipx run pip-audit -r /tmp/requirements-audit.txt --no-deps --disable-pip --progress-spinner off
+      - name: Dependencias de ejecución del widget
+        if: always()
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: widget
+      - name: Dependencias de ejecución del panel
+        if: always()
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: frontend
+      - name: Dependencias de desarrollo de npm (informa, no bloquea)
+        if: always()
+        run: |
+          {
+            echo "### Dependencias de desarrollo de npm (informativo)"
+            for dir in widget frontend; do
+              echo ""
+              echo "**$dir**"
+              echo '```'
+              (cd "$dir" && npm audit --audit-level=high 2>&1 | tail -n 6) || true
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -65,7 +65,8 @@ escribir, la migración falla y el contenedor termina sin servir nada), `FIRMADO
 
 ## El pipeline: un trabajo por pregunta
 
-`.github/workflows/ci.yml`. Corre en cada pull request, en cada push a `main` y a mano.
+`.github/workflows/ci.yml`. Corre en cada pull request, en cada push a `main`, a mano y una vez por semana
+(una vulnerabilidad nueva no espera a un cambio de código).
 
 | Trabajo | Pregunta que responde | Qué **no** afirma |
 |---|---|---|
@@ -77,10 +78,20 @@ escribir, la migración falla y el contenedor termina sin servir nada), `FIRMADO
 | `e2e` | ¿Los recorridos críticos funcionan en un Chrome real? | Firefox, Safari ni Edge (Edge se prueba a mano con `FIRMADOC_E2E_BROWSER=msedge`) |
 | `image` | ¿La imagen se puede fabricar desde cero? | Que arranque ni que firme: eso es `make image-run` en una PC |
 | `lint-workflows` | ¿Los archivos del pipeline son válidos (actionlint)? | Que hagan lo que dicen |
+| `deps-audit` | ¿Alguna dependencia de **ejecución** tiene una vulnerabilidad publicada? (Python: cualquiera; npm: alta o crítica) | Nada sobre el código propio ni sobre la imagen. Las de **desarrollo** de npm solo se informan en el resumen: no bloquean |
 
-Lo que **ningún** trabajo comprueba hoy: vulnerabilidades de dependencias y de la imagen, secretos
-filtrados en el historial, análisis estático de seguridad, cobertura, rendimiento, el despliegue (no hay) y
-la firma con hardware.
+Lo que **ningún** trabajo comprueba hoy: vulnerabilidades de la imagen (sistema base), secretos filtrados
+en el historial, análisis estático de seguridad del código propio, cobertura, rendimiento, el despliegue
+(no hay) y la firma con hardware.
+
+**Sobre `deps-audit`.** Usa `pip-audit` (licencia Apache 2.0) y `npm audit` (parte de npm). Las dos
+mandan fuera de la máquina los **nombres y versiones** de los paquetes (a PyPI/OSV y al registro de npm);
+no mandan código. Audita las dependencias de Python tal como se resuelven ese día en una instalación
+limpia, que es lo que termina en la imagen. Si una vulnerabilidad no tiene arreglo y no aplica, se la
+exceptúa a propósito con `--ignore-vuln <ID>` y el motivo en un comentario; no se apaga el trabajo.
+En una PC: `uvx pip-audit -r <requisitos>` y `npm audit --omit=dev --audit-level=high` en `widget/` y
+`frontend/`. Los escaneos de la imagen y el análisis estático quedan para sumarlos de a uno, cuando
+alguien pueda atender sus avisos.
 
 Reglas del archivo:
 

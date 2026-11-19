@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select
 
-from .. import signing_token, webhooks
+from .. import observability, signing_token, webhooks
 from ..errors import Conflict, DomainError, NotFound, Unprocessable
 from ..models import (
     AuditEvent,
@@ -46,6 +46,7 @@ def signing_url(ctx: Ctx, batch: SignatureBatch) -> str:
 
 def _audit(ctx: Ctx, batch: SignatureBatch, event_type: str, payload: dict | None = None) -> None:
     ctx.db.add(AuditEvent(batch_id=batch.id, event_type=event_type, payload=payload or {}))
+    observability.log_audit(event_type, payload, batch_id=batch.id)
 
 
 def _get_batch(ctx: Ctx, batch_id: uuid.UUID) -> SignatureBatch:

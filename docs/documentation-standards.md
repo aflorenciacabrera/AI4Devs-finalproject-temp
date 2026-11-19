@@ -10,6 +10,8 @@ Cómo se mantiene la documentación de Firmadoc y la capa de OpenSpec / `ai-spec
 | `prompts.md` | Registro del uso de IA por fase | Una fase nueva usa prompts relevantes; se agregan agentes o skills al flujo |
 | `docs/openapi.json` | Contrato OpenAPI exportado desde la aplicación (`python docs/openapi.py`); no se edita a mano | Se agrega, quita o cambia un endpoint o un esquema (`tests/test_openapi_contract.py` falla si falta una ruta) |
 | `docs/ci.md` | Imagen del servidor, qué garantiza y qué no comprueba cada trabajo del pipeline, y qué secretos existen (sin valores) | Cambia el `Dockerfile`, un trabajo del pipeline o se agrega un secreto |
+| `docs/observability.md` | Qué se registra, el identificador de pedido y qué no se registra nunca | Se agrega un evento, un campo a los registros o cambia su configuración |
+| `docs/slo/api.md` | SLO de firma: indicadores, objetivo, presupuesto de error y cómo medirlo | Cambia el objetivo, un umbral o las rutas que cuentan como firma |
 | `AGENTS.md` / `CLAUDE.md` | Reglas para los agentes de IA (idénticos) | Cambian convenciones, invariantes, comandos de verificación o el flujo OpenSpec |
 | `docs/documentation-standards.md` | Este archivo | Se agrega o renombra un documento |
 | `docs/documents-api.md` | Endpoints de documentos y versiones | Cambia el contrato de `/api/v1/documents` |

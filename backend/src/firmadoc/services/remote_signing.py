@@ -15,7 +15,7 @@ from pyhanko.pdf_utils.reader import PdfFileReader
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import webhooks
+from .. import observability, webhooks
 from ..certificate_validation import extract_cuil, normalize_cuil
 from ..config import Settings
 from ..errors import Conflict, NotFound, Unauthorized, Unprocessable
@@ -43,6 +43,7 @@ STATUSES = {"signed", "rejected", "expired"}
 
 def _audit(db: Session, request: SignatureRequest, event_type: str, payload: dict) -> None:
     db.add(AuditEvent(signature_request_id=request.id, event_type=event_type, payload=payload))
+    observability.log_audit(event_type, payload, signature_request_id=request.id)
 
 
 def prepare(ctx: Ctx, request: SignatureRequest) -> dict:

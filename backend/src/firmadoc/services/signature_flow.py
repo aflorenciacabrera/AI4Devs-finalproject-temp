@@ -12,7 +12,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .. import signing_token, timestamping, webhooks
+from .. import observability, signing_token, timestamping, webhooks
 from ..config import Settings
 from ..errors import Conflict, DomainError, NotFound, ServiceUnavailable, Unprocessable
 from ..models import (
@@ -61,6 +61,7 @@ def _aware(dt: datetime) -> datetime:
 
 def _audit(db: Session, request: SignatureRequest, event_type: str, payload: dict | None = None):
     db.add(AuditEvent(signature_request_id=request.id, event_type=event_type, payload=payload or {}))
+    observability.log_audit(event_type, payload, signature_request_id=request.id, batch_id=request.batch_id)
 
 
 def _get_request(ctx: Ctx, request_id: uuid.UUID) -> SignatureRequest:

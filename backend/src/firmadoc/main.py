@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from . import mock_firmar, preflight, webhooks
+from . import mock_firmar, observability, preflight, webhooks
 from .api import deps
 from .api.admin_pages import router as admin_pages_router
 from .api.admin_routes import router as admin_router
@@ -18,8 +18,9 @@ from .errors import DomainError
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Arranca el trabajador de webhooks (si está habilitado) y lo detiene al apagar."""
+    """Configura los registros, arranca el trabajador de webhooks (si está habilitado) y lo detiene al apagar."""
     settings = app.dependency_overrides.get(deps.settings_dep, deps.settings_dep)()
+    observability.configure_logging(settings.log_format, settings.log_level)
     if settings.real_mode:  # no se sirve nada con una configuración insegura
         bad = preflight.errors(preflight.check(settings))
         if bad:
@@ -36,6 +37,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Firmadoc", lifespan=lifespan)
+# Identificador por pedido (cabecera X-Request-ID) y un registro estructurado por pedido.
+app.add_middleware(observability.RequestContextMiddleware)
 app.include_router(router)
 app.include_router(widget_router)
 app.include_router(widget_batch_router)
