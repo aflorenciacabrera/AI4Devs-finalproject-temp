@@ -17,6 +17,9 @@ PANEL_DIST := frontend/dist/firmadoc-panel/browser/index.html
 IMAGE := firmadoc:local
 DEMO_PORT ?= 8000
 ACTIONLINT_IMAGE := rhysd/actionlint:1.7.12
+# Certificado (PEM) de la AC de una red que inspecciona HTTPS; vacío en una red común.
+CA_BUNDLE ?=
+comma := ,
 
 .PHONY: help install build build-widget build-panel demo agent lint test test-backend test-agent test-e2e \
 	image image-run image-stop ci-lint
@@ -78,8 +81,9 @@ test-e2e:
 	$(PYTHON) -m pytest tests/e2e -v $(ARGS)
 
 # Imagen del servidor (Dockerfile): se construye desde cero, sin nada de esta PC salvo el repositorio.
+# En una red que inspecciona HTTPS: make image CA_BUNDLE=ruta/al/certificado-de-la-ac.pem (docs/ci.md).
 image:
-	docker build -t $(IMAGE) .
+	docker build $(if $(CA_BUNDLE),--secret id=ca_bundle$(comma)src=$(CA_BUNDLE)) -t $(IMAGE) .
 
 # Base y demo en contenedores. El token de administración lo genera la demo: sale en sus registros.
 image-run:
@@ -92,4 +96,4 @@ image-stop:
 
 # Valida .github/workflows/ sin instalar nada: la imagen oficial de actionlint, con el repositorio montado.
 ci-lint:
-	docker run --rm -v "$(CURDIR):/repo" -w /repo $(ACTIONLINT_IMAGE) -color
+	docker run --rm -v "./:/repo" -w /repo $(ACTIONLINT_IMAGE) -color

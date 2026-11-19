@@ -1,16 +1,23 @@
 # syntax=docker/dockerfile:1
 # Imagen del servidor de Firmadoc: API, widget de firma y panel de administración en un solo proceso.
-# Tres etapas construyen (widget, panel, paquete Python) y la final solo lleva lo que hace falta para ejecutar:
-# ni Node, ni el código fuente de los frontends, ni dependencias de desarrollo, ni ningún .env.
+# Tres etapas construyen (widget, panel, dependencias de Python) y la final solo lleva lo que hace falta para
+# ejecutar: ni Node, ni el código fuente de los frontends, ni dependencias de desarrollo, ni ningún .env.
 # La configuración (FIRMADOC_*) entra al arrancar el contenedor, nunca al construir la imagen.
 # El agente local (agent/) no va en la imagen: corre en la PC de quien firma.
+#
+# Redes que inspeccionan HTTPS (proxy institucional con su propia AC): npm y pip rechazan el certificado.
+# En lugar de desactivar la verificación, se le pasa a la construcción el certificado de esa AC como un
+# secreto de BuildKit (`make image CA_BUNDLE=ruta/al/ca.pem`). Se monta solo durante cada `RUN`: no queda
+# en ninguna capa de la imagen. Sin el secreto, la construcción usa las AC públicas de siempre.
 
 # --- Widget de firma (React + Vite) -------------------------------------------------------------------
 FROM node:22-slim AS widget-build
 WORKDIR /src/widget
 # Primero solo las dependencias: esta capa se reutiliza mientras no cambie el lockfile.
 COPY widget/package.json widget/package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN --mount=type=secret,id=ca_bundle \
+    if [ -s /run/secrets/ca_bundle ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/ca_bundle; fi; \
+    npm ci --no-audit --no-fund
 COPY widget/ ./
 RUN npm run build
 
@@ -18,7 +25,9 @@ RUN npm run build
 FROM node:22-slim AS panel-build
 WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN --mount=type=secret,id=ca_bundle \
+    if [ -s /run/secrets/ca_bundle ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/ca_bundle; fi; \
+    npm ci --no-audit --no-fund
 COPY frontend/ ./
 RUN npm run build
 
@@ -32,7 +41,9 @@ ENV PATH=/opt/venv/bin:$PATH
 WORKDIR /src
 COPY pyproject.toml ./
 COPY backend/src ./backend/src
-RUN pip install --no-cache-dir . && pip uninstall --yes firmadoc
+RUN --mount=type=secret,id=ca_bundle \
+    if [ -s /run/secrets/ca_bundle ]; then export PIP_CERT=/run/secrets/ca_bundle; fi; \
+    pip install --no-cache-dir . && pip uninstall --yes firmadoc
 
 # --- Imagen final -------------------------------------------------------------------------------------
 FROM python:3.12-slim
