@@ -735,7 +735,7 @@ Criterios de aceptación:
 
 ## 6. Tickets de Trabajo
 
-**Backlog en Jira (fuente de los tickets).** Todo el trabajo se planificó y se siguió en el proyecto `FIRDOC` de Jira ([tablero](https://aflorenciacabrera.atlassian.net/jira/software/projects/FIRDOC/boards/35/backlog), privado): 8 épicas y 61 historias, tareas y errores. Cada cambio de OpenSpec y cada commit citan la clave `FIRDOC-N` que implementan (tabla de la sección 7). Estado en Jira al 18/11/2026: 57 de 61 en «Listo».
+**Backlog en Jira (fuente de los tickets).** Todo el trabajo se planificó y se siguió en el proyecto `FIRDOC` de Jira ([tablero](https://aflorenciacabrera.atlassian.net/jira/software/projects/FIRDOC/boards/35/backlog), privado): 8 épicas y 61 historias, tareas y errores. Cada cambio de OpenSpec y cada commit citan la clave `FIRDOC-N` que implementan (tabla de la sección 7). Estado en Jira al 19/11/2026: 58 de 61 en «Listo».
 
 | Épica | Tickets | Estado en Jira |
 |---|---|---|
@@ -746,7 +746,7 @@ Criterios de aceptación:
 | FIRDOC-18 · Proveedor token y Firmadoc Agent | 20, 21, 22, 49, 50, 51, 52 | Listo |
 | FIRDOC-19 · API de integración y versionado | 23, 24, 25, 26, 28, 61, 66 | Listo |
 | FIRDOC-33 · Carga de PDF y sección «Firmar documento» | 44, 45 | Listo |
-| FIRDOC-5 · Documentación y entrega académica | 16, 17, 40, 41, 48, 53 a 60, 62, 65, 67 · 42, 43, 63 | Abierta: falta el despliegue público (42), sigue abierto en Jira el trámite de la Entrega 1 (43) y quedan los controles manuales y el formulario de la Entrega 2 (63) |
+| FIRDOC-5 · Documentación y entrega académica | 16, 17, 40, 41, 48, 53 a 60, 62, 63, 65, 67 · 42, 43 | Abierta: falta el despliegue público (42) y sigue abierto en Jira el trámite de la Entrega 1 (43) |
 | Sin épica | 31 (PostgreSQL), 32 (modo real), 46 (modo demostración) | Listo |
 
 De ese backlog, la plantilla pide detallar tres tickets (backend, frontend y base de datos); se agrega el del agente local.
