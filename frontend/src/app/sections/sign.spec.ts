@@ -79,7 +79,7 @@ describe('Sign', () => {
     expect(root.textContent).toContain('2 páginas · 2 KB');
     expect(component.widgetOpen()).toBe(true);
     const iframe = widgetIframe();
-    expect(iframe?.getAttribute('src')).toBe(SIGNING_URL.replace('#', '?theme=light&accent=emerald#'));
+    expect(iframe?.getAttribute('src')).toBe(SIGNING_URL.replace('#', '?theme=light&accent=blue#'));
     expect(iframe?.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox');
     // el nombre del PDF va en la tarjeta del documento, no en la del widget
     expect(root.querySelector('.sign-widget-title')?.textContent?.trim()).toBe('Firma de documento');

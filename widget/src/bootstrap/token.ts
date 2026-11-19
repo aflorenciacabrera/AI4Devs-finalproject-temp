@@ -65,12 +65,12 @@ export function applyTheme(root: { dataset: DOMStringMap }, search: string): "li
 }
 
 /** Acentos que puede pedir el anfitrión: lista cerrada, nunca un color libre que llegue por la URL. */
-export const ACCENTS = ["emerald"] as const;
+export const ACCENTS = ["blue", "emerald"] as const;
 export type Accent = (typeof ACCENTS)[number];
 
 /**
  * Acento que pide el anfitrión con `?accent=<nombre>` para que el widget use sus colores (el panel de
- * Firmadoc pide `emerald`). Otro valor o ninguno: sin atributo, y queda el color de marca propio.
+ * Firmadoc pide `blue`). Otro valor o ninguno: sin atributo, y queda el color de marca propio.
  */
 export function applyAccent(root: { dataset: DOMStringMap }, search: string): Accent | null {
   const value = new URLSearchParams(search).get("accent");

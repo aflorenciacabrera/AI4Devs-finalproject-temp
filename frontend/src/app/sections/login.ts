@@ -13,10 +13,10 @@ import { AdminApi } from '../core/admin-api';
     <section class="login">
       <p-card styleClass="login-card">
         <div class="brand">
-          <span class="brand-mark" aria-hidden="true"><i class="pi pi-verified"></i></span>
+          <span class="brand-mark" aria-hidden="true"><i class="pi pi-signature"></i></span>
           <span>
             <strong class="brand-name">Firmadoc</strong>
-            <span class="brand-sub">Panel de administración</span>
+            <span class="brand-sub">Panel Principal</span>
           </span>
         </div>
         <h2>Ingreso</h2>

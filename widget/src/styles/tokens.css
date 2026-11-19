@@ -74,9 +74,51 @@
 }
 
 /*
- * Acento del anfitrión: `?accent=emerald` (lista cerrada) cambia el color de marca y los neutros por los del
- * panel de Firmadoc (PrimeNG Aura), para que el widget se vea como una parte más de esa pantalla.
+ * Acento del anfitrión: `?accent=<nombre>` (lista cerrada) cambia el color de marca y los neutros, para que
+ * el widget se vea como una parte más de la pantalla que lo embebe.
+ * `blue` es la paleta del panel de Firmadoc (frontend/src/app/core/preset.ts y admin_ui/admin.css).
  */
+:root[data-accent="blue"] {
+  --surface: #ffffff;
+  --surface-2: #f6f7f9;
+  --border: #d5d9e0;
+  --text: #1b1f24;
+  --text-2: #3a4350;
+  --text-3: #5b6573;
+  --brand: #1f5fbf;
+  --brand-tint: #d9e6fa;
+  --focus: #3f7fdc;
+}
+
+:root[data-accent="blue"][data-theme="dark"] {
+  --surface: #1c2128;
+  --surface-2: #232a33;
+  --border: #2c333d;
+  --text: #e8eaee;
+  --text-2: #b8c0cb;
+  --text-3: #9aa4b2;
+  --brand: #6ea3f2;
+  --brand-tint: #1f3254;
+  --focus: #6ea3f2;
+  --on-brand: #14171c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-accent="blue"]:not([data-theme="light"]) {
+    --surface: #1c2128;
+    --surface-2: #232a33;
+    --border: #2c333d;
+    --text: #e8eaee;
+    --text-2: #b8c0cb;
+    --text-3: #9aa4b2;
+    --brand: #6ea3f2;
+    --brand-tint: #1f3254;
+    --focus: #6ea3f2;
+    --on-brand: #14171c;
+  }
+}
+
+/* `emerald`: verde, con neutros de PrimeNG Aura sin personalizar. */
 :root[data-accent="emerald"] {
   --surface: #ffffff;
   --surface-2: #f6f7f9;

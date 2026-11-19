@@ -4,14 +4,14 @@ import { Theme, ThemeName } from '../core/theme';
 import { SignResult, parseWidgetMessage, widgetFrameHeight } from '../core/widget-messages';
 
 /**
- * Agrega `theme=<tema>&accent=emerald` a la consulta de la `signing_url`, antes del fragmento (donde va el
+ * Agrega `theme=<tema>&accent=blue` a la consulta de la `signing_url`, antes del fragmento (donde va el
  * token): el widget toma el modo claro/oscuro y los colores del panel.
  */
 export function withTheme(signingUrl: string, theme: ThemeName): string {
   const hash = signingUrl.indexOf('#');
   const base = hash === -1 ? signingUrl : signingUrl.slice(0, hash);
   const fragment = hash === -1 ? '' : signingUrl.slice(hash);
-  return `${base}${base.includes('?') ? '&' : '?'}theme=${theme}&accent=emerald${fragment}`;
+  return `${base}${base.includes('?') ? '&' : '?'}theme=${theme}&accent=blue${fragment}`;
 }
 
 /**

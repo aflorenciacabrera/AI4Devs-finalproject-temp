@@ -155,7 +155,7 @@ El widget SHALL verse como parte del diálogo o la página que lo embebe: SHALL 
 - **THEN** el widget usa sus colores oscuros; con `?theme=light`, los claros; sin el parámetro, los del sistema
 
 #### Scenario: Acento del anfitrión
-- **WHEN** la URL de firma lleva `?accent=emerald`
+- **WHEN** la URL de firma lleva `?accent=blue` o `?accent=emerald`
 - **THEN** el widget usa ese color de marca y sus neutros en lugar del azul propio; con un valor que no está en la lista cerrada de acentos, lo ignora
 
 #### Scenario: Sin aclaraciones de más

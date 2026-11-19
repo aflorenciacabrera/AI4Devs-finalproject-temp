@@ -35,7 +35,7 @@
           <p-button label="Quitar" icon="pi pi-times" severity="secondary" [text]="true" size="small" (onClick)="reset()" />
         </div>
         <div class="doc-footer">
-          <p-message severity="secondary" variant="simple" icon="pi pi-info-circle">
+          <p-message severity="warn" icon="pi pi-exclamation-triangle" styleClass="doc-notice">
             Al firmar, la versión firmada será la v2 y quedará como vigente; el original se conserva.
           </p-message>
           @if (!widgetOpen()) {

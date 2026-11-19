@@ -10,10 +10,13 @@ Lo que sí se comprueba está al final.
 ## Colores: se nombra la intención, no el valor
 
 **Regla:** en el panel y en el widget no se escriben colores a mano. Los valores literales viven en una sola
-capa (`frontend/src/styles.css` tiene dos; `widget/src/styles/tokens.css`, el resto) y todo lo demás apunta
+capa (`frontend/src/app/core/preset.ts` y dos en `frontend/src/styles.css`; `widget/src/styles/tokens.css`, el resto) y todo lo demás apunta
 a un nombre.
 
-### Panel (tokens del tema Aura de PrimeNG)
+### Panel (tema Aura de PrimeNG con la paleta de Firmadoc)
+
+La paleta —acento azul `#1f5fbf` en claro y `#6ea3f2` en oscuro, y grises azulados— es la misma del panel
+estático y se define una sola vez, en `frontend/src/app/core/preset.ts`.
 
 | Para… | Token |
 |---|---|
@@ -51,8 +54,8 @@ El modo oscuro no se programa por pantalla: cambia `data-theme` en `<html>` y lo
 | Estados | `--teal` (bien), `--amber` (atención), `--red` (error), cada uno con su `-tint` |
 | Foco del teclado | `--focus` |
 
-El anfitrión elige el modo con `?theme=light|dark` y, si quiere sus colores, el acento con `?accent=emerald`
-(lista cerrada; es lo que usa el panel). Agregar un acento es agregar un bloque en `tokens.css` y su nombre
+El anfitrión elige el modo con `?theme=light|dark` y, si quiere sus colores, el acento con `?accent=<nombre>`
+(lista cerrada: `blue`, que es lo que usa el panel, y `emerald`). Agregar un acento es agregar un bloque en `tokens.css` y su nombre
 en `ACCENTS` (`widget/src/bootstrap/token.ts`); nunca un color libre por URL.
 
 ## Piezas del panel
@@ -76,6 +79,7 @@ Primero un componente de PrimeNG; una clase propia solo cuando PrimeNG no lo cub
 | Línea de tiempo | Cadena de custodia | `ol.timeline` con `li.ok`, `li.warning`, `li.error` |
 | Clave y valor | Detalle técnico | `dl.kv` |
 | Credenciales de un solo uso | Claves que se muestran una vez | `.credentials` con `code` |
+| Aviso dentro de la pantalla | Algo que conviene saber antes de actuar | `p-message severity="warn"` con ícono de advertencia; `severity="error"` solo para errores, y el resultado de una firma usa `success` o `error` |
 | Aviso y confirmación | Mensajes y preguntas | `p-toast` (vía `AdminApi.ok/fail`) y `p-confirmdialog` (vía `ConfirmationService`) |
 
 Convenciones: botones siempre con texto (el ícono acompaña, no reemplaza); la acción destructiva lleva

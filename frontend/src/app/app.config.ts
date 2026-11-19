@@ -1,8 +1,8 @@
 import { provideHttpClient } from '@angular/common/http';
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import Aura from '@primeuix/themes/aura';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
+import { FirmadocPreset } from './core/preset';
 
 /**
  * `nonce`: el que el servidor escribe en `ngCspNonce` al servir `/panel`. Angular lo usa para sus estilos y
@@ -14,7 +14,7 @@ export function appConfig(nonce?: string): ApplicationConfig {
       provideBrowserGlobalErrorListeners(),
       provideHttpClient(),
       providePrimeNG({
-        theme: { preset: Aura, options: { darkModeSelector: '[data-theme="dark"]', cssLayer: false } },
+        theme: { preset: FirmadocPreset, options: { darkModeSelector: '[data-theme="dark"]', cssLayer: false } },
         csp: { nonce },
         ripple: false,
         translation: {

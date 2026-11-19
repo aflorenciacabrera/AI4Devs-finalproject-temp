@@ -7,9 +7,9 @@ const ORIGIN = 'http://firmadoc.test:8000';
 
 describe('withTheme', () => {
   it('agrega el tema y el acento del panel a la consulta, antes del fragmento con el token', () => {
-    expect(withTheme(SIGNING_URL, 'dark')).toBe('http://firmadoc.test:8000/sign/0f3c7f5e-1111-2222-3333-444444444444?theme=dark&accent=emerald#t=abc');
-    expect(withTheme('http://f.test/sign/x?a=1#t=abc', 'light')).toBe('http://f.test/sign/x?a=1&theme=light&accent=emerald#t=abc');
-    expect(withTheme('http://f.test/sign/x', 'light')).toBe('http://f.test/sign/x?theme=light&accent=emerald');
+    expect(withTheme(SIGNING_URL, 'dark')).toBe('http://firmadoc.test:8000/sign/0f3c7f5e-1111-2222-3333-444444444444?theme=dark&accent=blue#t=abc');
+    expect(withTheme('http://f.test/sign/x?a=1#t=abc', 'light')).toBe('http://f.test/sign/x?a=1&theme=light&accent=blue#t=abc');
+    expect(withTheme('http://f.test/sign/x', 'light')).toBe('http://f.test/sign/x?theme=light&accent=blue');
   });
 });
 

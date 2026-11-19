@@ -4,7 +4,7 @@ Panel de administración como aplicación Angular 21 (componentes standalone, si
 
 Se usa **PrimeNG 21** (licencia MIT) a propósito: desde la versión 22 PrimeNG pasó a la licencia «PrimeUI» (clave obligatoria, gratuita para estudiantes y equipos chicos, comercial para el resto) y sin clave muestra un aviso. Actualizar a 22+ implica decidir esa licencia.
 
-Es también el ejemplo de referencia de cómo una aplicación Angular embebe el widget: `src/app/sections/widget-frame.ts` (iframe dentro de una tarjeta `p-card` de la misma página, usado desde `sign.html`). El panel le pide al widget su tema y sus colores (`?theme=...&accent=emerald`) y ajusta el alto del iframe al contenido, así que la firma se ve como una parte más de la pantalla.
+Es también el ejemplo de referencia de cómo una aplicación Angular embebe el widget: `src/app/sections/widget-frame.ts` (iframe dentro de una tarjeta `p-card` de la misma página, usado desde `sign.html`). El panel le pide al widget su tema y sus colores (`?theme=...&accent=blue`) y ajusta el alto del iframe al contenido, así que la firma se ve como una parte más de la pantalla.
 
 ## Desarrollo
 
@@ -41,7 +41,7 @@ Compartiendo origen con `FIRMADOC_PUBLIC_BASE_URL`, el widget se embebe sin conf
 ```
 src/app/
 ├── app.ts, app.html          # menú lateral (p-menu; en pantallas angostas, dentro de un p-drawer), tema, toast y confirmación
-├── app.config.ts             # HttpClient, PrimeNG (tema Aura, modo oscuro por data-theme, nonce)
+├── app.config.ts             # HttpClient, PrimeNG (tema de core/preset.ts, modo oscuro por data-theme, nonce)
 ├── core/
 │   ├── admin-api.ts          # cliente de /api/v1/admin: token en sessionStorage, Bearer, 401 cierra sesión
 │   ├── api-types.ts          # tipos de las respuestas

@@ -92,6 +92,8 @@ describe("applyAccent", () => {
     const root = { dataset: {} as DOMStringMap };
     expect(applyAccent(root, "?theme=dark&accent=emerald")).toBe("emerald");
     expect(root.dataset.accent).toBe("emerald");
+    expect(applyAccent(root, "?accent=blue")).toBe("blue");
+    expect(root.dataset.accent).toBe("blue");
     expect(applyAccent(root, "?accent=%23ff0000")).toBeNull();
     expect(root.dataset.accent).toBeUndefined();
     expect(applyAccent(root, "?accent=red;background:url(x)")).toBeNull();
