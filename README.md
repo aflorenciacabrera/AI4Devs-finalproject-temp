@@ -735,14 +735,14 @@ Criterios de aceptación:
 
 ## 6. Tickets de Trabajo
 
-**Backlog en Jira (fuente de los tickets).** Todo el trabajo se planificó y se siguió en el proyecto `FIRDOC` de Jira ([tablero](https://aflorenciacabrera.atlassian.net/jira/software/projects/FIRDOC/boards/35/backlog), privado): 8 épicas y 60 historias, tareas y errores. Cada cambio de OpenSpec y cada commit citan la clave `FIRDOC-N` que implementan (tabla de la sección 7). Estado en Jira al 18/11/2026: 56 de 60 en «Listo».
+**Backlog en Jira (fuente de los tickets).** Todo el trabajo se planificó y se siguió en el proyecto `FIRDOC` de Jira ([tablero](https://aflorenciacabrera.atlassian.net/jira/software/projects/FIRDOC/boards/35/backlog), privado): 8 épicas y 61 historias, tareas y errores. Cada cambio de OpenSpec y cada commit citan la clave `FIRDOC-N` que implementan (tabla de la sección 7). Estado en Jira al 18/11/2026: 57 de 61 en «Listo».
 
 | Épica | Tickets | Estado en Jira |
 |---|---|---|
 | FIRDOC-1 · Motor PAdES y firma diferida | 6, 7, 8, 29 | Listo |
 | FIRDOC-2 · Firma remota simulada | 9, 10 | Listo |
 | FIRDOC-3 · Widget de firma embebible | 11, 12, 13, 30, 34, 35 | Listo |
-| FIRDOC-4 · Panel de administración y auditoría | 14, 15, 27, 36, 37, 38, 47, 64, 68 · 39 | Listo, salvo 39 (pantallas del panel que faltan en el mockup) |
+| FIRDOC-4 · Panel de administración y auditoría | 14, 15, 27, 36, 37, 38, 47, 64, 68, 69 · 39 | Listo, salvo 39 (pantallas del panel que faltan en el mockup) |
 | FIRDOC-18 · Proveedor token y Firmadoc Agent | 20, 21, 22, 49, 50, 51, 52 | Listo |
 | FIRDOC-19 · API de integración y versionado | 23, 24, 25, 26, 28, 61, 66 | Listo |
 | FIRDOC-33 · Carga de PDF y sección «Firmar documento» | 44, 45 | Listo |
@@ -848,3 +848,4 @@ Todo el trabajo se hizo con OpenSpec (propuesta, especificación, diseño y tare
 | Imagen Docker del servidor, demo en contenedores y pipeline endurecido | FIRDOC-65 | `61cd53c`, `fed3a26` |
 | Registros estructurados, SLO de firma y auditoría de dependencias | FIRDOC-66 | `b1feb10` |
 | Niveles de la suite y lectura de cobertura; accesibilidad del panel y catálogo de interfaz | FIRDOC-67, 68 | `71e90a3` |
+| Panel Angular: paleta azul, logo de firma y avisos como advertencia | FIRDOC-69 | `04bcc96` |
