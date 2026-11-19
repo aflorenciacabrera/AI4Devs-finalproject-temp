@@ -48,6 +48,10 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install -e ".[dev]" -e "agent[dev]"
       - run: make lint PYTHON=python
+      # Primero el nivel que no arranca nada: si una regla está rota, se sabe en segundos.
+      - run: make test-unit PYTHON=python ARGS="--junitxml=pytest-unit.xml"
+      - if: always()
+        run: python .github/scripts/pytest_summary.py "Nivel unitario" pytest-unit.xml >> "$GITHUB_STEP_SUMMARY"
       - run: make test-backend PYTHON=python ARGS="--junitxml=pytest-backend.xml"
       - if: always()
         run: python .github/scripts/pytest_summary.py "Backend" pytest-backend.xml >> "$GITHUB_STEP_SUMMARY"

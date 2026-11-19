@@ -70,11 +70,11 @@ escribir, la migración falla y el contenedor termina sin servir nada), `FIRMADO
 
 | Trabajo | Pregunta que responde | Qué **no** afirma |
 |---|---|---|
-| `backend` | ¿Pasa el lint y la suite del backend en una máquina limpia, contra un PostgreSQL real? | Nada sobre un token físico ni sobre la TSA o la firma remota reales (se simulan) |
+| `backend` | ¿Pasa el lint, el nivel unitario (primero, en segundos) y la suite del backend en una máquina limpia, contra un PostgreSQL real? | Nada sobre un token físico ni sobre la TSA o la firma remota reales (se simulan) |
 | `agent` | ¿El agente firma con un token PKCS#11 por software (SoftHSM) y su diálogo funciona? | Que funcione con el middleware de un fabricante |
 | `agent-windows` | ¿El agente se prueba y se empaqueta en Windows? | Que el instalador esté firmado ni que se despliegue por política de dominio |
 | `widget` | ¿El widget compila con tipos estrictos y pasa lint, pruebas y accesibilidad (axe)? | Cómo se ve: no hay comparación visual |
-| `frontend` | ¿El panel pasa sus pruebas y compila? | Accesibilidad ni aspecto del panel |
+| `frontend` | ¿El panel pasa sus pruebas (incluida accesibilidad con axe, pantalla por pantalla) y compila? | Contraste de color ni aspecto del panel; no hay recorrido del panel Angular en un navegador real |
 | `e2e` | ¿Los recorridos críticos funcionan en un Chrome real? | Firefox, Safari ni Edge (Edge se prueba a mano con `FIRMADOC_E2E_BROWSER=msedge`) |
 | `image` | ¿La imagen se puede fabricar desde cero? | Que arranque ni que firme: eso es `make image-run` en una PC |
 | `lint-workflows` | ¿Los archivos del pipeline son válidos (actionlint)? | Que hagan lo que dicen |

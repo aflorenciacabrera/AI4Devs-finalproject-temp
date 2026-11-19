@@ -12,6 +12,7 @@ Cómo se mantiene la documentación de Firmadoc y la capa de OpenSpec / `ai-spec
 | `docs/ci.md` | Imagen del servidor, qué garantiza y qué no comprueba cada trabajo del pipeline, y qué secretos existen (sin valores) | Cambia el `Dockerfile`, un trabajo del pipeline o se agrega un secreto |
 | `docs/observability.md` | Qué se registra, el identificador de pedido y qué no se registra nunca | Se agrega un evento, un campo a los registros o cambia su configuración |
 | `docs/slo/api.md` | SLO de firma: indicadores, objetivo, presupuesto de error y cómo medirlo | Cambia el objetivo, un umbral o las rutas que cuentan como firma |
+| `docs/design-system.md` | Catálogo de interfaz: tokens de color, piezas del panel y del widget, y qué se comprueba | Se agrega una pieza, un token, un acento o una severidad de estado |
 | `AGENTS.md` / `CLAUDE.md` | Reglas para los agentes de IA (idénticos) | Cambian convenciones, invariantes, comandos de verificación o el flujo OpenSpec |
 | `docs/documentation-standards.md` | Este archivo | Se agrega o renombra un documento |
 | `docs/documents-api.md` | Endpoints de documentos y versiones | Cambia el contrato de `/api/v1/documents` |

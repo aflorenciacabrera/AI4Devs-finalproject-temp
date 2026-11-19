@@ -32,6 +32,11 @@ firmadoc = ["admin_ui/*"]
 [tool.pytest.ini_options]
 testpaths = ["tests", "agent/tests"]
 pythonpath = ["backend/src", "agent/src"]
+markers = [
+    "unit: no arranca nada (una regla sola, con sus bordes)",
+    "functional: arranca la aplicación, una base, un servidor, un proceso o SoftHSM",
+    "e2e: navegador real contra el servidor, el agente y una página anfitriona",
+]
 
 [tool.ruff]
 line-length = 100

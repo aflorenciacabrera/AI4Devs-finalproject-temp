@@ -350,10 +350,24 @@ Para la entrega del máster: **hoy** hay una imagen del servidor (`Dockerfile` m
 
 ### **2.6. Tests**
 
+**La pirámide, por lo que cada prueba arranca** (no por la carpeta en la que está; `conftest.py` de la raíz clasifica cada test y ninguno queda sin nivel):
+
+| Nivel | Qué arranca | Pruebas | Cómo se corre |
+|---|---|---:|---|
+| Unitario | Nada: una regla sola, con sus bordes | 171 | `make test-unit` (unos 10 segundos) |
+| Funcional | La aplicación, una base (SQLite y PostgreSQL), un servidor HTTP o SoftHSM | 1.003 | `make test-backend`, `make test-agent` |
+| Navegador | Chrome real contra el servidor, el agente y una página anfitriona | 86 | `make test-e2e` |
+| Widget (Vitest) | Componentes React en jsdom, con accesibilidad (axe) | 234 | `npm test` en `widget/` |
+| Panel (Vitest) | Componentes Angular en jsdom, con accesibilidad (axe) pantalla por pantalla | 42 | `npm test` en `frontend/` |
+
+Los recuentos de Python incluyen las variantes por motor de base; las de PostgreSQL y SoftHSM se omiten en una PC que no los tiene y corren en el pipeline. La pirámide está invertida respecto del dibujo clásico a propósito: casi todas las reglas de este sistema (desafíos, versiones, auditoría) viven en la base y en el flujo HTTP, y ahí se prueban entrando por donde entra el cliente; el nivel unitario cubre lo que tiene bordes propios (validación de certificados, tokens del widget, nombres de archivo, política de PIN, medición del SLO).
+
+**Cobertura: se lee, no se persigue** (`make coverage`). Lectura del 18/11/2026: 93 % de las líneas con los niveles unitario y funcional (54 % solo con el unitario). No hay ningún archivo sin pruebas; los dos más bajos en esa medición —la ventana de PIN del agente y el acceso PKCS#11— lo están porque se midió en un contenedor sin interfaz gráfica ni SoftHSM, y sus pruebas corren en el pipeline. No hay un mínimo que bloquee: un porcentaje como meta deja de medir.
+
 - **Unitarios**: lógica de cada `SignatureProvider` de forma aislada; motor PAdES (preparar/completar); validación de confianza con certificados de prueba (raíz, AC y firmante con CUIL, sin valor legal).
 - **Casos de rechazo de la validación**: certificado revocado, de otra AC, vencido, con CUIL que no coincide con el usuario, firma hecha con otra clave y desafío vencido, reutilizado o de otra sesión.
-- **Verificación independiente**: el PDF firmado se valida con una herramienta ajena a pyHanko (ej. `pdfsig` de Poppler) y se comprueba que dos firmas sucesivas sobre el mismo PDF no se invalidan entre sí.
-- **Integración**: API + PostgreSQL (con testcontainers), flujo completo crear solicitud → preparar → completar → versión nueva → auditoría → webhook.
+- **Verificación independiente**: el PDF firmado se valida con una herramienta ajena a pyHanko (OpenSSL) y se comprueba que dos firmas sucesivas sobre el mismo PDF no se invalidan entre sí.
+- **Integración**: API + PostgreSQL real (un contenedor de servicio en el pipeline; `docker compose up -d postgres` en una PC), flujo completo crear solicitud → preparar → completar → versión nueva → auditoría → webhook.
 - **Agente sin hardware**: pruebas del agente y del `TokenAgentProvider` con SoftHSM (PKCS#11 por software), ejecutables en CI.
 - **End-to-end**: un sistema integrador de prueba embebe el widget, firma un documento (con SoftHSM) y recibe el webhook de confirmación.
 - **Prueba manual documentada** con un token criptográfico USB de referencia (`agent/README.md`): carga de la biblioteca PKCS#11, lectura del certificado, firma de un lote con un solo PIN. **Ejecutado en parte:** con el token físico la biblioteca carga, `diagnose` lista el certificado y se firmaron documentos individuales desde el panel de la demo (FIRDOC-49). Esa prueba destapó un error real: la lista de revocación de la AC pesa 9 MB y cada validación la descargaba de nuevo, lo que hacía vencer la espera del widget en un lote; se corrigió con una caché de CRL (FIRDOC-52). **Falta repetir con el dispositivo** la firma en lote después de esa corrección y la consulta de revocación en modo estricto.

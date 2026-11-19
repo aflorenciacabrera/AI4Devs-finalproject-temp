@@ -2,7 +2,11 @@
 
 import json
 
+import pytest
+
 from firmadoc import slo
+
+pytestmark = pytest.mark.unit  # solo cuenta líneas: no arranca nada
 
 
 def request(route: str, status: int = 200, duration_ms: float = 120.0) -> str:

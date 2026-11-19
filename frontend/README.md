@@ -23,7 +23,7 @@ FIRMADOC_PANEL_ORIGINS=http://localhost:4200
 (se suma al de `FIRMADOC_PUBLIC_BASE_URL` como origen permitido del sistema interno «Firmadoc (panel)»; se actualiza en la siguiente carga de un PDF). El iframe carga la `signing_url` absoluta del backend y el panel solo acepta mensajes del widget que vengan de la ventana del iframe y de ese origen.
 
 ```
-npm test            # pruebas unitarias (Vitest)
+npm test            # pruebas unitarias y de accesibilidad con axe (Vitest; src/app/a11y.spec.ts)
 npm run build       # dist/firmadoc-panel/browser
 ```
 

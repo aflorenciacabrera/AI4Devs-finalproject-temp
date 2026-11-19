@@ -11,6 +11,8 @@ from pkcs11 import exceptions as p11
 from firmadoc_agent.errors import AgentError
 from firmadoc_agent.pkcs11_backend import Pkcs11Backend
 
+pytestmark = pytest.mark.unit  # token falso en memoria: no arranca SoftHSM
+
 SERIAL = "0123456789abcdef"
 CERT_ID = f"{SERIAL}:01"
 

@@ -9,7 +9,7 @@ alwaysApply: true
 
 | Área | Carpeta | Stack | Verificación |
 |------|---------|-------|--------------|
-| API | `backend/src/firmadoc/` | Python 3.11+, FastAPI, SQLAlchemy 2 + Alembic, pyHanko (PAdES, firma diferida), pydantic-settings | `ruff check .` · `pytest tests` |
+| API | `backend/src/firmadoc/` | Python 3.11+, FastAPI, SQLAlchemy 2 + Alembic, pyHanko (PAdES, firma diferida), pydantic-settings | `ruff check .` · `pytest -m unit` (segundos) · `pytest tests` |
 | Agente local | `agent/src/firmadoc_agent/` | Python, python-pkcs11, diálogo tkinter, PyInstaller | `ruff check agent` · `pytest agent/tests` (SoftHSM en CI) |
 | Widget de firma | `widget/` | React 19 + TypeScript (Vite), Vitest + Testing Library + axe | `npm run typecheck && npm run lint && npm test && npm run build` |
 | Panel de administración | `frontend/` | Angular 21 (standalone, zoneless, sin enrutador), PrimeNG 21, Vitest | `npm test && npm run build` |
@@ -24,6 +24,7 @@ alwaysApply: true
 - **Tareas chicas, de a una**: incrementos enfocados; no adelantarse a tareas que todavía no están en `tasks.md`.
 - **Tests primero cuando sea posible**: toda tarea de seguridad (desafíos, validación de confianza, agente, orígenes, tokens) lleva su test.
 - **Tipado completo**: TypeScript estricto en `widget/` y `frontend/`; type hints en Python.
+- **Elegir antes de inventar en la interfaz**: tokens de color y piezas con nombre en `docs/design-system.md`; un estado es un `p-tag` con `statusSeverity`, nunca un color suelto.
 - **Reutilizar patrones**: proveedores (`providers/base.py`), servicios (`services/`), pantallas del widget (`screens/`), secciones del panel (`sections/`) antes de crear abstracciones nuevas.
 - **Alcance mínimo**: no tocar código no relacionado; diffs chicos y revisables.
 - **PrimeNG antes que CSS a medida** en el panel: agotar `severity`, `styleClass`, pass-through `[pt]` y tokens del tema antes de escribir CSS propio (y comentar por qué). En el widget los estilos viven en `widget/src/styles/` con sus tokens.
@@ -50,7 +51,7 @@ alwaysApply: true
 ## 4. Documentación de referencia
 
 - [README.md](./README.md): §1 producto, §2 arquitectura y §2.5 seguridad, §3 modelo de datos, §4 API, §5 historias de usuario, §6 tickets.
-- [docs/](./docs/): `admin.md`, `agent-contract.md`, `ci.md`, `database.md`, `demo.md`, `documents-api.md`, `firmar.md`, `real-mode.md`, `signature-batches.md`, `observability.md`, `slo/api.md`, `timestamping.md`, `webhooks.md`; `prototipo-referencia-firmadoc.md` y `design/mockup/` como referencia visual.
+- [docs/](./docs/): `admin.md`, `agent-contract.md`, `ci.md`, `database.md`, `demo.md`, `design-system.md`, `documents-api.md`, `firmar.md`, `real-mode.md`, `signature-batches.md`, `observability.md`, `slo/api.md`, `timestamping.md`, `webhooks.md`; `prototipo-referencia-firmadoc.md` y `design/mockup/` como referencia visual.
 - [docs/documentation-standards.md](./docs/documentation-standards.md): qué documento se actualiza con cada tipo de cambio.
 - READMEs de cada subproyecto: `backend/README.md`, `agent/README.md`, `widget/README.md`, `frontend/README.md`.
 - `prompts.md`: registro del uso de IA (formato oficial de la entrega); se actualiza cuando una fase nueva usa prompts relevantes.

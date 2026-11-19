@@ -54,4 +54,6 @@
 }
 
 <p-toast position="top-center" />
-<p-confirmdialog header="Confirmar" acceptLabel="Sí" rejectLabel="No" rejectButtonStyleClass="p-button-text" />
+<!-- Sin la «X» de la cabecera: en PrimeNG 21 ese botón queda sin nombre accesible (p-confirmdialog no le pasa
+     `closeAriaLabel` a su p-dialog). El diálogo se cierra con su botón de rechazo o con Escape. -->
+<p-confirmdialog header="Confirmar" acceptLabel="Sí" rejectLabel="No" [closable]="false" rejectButtonStyleClass="p-button-text" />
